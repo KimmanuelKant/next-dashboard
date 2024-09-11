@@ -1,21 +1,54 @@
-/* src/styles/global.css */
+/* src/styles/global.css - Dark Mode */
 body {
   font-family: Arial, sans-serif;
-  padding: 0;
-  margin: 0;
+  padding: 20px;
+  background-color: #121212; /* Dark background */
+  color: #e0e0e0; /* Light text */
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 20px;
 }
 
 th,
 td {
-  border: 1px solid #ddd;
+  border: 1px solid #444444; /* Dark border for table cells */
   padding: 8px;
+  text-align: left;
 }
 
 th {
-  background-color: #f2f2f2;
+  background-color: #1e1e1e; /* Darker background for table headers */
+  color: #ffffff; /* White text for headers */
+}
+
+tbody tr:nth-child(even) {
+  background-color: #2a2a2a; /* Darker rows for even rows */
+}
+
+tbody tr:nth-child(odd) {
+  background-color: #1e1e1e; /* Lighter rows for odd rows */
+}
+
+h1,
+h2 {
+  color: #ffffff; /* White text for headers */
+}
+
+a {
+  color: #bb86fc; /* Accent color for links */
+}
+
+button {
+  background-color: #333333; /* Dark background for buttons */
+  color: #e0e0e0; /* Light text */
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #444444; /* Slightly lighter on hover */
 }
