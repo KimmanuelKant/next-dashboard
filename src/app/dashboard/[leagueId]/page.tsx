@@ -26,9 +26,24 @@ export default function DashboardPage({ params }: { params: { leagueId: string }
   };
 
   return (
-    <div>
+    <div data-bs-theme="dark">
       <h1>FPL Dashboard for League {params.leagueId}</h1>
       <nav>
+      <ul className="nav">
+        <li className="nav-item">
+          <a className="nav-link" href="#" onClick={() => setActiveTab("team")}>Active</a>
+        </li>
+        <li className="nav-item">
+          <a className="nav-link" href="#" onClick={() => setActiveTab("player")}>Active</a>
+        </li>
+        <li className="nav-item">
+          <a className="nav-link" href="#" onClick={() => setActiveTab("awards")}>Active</a>
+        </li>
+        <li className="nav-item">
+          <a className="nav-link" href="#" onClick={() => setActiveTab("chat")}>Active</a>
+        </li> 
+    </ul>
+        
         <button onClick={() => setActiveTab("team")}>Team Statistics</button>
         <button onClick={() => setActiveTab("player")}>Player Statistics</button>
         <button onClick={() => setActiveTab("awards")}>Awards</button>

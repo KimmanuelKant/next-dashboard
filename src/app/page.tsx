@@ -1,6 +1,6 @@
 // src/app/page.tsx
 "use client";
-
+import  "bootstrap/dist/css/bootstrap.min.css"
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 

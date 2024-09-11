@@ -22,7 +22,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
     return (
       <div>
         <h2>Team Statistics for League {leagueId}</h2>
-        <table>
+        <table className="table table-striped">
           <thead>
             <tr>
               <th>Rank</th>

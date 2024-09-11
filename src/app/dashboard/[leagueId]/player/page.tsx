@@ -28,7 +28,7 @@ export default async function PlayerPage({ params }: { params: { leagueId: strin
     return (
       <div>
         <h2>Player Statistics for League {params.leagueId}</h2>
-        <table>
+        <table className="table table-striped">
           <thead>
             <tr>
               <th>Manager Name</th>

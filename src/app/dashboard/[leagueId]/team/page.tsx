@@ -23,7 +23,7 @@ export default async function TeamPage({ params }: { params: { leagueId: string 
     return (
       <div>
         <h2>Team Statistics for League {params.leagueId}</h2>
-        <table>
+       <table className="table table-striped">
           <thead>
             <tr>
               <th>Rank</th>
