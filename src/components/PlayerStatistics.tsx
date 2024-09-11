@@ -17,6 +17,7 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
       const playersData = await playersRes.json();
   
       const managers = standingsData.standings.results;
+      const players = playersData.elements.slice(0, 10); // Display first 10 players for example
   
       return (
         <div>
@@ -27,7 +28,7 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
                 <th>Manager Name</th>
                 <th>Team Name</th>
                 <th>Points</th>
-                <th>Player Information</th>
+                <th>Top 10 Players</th>
               </tr>
             </thead>
             <tbody>
@@ -37,7 +38,11 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
                   <td>{manager.entry_name}</td>
                   <td>{manager.total}</td>
                   <td>
-                    <div>No data available</div>
+                    <ul>
+                      {players.map((player: any) => (
+                        <li key={player.id}>{player.web_name} - {player.total_points} points</li>
+                      ))}
+                    </ul>
                   </td>
                 </tr>
               ))}
