@@ -1,4 +1,3 @@
-// src/components/PlayerStatistics.tsx
 export default async function PlayerStatistics({ leagueId }: { leagueId: string }) {
     try {
       // Fetch league standings
@@ -17,16 +16,8 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
       }
       const playersData = await playersRes.json();
   
-      // Extract relevant data from standings
       const managers = standingsData.standings.results;
-      
-      // Prepare a map of players data by team entry ID
-      const playerMap: { [id: string]: any } = {};
-      playersData.elements.forEach((player: any) => {
-        playerMap[player.id] = player;
-      });
   
-      // Now we can display player details for managers in the league
       return (
         <div>
           <h2>Player Statistics</h2>
@@ -36,7 +27,7 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
                 <th>Manager Name</th>
                 <th>Team Name</th>
                 <th>Points</th>
-                <th>Player Information</th> {/* For future use */}
+                <th>Player Information</th>
               </tr>
             </thead>
             <tbody>
@@ -45,17 +36,8 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
                   <td>{manager.player_name}</td>
                   <td>{manager.entry_name}</td>
                   <td>{manager.total}</td>
-                  <td> {/* Future detailed player information */}
-                    {playerMap[manager.entry] ? (
-                      <div>
-                        {/* Example player info: */}
-                        {/* You can replace this with more detailed player statistics */}
-                        Player ID: {playerMap[manager.entry].id} <br />
-                        Team: {playerMap[manager.entry].team}
-                      </div>
-                    ) : (
-                      <div>No data available</div>
-                    )}
+                  <td>
+                    <div>No data available</div>
                   </td>
                 </tr>
               ))}
