@@ -2,9 +2,5 @@
 import TeamStatistics from "@/components/TeamStatistics";
 
 export default function TeamPage({ params }: { params: { leagueId: string } }) {
-  return (
-    <div>
-      <TeamStatistics leagueId={params.leagueId} />
-    </div>
-  );
+  return <TeamStatistics leagueId={params.leagueId} />;
 }
