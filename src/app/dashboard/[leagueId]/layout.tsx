@@ -20,8 +20,6 @@ export default function DashboardLayout({
         <Link href={`/dashboard/${leagueId}/awards`}>Awards</Link>
         <Link href={`/dashboard/${leagueId}/chat`}>Chat</Link>
       </nav>
-
-      {/* This renders the content of the currently selected tab */}
       <div>{children}</div>
     </div>
   );

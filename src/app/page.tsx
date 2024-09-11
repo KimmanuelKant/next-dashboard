@@ -11,7 +11,7 @@ export default function HomePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (leagueId) {
-      router.push(`/dashboard/${leagueId}`);
+      router.push(`/dashboard/${leagueId}/team`);
     }
   };
 
