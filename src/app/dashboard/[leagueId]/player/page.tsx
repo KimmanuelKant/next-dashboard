@@ -1,27 +1,41 @@
-export default async function PlayerPage({ params }: { params: { leagueId: string } }) {
-  async function fetchPlayerStatistics(leagueId: string) {
-    // Fetch league standings
-    const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
-    if (!standingsRes.ok) {
-      throw new Error('Failed to fetch standings');
-    }
-    const standingsData = await standingsRes.json();
+interface Manager {
+  entry: number;
+  player_name: string;
+  entry_name: string;
+  total: number;
+}
 
-    // Fetch general player data
-    const playersRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`);
-    if (!playersRes.ok) {
-      throw new Error('Failed to fetch player data');
-    }
-    const playersData = await playersRes.json();
+interface Player {
+  id: number;
+  web_name: string;
+  total_points: number;
+}
 
-    return { standingsData, playersData };
+async function fetchPlayerStatistics(leagueId: string): Promise<{ standingsData: { standings: { results: Manager[] } }, playersData: { elements: Player[] } }> {
+  // Fetch league standings
+  const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
+  if (!standingsRes.ok) {
+    throw new Error('Failed to fetch standings');
   }
+  const standingsData: { standings: { results: Manager[] } } = await standingsRes.json();
 
+  // Fetch general player data
+  const playersRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`);
+  if (!playersRes.ok) {
+    throw new Error('Failed to fetch player data');
+  }
+  const playersData: { elements: Player[] } = await playersRes.json();
+
+  return { standingsData, playersData };
+}
+
+export default async function PlayerPage({ params }: { params: { leagueId: string } }) {
   try {
     const { standingsData, playersData } = await fetchPlayerStatistics(params.leagueId);
-    // Use inline types for managers and players
-    const managers: Array<{ entry: number; player_name: string; entry_name: string; total: number }> = standingsData.standings.results;
-    const players: Array<{ id: number; web_name: string; total_points: number }> = playersData.elements.slice(0, 10);
+    
+    // Use typed arrays for managers and players
+    const managers = standingsData.standings.results;
+    const players = playersData.elements.slice(0, 10);
 
     return (
       <div>
