@@ -13,11 +13,18 @@ async function fetchTeamStandings(leagueId: string) {
 
   return res.json();
 }
+interface Team {
+  rank: number;
+  player_name: string;
+  entry_name: string;
+  total: number;
+  event_total: number;
+}
 
 export default async function TeamStatistics({ leagueId }: { leagueId: string }) {
   try {
     const standingsData = await fetchTeamStandings(leagueId);
-    const teams: Array<{ rank: number; player_name: string; entry_name: string; total: number; event_total: number }> = standingsData.standings.results;
+    const teams: Team[] = standingsData.standings.results;
 
     return (
       <div>
@@ -29,7 +36,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
               <th>Manager Name</th>
               <th>Team Name</th>
               <th>Total Points</th>
-              <th>Event Total (Latest GW Points)</th>
+              <th>Event Total</th>
             </tr>
           </thead>
           <tbody>

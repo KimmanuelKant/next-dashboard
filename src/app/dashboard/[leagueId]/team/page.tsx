@@ -17,8 +17,14 @@ async function fetchTeamStandings(leagueId: string) {
 
   return res.json();
 }
+interface Team {
+  rank: number;
+  player_name: string;
+  entry_name: string;
+  total: number;
+  event_total: number;
+}
 
-// The default export is the server component
 export default async function TeamPage({
   params,
 }: {
@@ -26,15 +32,13 @@ export default async function TeamPage({
 }) {
   try {
     const standingsData = await fetchTeamStandings(params.leagueId);
-    const teams = standingsData.standings.results;
+    const teams: Team[] = standingsData.standings.results;
 
     return (
       <div>
         <h2>Team Statistics for League {params.leagueId}</h2>
-
-
         <TeamStatisticsTable
-          stats={teams.map((team: any) => ({
+          stats={teams.map((team) => ({
             rank: team.rank,
             managerName: team.player_name,
             teamName: team.entry_name,

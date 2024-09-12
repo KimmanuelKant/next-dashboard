@@ -1,19 +1,26 @@
+interface Manager {
+  player_name: string;
+  entry_name: string;
+  total: number;
+}
+
+interface Player {
+  web_name: string;
+  total_points: number;
+}
+
 export default async function PlayerStatistics({ leagueId }: { leagueId: string }) {
   try {
     const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
-    if (!standingsRes.ok) {
-      throw new Error("Failed to fetch league standings");
-    }
-    const standingsData: { standings: { results: Array<{ player_name: string; entry_name: string; total: number }> } } = await standingsRes.json();
+    if (!standingsRes.ok) throw new Error("Failed to fetch league standings");
 
+    const standingsData = await standingsRes.json();
     const playersRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`);
-    if (!playersRes.ok) {
-      throw new Error("Failed to fetch player data");
-    }
-    const playersData: { elements: Array<{ id: number; web_name: string; total_points: number }> } = await playersRes.json();
+    if (!playersRes.ok) throw new Error("Failed to fetch player data");
 
-    const managers = standingsData.standings.results;
-    const players = playersData.elements.slice(0, 10);
+    const playersData = await playersRes.json();
+    const managers: Manager[] = standingsData.standings.results;
+    const players: Player[] = playersData.elements.slice(0, 10);
 
     return (
       <div>
@@ -36,7 +43,7 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
                 <td>
                   <ul>
                     {players.map((player) => (
-                      <li key={player.id}>{player.web_name} - {player.total_points} points</li>
+                      <li key={player.web_name}>{player.web_name} - {player.total_points} points</li>
                     ))}
                   </ul>
                 </td>
