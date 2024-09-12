@@ -17,7 +17,7 @@ async function fetchTeamStandings(leagueId: string) {
 export default async function TeamStatistics({ leagueId }: { leagueId: string }) {
   try {
     const standingsData = await fetchTeamStandings(leagueId);
-    const teams = standingsData.standings.results;
+    const teams: Array<{ rank: number; player_name: string; entry_name: string; total: number; event_total: number }> = standingsData.standings.results;
 
     return (
       <div>
@@ -33,8 +33,8 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
             </tr>
           </thead>
           <tbody>
-            {teams.map((team: any) => (
-              <tr key={team.entry}>
+            {teams.map((team) => (
+              <tr key={team.entry_name}>
                 <td>{team.rank}</td>
                 <td>{team.player_name}</td>
                 <td>{team.entry_name}</td>
