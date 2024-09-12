@@ -1,25 +1,26 @@
 // src/app/dashboard/[leagueId]/player/page.tsx
-async function fetchPlayerStatistics(leagueId: string) {
-  // Fetch league standings
-  const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
-  if (!standingsRes.ok) {
-    throw new Error('Failed to fetch standings');
-  }
-  const standingsData = await standingsRes.json();
-
-  // Fetch general player data
-  const playersRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`);
-  if (!playersRes.ok) {
-    throw new Error('Failed to fetch player data');
-  }
-  const playersData = await playersRes.json();
-
-  return { standingsData, playersData };
-}
-
 export default async function PlayerPage({ params }: { params: { leagueId: string } }) {
+  async function fetchPlayerStatistics(leagueId: string) {
+    // Fetch league standings
+    const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
+    if (!standingsRes.ok) {
+      throw new Error('Failed to fetch standings');
+    }
+    const standingsData = await standingsRes.json();
+
+    // Fetch general player data
+    const playersRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`);
+    if (!playersRes.ok) {
+      throw new Error('Failed to fetch player data');
+    }
+    const playersData = await playersRes.json();
+
+    return { standingsData, playersData };
+  }
+
   try {
     const { standingsData, playersData } = await fetchPlayerStatistics(params.leagueId);
+    // Use inline types for managers and players
     const managers: Array<{ entry: number; player_name: string; entry_name: string; total: number }> = standingsData.standings.results;
     const players: Array<{ id: number; web_name: string; total_points: number }> = playersData.elements.slice(0, 10);
 
@@ -59,4 +60,3 @@ export default async function PlayerPage({ params }: { params: { leagueId: strin
     return <div>Error loading player statistics. Please try again later.</div>;
   }
 }
-
