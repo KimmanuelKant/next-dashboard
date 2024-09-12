@@ -11,31 +11,30 @@ interface Player {
   total_points: number;
 }
 
-async function fetchPlayerStatistics(leagueId: string): Promise<{ standingsData: { standings: { results: Manager[] } }, playersData: { elements: Player[] } }> {
-  // Fetch league standings
-  const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
-  if (!standingsRes.ok) {
-    throw new Error('Failed to fetch standings');
-  }
-  const standingsData: { standings: { results: Manager[] } } = await standingsRes.json();
-
-  // Fetch general player data
-  const playersRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`);
-  if (!playersRes.ok) {
-    throw new Error('Failed to fetch player data');
-  }
-  const playersData: { elements: Player[] } = await playersRes.json();
-
-  return { standingsData, playersData };
-}
-
 export default async function PlayerPage({ params }: { params: { leagueId: string } }) {
+  async function fetchPlayerStatistics(leagueId: string): Promise<{ standingsData: { standings: { results: Manager[] } }, playersData: { elements: Player[] } }> {
+    // Fetch league standings
+    const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
+    if (!standingsRes.ok) {
+      throw new Error('Failed to fetch standings');
+    }
+    const standingsData = await standingsRes.json();
+
+    // Fetch general player data
+    const playersRes = await fetch(`https://fantasy.premierleague.com/api/bootstrap-static/`);
+    if (!playersRes.ok) {
+      throw new Error('Failed to fetch player data');
+    }
+    const playersData = await playersRes.json();
+
+    return { standingsData, playersData };
+  }
+
   try {
     const { standingsData, playersData } = await fetchPlayerStatistics(params.leagueId);
-    
-    // Use typed arrays for managers and players
-    const managers = standingsData.standings.results;
-    const players = playersData.elements.slice(0, 10);
+
+    const managers: Manager[] = standingsData.standings.results;
+    const players: Player[] = playersData.elements.slice(0, 10);
 
     return (
       <div>
