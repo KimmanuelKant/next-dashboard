@@ -2,7 +2,7 @@ import React from 'react';
 import { Team } from '@/types'; // Importing the type
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
 
-async function fetchTeamStandings(leagueId: string) {
+async function fetchTeamStandings(leagueId: string): Promise<{ standings: { results: Team[] } }> {
   const res = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`, {
     cache: 'no-store'
   });
@@ -17,12 +17,13 @@ async function fetchTeamStandings(leagueId: string) {
 export default async function TeamStatistics({ leagueId }: { leagueId: string }) {
   try {
     const standingsData = await fetchTeamStandings(leagueId);
-    const teams: Team[] = standingsData.standings.results.map((team: any) => ({
+    // Properly type the `team` parameter here
+    const teams: Team[] = standingsData.standings.results.map((team: Team) => ({
       rank: team.rank,
-      managerName: team.player_name,
-      teamName: team.entry_name,
-      totalPoints: team.total,
-      eventTotal: team.event_total,
+      managerName: team.managerName,
+      teamName: team.teamName,
+      totalPoints: team.totalPoints,
+      eventTotal: team.eventTotal,
     }));
 
     return (

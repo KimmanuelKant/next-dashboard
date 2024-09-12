@@ -1,3 +1,4 @@
+
 export default async function PlayerStatistics({ leagueId }: { leagueId: string }) {
   try {
     const standingsRes = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`);
