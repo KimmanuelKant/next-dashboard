@@ -1,4 +1,3 @@
-// src/app/dashboard/[leagueId]/player/page.tsx
 export default async function PlayerPage({ params }: { params: { leagueId: string } }) {
   async function fetchPlayerStatistics(leagueId: string) {
     // Fetch league standings
