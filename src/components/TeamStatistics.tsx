@@ -1,5 +1,5 @@
-// src/components/TeamStatistics.tsx
 import React from 'react';
+import TeamStatisticsTable from './TeamStatisticsTable'; // Import TeamStatisticsTable
 
 async function fetchTeamStandings(leagueId: string) {
   const res = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`, {
@@ -13,44 +13,31 @@ async function fetchTeamStandings(leagueId: string) {
 
   return res.json();
 }
+
+// Use the same Team interface as in TeamStatisticsTable.tsx
 interface Team {
   rank: number;
-  player_name: string;
-  entry_name: string;
-  total: number;
-  event_total: number;
+  managerName: string;
+  teamName: string;
+  totalPoints: number;
+  eventTotal: number;
 }
 
 export default async function TeamStatistics({ leagueId }: { leagueId: string }) {
   try {
     const standingsData = await fetchTeamStandings(leagueId);
-    const teams: Team[] = standingsData.standings.results;
+    const teams: Team[] = standingsData.standings.results.map((team: any) => ({
+      rank: team.rank,
+      managerName: team.player_name,
+      teamName: team.entry_name,
+      totalPoints: team.total,
+      eventTotal: team.event_total,
+    }));
 
     return (
       <div>
         <h2>Team Statistics for League {leagueId}</h2>
-        <table className="table table-striped">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Manager Name</th>
-              <th>Team Name</th>
-              <th>Total Points</th>
-              <th>Event Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map((team) => (
-              <tr key={team.entry_name}>
-                <td>{team.rank}</td>
-                <td>{team.player_name}</td>
-                <td>{team.entry_name}</td>
-                <td>{team.total}</td>
-                <td>{team.event_total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <TeamStatisticsTable stats={teams} />
       </div>
     );
   } catch (error) {
