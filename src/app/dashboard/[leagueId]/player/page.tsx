@@ -22,8 +22,8 @@ async function fetchPlayerStatistics(leagueId: string) {
 export default async function PlayerPage({ params }: { params: { leagueId: string } }) {
   try {
     const { standingsData, playersData } = await fetchPlayerStatistics(params.leagueId);
-    const managers = standingsData.standings.results;
-    const players = playersData.elements.slice(0, 10);
+    const managers: Array<{ entry: number; player_name: string; entry_name: string; total: number }> = standingsData.standings.results;
+    const players: Array<{ id: number; web_name: string; total_points: number }> = playersData.elements.slice(0, 10);
 
     return (
       <div>
@@ -38,14 +38,14 @@ export default async function PlayerPage({ params }: { params: { leagueId: strin
             </tr>
           </thead>
           <tbody>
-            {managers.map((manager: any) => (
+            {managers.map((manager) => (
               <tr key={manager.entry}>
                 <td>{manager.player_name}</td>
                 <td>{manager.entry_name}</td>
                 <td>{manager.total}</td>
                 <td>
                   <ul>
-                    {players.map((player: any) => (
+                    {players.map((player) => (
                       <li key={player.id}>{player.web_name} - {player.total_points} points</li>
                     ))}
                   </ul>
@@ -61,3 +61,4 @@ export default async function PlayerPage({ params }: { params: { leagueId: strin
     return <div>Error loading player statistics. Please try again later.</div>;
   }
 }
+
