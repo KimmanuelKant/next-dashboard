@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-table";
 
 interface Team {
-  rank: string;
+  rank: number;
   managerName: string;
   teamName: number;
   totalPoints: number;
