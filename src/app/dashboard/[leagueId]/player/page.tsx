@@ -1,5 +1,15 @@
 // src/app/dashboard/[leagueId]/player/page.tsx
 import React from 'react';
+interface Manager {
+  player_name: string;
+  entry_name: string;
+  total: number;
+}
+
+interface Player {
+  web_name: string;
+  total_points: number;
+}
 
 async function fetchPlayerStatistics(leagueId: string) {
   // Fetch league standings
