@@ -17,8 +17,12 @@ export default function HomePage() {
 
   return (
     <div>
-      <h1>Welcome to the FPL Dashboard</h1>
-      <form onSubmit={handleSubmit}>
+     
+
+      <div className="card m-4">
+        <div className="card-header">  <h3>Welcome to the FPL Dashboard</h3></div>
+  <div className="card-body">
+     <form onSubmit={handleSubmit} className="d-flex justify-content-between">
         <input
           type="text"
           placeholder="Enter League ID"
@@ -27,6 +31,10 @@ export default function HomePage() {
         />
         <button type="submit">Go to Dashboard</button>
       </form>
+  </div>
+          <div className="card-footer">  <p className="">copyright KIM AS HANSEN 2024</p></div>
+</div>
+    
     </div>
   );
 }
