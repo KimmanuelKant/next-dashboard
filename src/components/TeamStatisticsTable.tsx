@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { Team } from '@/types'; // Import the Team interface
 
 import {
   ColumnDef,
@@ -8,14 +9,6 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-
-interface Team {
-  rank: number;
-  managerName: string;
-  teamName: string;
-  totalPoints: number;
-  eventTotal: number;
-}
 
 const columns: ColumnDef<Team>[] = [
   {
@@ -47,8 +40,6 @@ const columns: ColumnDef<Team>[] = [
 
 export default function TeamStatisticsTable(props: { stats: Team[] }) {
   const { stats } = props;
-
-  console.log(stats);
 
   const [data, setData] = React.useState(stats);
   const rerender = () => setData(stats);

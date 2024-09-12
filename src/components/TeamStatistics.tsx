@@ -1,9 +1,9 @@
 import React from 'react';
-import TeamStatisticsTable from './TeamStatisticsTable'; // Import TeamStatisticsTable
+import { Team } from '@/types'; // Importing the type
+import TeamStatisticsTable from '@/components/TeamStatisticsTable';
 
 async function fetchTeamStandings(leagueId: string) {
   const res = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`, {
-    // Disable cache to fetch fresh data
     cache: 'no-store'
   });
 
@@ -12,15 +12,6 @@ async function fetchTeamStandings(leagueId: string) {
   }
 
   return res.json();
-}
-
-// Use the same Team interface as in TeamStatisticsTable.tsx
-interface Team {
-  rank: number;
-  managerName: string;
-  teamName: string;
-  totalPoints: number;
-  eventTotal: number;
 }
 
 export default async function TeamStatistics({ leagueId }: { leagueId: string }) {
