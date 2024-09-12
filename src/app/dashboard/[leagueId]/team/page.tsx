@@ -32,7 +32,7 @@ export default async function TeamPage({
 }) {
   try {
     const standingsData = await fetchTeamStandings(params.leagueId);
-    const teams: Team[] = standingsData.standings.results;
+    const teams: Array<{ rank: number; player_name: string; entry_name: string; total: number; event_total: number }> = standingsData.standings.results;
 
     return (
       <div>
