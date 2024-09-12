@@ -32,7 +32,7 @@ export default function HomePage() {
         <button type="submit">Go to Dashboard</button>
       </form>
   </div>
-          <div className="card-footer">  <p className="">copyright KIM AS HANSEN 2024</p></div>
+          <div className="card-footer">  <p className="">copyright KunstiguIntelligens 2024</p></div>
 </div>
     
     </div>
