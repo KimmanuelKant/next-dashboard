@@ -3,7 +3,7 @@ import TeamStatisticsTable from "@/components/TeamStatisticsTable";
 import React from "react";
 
 // This function runs on the server
-async function fetchTeamStandings(leagueId: string) {
+async function fetchTeamStandings(leagueId: string): Promise<{ standings: { results: Team[] } }> {
   const res = await fetch(
     `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
     {
@@ -17,6 +17,8 @@ async function fetchTeamStandings(leagueId: string) {
 
   return res.json();
 }
+
+// Define the Team interface here
 interface Team {
   rank: number;
   player_name: string;
@@ -32,7 +34,7 @@ export default async function TeamPage({
 }) {
   try {
     const standingsData = await fetchTeamStandings(params.leagueId);
-    const teams: Array<{ rank: number; player_name: string; entry_name: string; total: number; event_total: number }> = standingsData.standings.results;
+    const teams: Team[] = standingsData.standings.results;
 
     return (
       <div>
