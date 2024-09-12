@@ -19,8 +19,8 @@ export default async function PlayerStatistics({ leagueId }: { leagueId: string 
     if (!playersRes.ok) throw new Error("Failed to fetch player data");
 
     const playersData = await playersRes.json();
-    const managers: Manager[] = standingsData.standings.results;
-    const players: Player[] = playersData.elements.slice(0, 10);
+    const managers: Array<{ player_name: string; entry_name: string; total: number }> = standingsData.standings.results;
+    const players: Array<{ web_name: string; total_points: number }> = playersData.elements.slice(0, 10);
 
     return (
       <div>
