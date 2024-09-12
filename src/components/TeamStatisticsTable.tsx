@@ -12,7 +12,7 @@ import {
 interface Team {
   rank: number;
   managerName: string;
-  teamName: number;
+  teamName: string;
   totalPoints: number;
   eventTotal: number;
 }
