@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fantasy Premier League Dashboard
 
-## Getting Started
+## Overview
 
-First, run the development server:
+The **FPL-Dashboard** is a web application built using modern web development technologies, including **Next.js** with **App Router**, **Server-Side Rendering (SSR)**, and **TanStack Table**. The application is designed to help users track their Fantasy Premier League mini-leagues, providing rich statistics and insights on both player(relative to league) and team performances.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Team Statistics**: Display comprehensive statistics for teams in a given league, including points, rankings, and transfers.
+- **Player Statistics**: Track how individual players have effected the league standing.
+- **Dynamic Data Rendering**: Real-time updates using SSR for fetching and displaying data from the Fantasy Premier League API.
+- **Modular Table Components**: Highly customizable data tables using TanStack Table, allowing for sorting, filtering, and column customization.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Technologies Used
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Next.js**: A React-based framework for server-side rendering and static site generation.
+- **TanStack Table**: A powerful table component library for managing and displaying large datasets.
+- **Bootstrap**: Provides a clean, responsive design for the user interface.
+- **Fantasy Premier League API**: Data is fetched from the official FPL API to ensure real-time accuracy.
 
-## Learn More
+## Installation
 
-To learn more about Next.js, take a look at the following resources:
+To run the application locally, follow these steps:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/kimmanuelkant/fpl-dashboard.git
+    ```
+2. Navigate to the project directory:
+    ```bash
+    cd fpl-dashboard
+    ```
+3. Install dependencies:
+    ```bash
+    npm install
+    ```
+4. Start the development server:
+    ```bash
+    npm run dev
+    ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Visit `http://localhost:3000` in your browser to view the app.
 
-## Deploy on Vercel
+## Usage
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Enter your Fantasy Premier League **League ID** on the homepage to view the league's dashboard.
+2. Use the navigation tabs to toggle between **Team Statistics**, **Player Statistics**, **Awards** and **Chat**.
+3. Tables are interactive, allowing you to sort and filter data based on your preferences. (not yet implemented)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Future Plans
+
+Adding new features, such as:
+
+- **Awards and Badges**: Showcase achievements and awards for top-performing managers last week.
+- **Chat**: A place to communicate with others in your mini-league.
+- **Caching Implementation**: Introduce a caching layer to optimize API calls and performance.
