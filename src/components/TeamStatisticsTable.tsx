@@ -12,7 +12,7 @@ import {
 
 const columns: ColumnDef<Team>[] = [
   {
-    header: "More Info",
+    header: "Team Statistics Table",
     columns: [
       {
         accessorKey: "rank",
@@ -32,7 +32,7 @@ const columns: ColumnDef<Team>[] = [
       },
       {
         accessorKey: "eventTotal",
-        header: "Event Total",
+        header: "Gameweek Points",
       },
     ],
   },
