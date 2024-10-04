@@ -1,11 +1,15 @@
+// src/components/TeamStatistics.tsx
 import React from 'react';
-import { Team } from '@/types'; // Importing the type
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
+import { Team, ApiTeam } from '@/types';
 
-async function fetchTeamStandings(leagueId: string): Promise<{ standings: { results: Team[] } }> {
-  const res = await fetch(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`, {
-    cache: 'no-store'
-  });
+async function fetchTeamStandings(leagueId: string): Promise<{ standings: { results: ApiTeam[] } }> {
+  const res = await fetch(
+    `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
+    {
+      cache: 'no-store', // Disable cache to fetch fresh data
+    }
+  );
 
   if (!res.ok) {
     throw new Error('Failed to fetch team standings');
@@ -17,23 +21,23 @@ async function fetchTeamStandings(leagueId: string): Promise<{ standings: { resu
 export default async function TeamStatistics({ leagueId }: { leagueId: string }) {
   try {
     const standingsData = await fetchTeamStandings(leagueId);
-    // Properly type the `team` parameter here
-    const teams: Team[] = standingsData.standings.results.map((team: Team) => ({
+    const teams: ApiTeam[] = standingsData.standings.results;
+
+    const mappedTeams: Team[] = teams.map((team) => ({
       rank: team.rank,
-      managerName: team.managerName,
-      teamName: team.teamName,
-      totalPoints: team.totalPoints,
-      eventTotal: team.eventTotal,
+      managerName: team.player_name,
+      teamName: team.entry_name,
+      totalPoints: team.total,
+      eventTotal: team.event_total,
     }));
 
     return (
       <div>
-        <h2>Team Statistics for League {leagueId}</h2>
-        <TeamStatisticsTable stats={teams} />
+        <TeamStatisticsTable stats={mappedTeams} />
       </div>
     );
   } catch (error) {
-    console.error("Error loading team statistics:", error);
+    console.error('Error loading team statistics:', error);
     return <div>Error loading team statistics. Please try again later.</div>;
   }
 }
