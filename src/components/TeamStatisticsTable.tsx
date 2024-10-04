@@ -35,7 +35,7 @@ const columns: ColumnDef<Team>[] = [
 ];
 
 export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
-  const [data, setData] = React.useState<Team[]>(stats);
+  const [data] = React.useState<Team[]>(stats);
 
   const table = useReactTable({
     data,
