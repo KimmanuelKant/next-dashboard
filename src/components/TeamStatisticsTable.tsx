@@ -1,7 +1,8 @@
+// src/components/TeamStatisticsTable.tsx
 "use client";
-import * as React from "react";
+import React from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { Team } from '@/types'; // Import the Team interface
+import { Team } from '@/types';
 
 import {
   ColumnDef,
@@ -12,37 +13,29 @@ import {
 
 const columns: ColumnDef<Team>[] = [
   {
-    header: "Team Statistics Table",
-    columns: [
-      {
-        accessorKey: "rank",
-        header: () => <span>Rank</span>,
-      },
-      {
-        accessorKey: "managerName",
-        header: () => <span>Manager Name</span>,
-      },
-      {
-        accessorKey: "teamName",
-        header: "Team Name",
-      },
-      {
-        accessorKey: "totalPoints",
-        header: "Total Points",
-      },
-      {
-        accessorKey: "eventTotal",
-        header: "Gameweek Points",
-      },
-    ],
+    header: "Rank",
+    accessorKey: "rank",
+  },
+  {
+    header: "Manager Name",
+    accessorKey: "managerName",
+  },
+  {
+    header: "Team Name",
+    accessorKey: "teamName",
+  },
+  {
+    header: "Total Points",
+    accessorKey: "totalPoints",
+  },
+  {
+    header: "Event Total",
+    accessorKey: "eventTotal",
   },
 ];
 
-export default function TeamStatisticsTable(props: { stats: Team[] }) {
-  const { stats } = props;
-
-  const [data, setData] = React.useState(stats);
-  const rerender = () => setData(stats);
+export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
+  const [data, setData] = React.useState<Team[]>(stats);
 
   const table = useReactTable({
     data,
@@ -57,13 +50,11 @@ export default function TeamStatisticsTable(props: { stats: Team[] }) {
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id} colSpan={header.colSpan}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                <th key={header.id}>
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )}
                 </th>
               ))}
             </tr>
@@ -74,34 +65,16 @@ export default function TeamStatisticsTable(props: { stats: Team[] }) {
             <tr key={row.id}>
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  {flexRender(
+                    cell.column.columnDef.cell,
+                    cell.getContext()
+                  )}
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          {table.getFooterGroups().map((footerGroup) => (
-            <tr key={footerGroup.id}>
-              {footerGroup.headers.map((header) => (
-                <th key={header.id} colSpan={header.colSpan}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.footer,
-                        header.getContext()
-                      )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </tfoot>
       </table>
-      <div className="h-4">
-        <button onClick={() => rerender()} className="border p-2">
-          Rerender
-        </button>
-      </div>
     </div>
   );
 }
