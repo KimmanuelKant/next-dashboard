@@ -1,6 +1,6 @@
 // src/components/TeamStatistics.tsx
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
-import { Team, ApiTeam, ManagerHistory, ManagerPicks, Player } from '@/types';
+import { Team, ApiTeam, ManagerHistory, ManagerPicks, Player, GameEvent } from '@/types';
 
 async function fetchTeamStandings(leagueId: string): Promise<{ standings: { results: ApiTeam[] } }> {
   const res = await fetch(
@@ -70,7 +70,8 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
     const players: Player[] = playersData.elements;
 
     // Determine the latest event (gameweek)
-    const latestEventId = playersData.events.find(event => event.is_current)?.id || 1;
+    const events: GameEvent[] = playersData.events;
+    const latestEventId = events.find((event: GameEvent) => event.is_current)?.id || 1;
 
     // Fetch manager data in parallel
     const managerDataPromises = teams.map(async team => {
