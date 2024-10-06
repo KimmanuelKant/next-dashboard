@@ -1,17 +1,17 @@
 // src/components/TeamStatisticsTable.tsx
 "use client";
 import React, { useState } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
 import { Team } from '@/types';
-
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-  AccessorKeyColumnDef,
+  VisibilityState,
+  CellContext,
 } from "@tanstack/react-table";
+import { Dropdown, DropdownButton, Form } from 'react-bootstrap';
 
-const defaultColumns: AccessorKeyColumnDef<Team>[] = [
+const defaultColumns = [
   { header: "Rank", accessorKey: "rank" },
   { header: "Manager Name", accessorKey: "managerName" },
   { header: "Team Name", accessorKey: "teamName" },
@@ -25,46 +25,47 @@ const defaultColumns: AccessorKeyColumnDef<Team>[] = [
   {
     header: "Chips Used",
     accessorKey: "chipsUsed",
-    cell: info => (info.getValue() as string[]).join(', '),
+    cell: (info: CellContext<Team, string[]>) => info.getValue().join(', '),
   },
+  
   { header: "Points on Bench", accessorKey: "pointsOnBench" },
   { header: "Captain", accessorKey: "captain" },
   { header: "Vice Captain", accessorKey: "viceCaptain" },
 ];
 
 export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
-  const [columnsVisibility, setColumnsVisibility] = useState<{ [key: string]: boolean }>({});
-
-  const columns = defaultColumns.filter(column => columnsVisibility[column.accessorKey] !== false);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const table = useReactTable({
     data: stats,
-    columns,
+    columns: defaultColumns,
+    state: {
+      columnVisibility,
+    },
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
   });
 
-  // Handler for toggling column visibility
-  const toggleColumn = (accessorKey: string) => {
-    setColumnsVisibility(prev => ({
-      ...prev,
-      [accessorKey]: !prev[accessorKey],
-    }));
-  };
-
   return (
     <div className="p-2">
-      {/* Column Toggle Buttons */}
+      {/* Column Visibility Dropdown */}
       <div className="mb-3">
-        {defaultColumns.map(column => (
-          <button
-            key={column.accessorKey}
-            onClick={() => toggleColumn(column.accessorKey)}
-            className="btn btn-secondary btn-sm me-1"
-          >
-            {columnsVisibility[column.accessorKey] === false ? `Show ${column.header}` : `Hide ${column.header}`}
-          </button>
-        ))}
+        <DropdownButton id="columnVisibilityDropdown" title="Columns" size="sm" variant="secondary" autoClose="outside">
+          {table.getAllLeafColumns().map(column => (
+            <Dropdown.Item key={column.id} as="div">
+              <Form.Check
+                type="checkbox"
+                id={`column-${column.id}`}
+                label={column.columnDef.header as string}
+                checked={column.getIsVisible()}
+                onChange={column.getToggleVisibilityHandler()}
+              />
+            </Dropdown.Item>
+          ))}
+        </DropdownButton>
       </div>
+
+      {/* Table */}
       <table className="table table-bordered table-striped">
         <thead>
           {table.getHeaderGroups().map(headerGroup => (
