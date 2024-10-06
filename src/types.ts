@@ -55,3 +55,14 @@ export interface Team {
   captain: string;
   viceCaptain: string;
 }
+
+export interface Player {
+  id: number;
+  web_name: string;
+}
+
+export interface GameEvent {
+  id: number;
+  name: string;
+  is_current: boolean;
+}
