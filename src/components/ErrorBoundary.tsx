@@ -2,8 +2,16 @@
 "use client";
 import React from 'react';
 
-export default class ErrorBoundary extends React.Component {
-  state = { hasError: false };
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(_error: any) {
     return { hasError: true };
