@@ -5,37 +5,37 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { Team } from '@/types';
 
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
+  AccessorKeyColumnDef,
 } from "@tanstack/react-table";
+
+const defaultColumns: AccessorKeyColumnDef<Team>[] = [
+  { header: "Rank", accessorKey: "rank" },
+  { header: "Manager Name", accessorKey: "managerName" },
+  { header: "Team Name", accessorKey: "teamName" },
+  { header: "Total Points", accessorKey: "totalPoints" },
+  { header: "Event Total", accessorKey: "eventTotal" },
+  { header: "Overall Rank", accessorKey: "overallRank" },
+  { header: "Total Transfers", accessorKey: "totalTransfers" },
+  { header: "Transfers This Week", accessorKey: "transfersThisWeek" },
+  { header: "Team Value", accessorKey: "teamValue" },
+  { header: "Bank", accessorKey: "bank" },
+  {
+    header: "Chips Used",
+    accessorKey: "chipsUsed",
+    cell: info => (info.getValue() as string[]).join(', '),
+  },
+  { header: "Points on Bench", accessorKey: "pointsOnBench" },
+  { header: "Captain", accessorKey: "captain" },
+  { header: "Vice Captain", accessorKey: "viceCaptain" },
+];
 
 export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
   const [columnsVisibility, setColumnsVisibility] = useState<{ [key: string]: boolean }>({});
 
-  const defaultColumns: ColumnDef<Team>[] = [
-    { header: "Rank", accessorKey: "rank" },
-    { header: "Manager Name", accessorKey: "managerName" },
-    { header: "Team Name", accessorKey: "teamName" },
-    { header: "Total Points", accessorKey: "totalPoints" },
-    { header: "Event Total", accessorKey: "eventTotal" },
-    { header: "Overall Rank", accessorKey: "overallRank" },
-    { header: "Total Transfers", accessorKey: "totalTransfers" },
-    { header: "Transfers This Week", accessorKey: "transfersThisWeek" },
-    { header: "Team Value", accessorKey: "teamValue" },
-    { header: "Bank", accessorKey: "bank" },
-    {
-      header: "Chips Used",
-      accessorKey: "chipsUsed",
-      cell: info => (info.getValue() as string[]).join(', '),
-    },
-    { header: "Points on Bench", accessorKey: "pointsOnBench" },
-    { header: "Captain", accessorKey: "captain" },
-    { header: "Vice Captain", accessorKey: "viceCaptain" },
-  ];
-
-  const columns = defaultColumns.filter(column => columnsVisibility[column.accessorKey as string] !== false);
+  const columns = defaultColumns.filter(column => columnsVisibility[column.accessorKey] !== false);
 
   const table = useReactTable({
     data: stats,
@@ -57,11 +57,11 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
       <div className="mb-3">
         {defaultColumns.map(column => (
           <button
-            key={column.accessorKey as string}
-            onClick={() => toggleColumn(column.accessorKey as string)}
+            key={column.accessorKey}
+            onClick={() => toggleColumn(column.accessorKey)}
             className="btn btn-secondary btn-sm me-1"
           >
-            {columnsVisibility[column.accessorKey as string] === false ? `Show ${column.header}` : `Hide ${column.header}`}
+            {columnsVisibility[column.accessorKey] === false ? `Show ${column.header}` : `Hide ${column.header}`}
           </button>
         ))}
       </div>
