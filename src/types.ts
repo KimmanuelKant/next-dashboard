@@ -56,6 +56,7 @@ export interface Team {
   viceCaptain: string;
   totalTransferPointsDeducted: number;
   teamId: number;
+  highestGameweekScore: number;
 }
 
 export interface Player {
