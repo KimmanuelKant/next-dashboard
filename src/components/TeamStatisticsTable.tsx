@@ -29,6 +29,7 @@ const defaultColumns = [
   },
   
   { header: "Points on Bench", accessorKey: "pointsOnBench" },
+  { header: "Total Transfer Points Deducted", accessorKey: "totalTransferPointsDeducted" },
   { header: "Captain", accessorKey: "captain" },
   { header: "Vice Captain", accessorKey: "viceCaptain" },
 ];
