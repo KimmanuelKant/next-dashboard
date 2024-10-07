@@ -33,6 +33,7 @@ const defaultColumns = [
   { header: "Total Hits", accessorKey: "totalTransferPointsDeducted" },
   { header: "Captain", accessorKey: "captain" },
   { header: "Vice Captain", accessorKey: "viceCaptain" },
+  { header: "Highest GW Score", accessorKey: "highestGameweekScore" },
 ];
 
 export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {

@@ -37,6 +37,11 @@ async function fetchManagerData(teamId: number, eventId: number, players: Player
   const chipsUsed = managerHistory.chips.map(chip => chip.name);
   const pointsOnBench = currentSeason.reduce((sum, gw) => sum + gw.points_on_bench, 0);
 
+  // Calculate highest gameweek score
+  const highestGameweekScore = currentSeason.reduce((max, gw) => {
+    return gw.points > max ? gw.points : max;
+  }, 0);
+
   // Get captain and vice-captain
   const captainPick = managerPicks.picks.find(pick => pick.is_captain);
   const viceCaptainPick = managerPicks.picks.find(pick => pick.is_vice_captain);
@@ -55,6 +60,7 @@ async function fetchManagerData(teamId: number, eventId: number, players: Player
     captain,
     viceCaptain,
     totalTransferPointsDeducted,
+    highestGameweekScore,
   };
 }
 
