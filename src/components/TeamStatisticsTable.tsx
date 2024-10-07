@@ -15,6 +15,7 @@ const defaultColumns = [
   { header: "Rank", accessorKey: "rank" },
   { header: "Manager Name", accessorKey: "managerName" },
   { header: "Team Name", accessorKey: "teamName" },
+  { header: "Team ID", accessorKey: "teamId" },
   { header: "Total Points", accessorKey: "totalPoints" },
   { header: "GW Total", accessorKey: "eventTotal" },
   { header: "Overall Rank", accessorKey: "overallRank" },
@@ -35,7 +36,9 @@ const defaultColumns = [
 ];
 
 export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    teamId: false,
+  });
 
   const table = useReactTable({
     data: stats,

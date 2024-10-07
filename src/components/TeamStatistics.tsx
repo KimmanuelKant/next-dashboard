@@ -88,6 +88,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
         teamName: team.entry_name,
         totalPoints: team.total,
         eventTotal: team.event_total,
+        teamId: team.entry,
         ...managerData,
       };
 
