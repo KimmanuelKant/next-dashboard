@@ -54,6 +54,7 @@ export interface Team {
   pointsOnBench: number;
   captain: string;
   viceCaptain: string;
+  totalTransferPointsDeducted: number;
 }
 
 export interface Player {
