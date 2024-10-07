@@ -33,6 +33,7 @@ async function fetchManagerData(teamId: number, eventId: number, players: Player
   const currentSeason = managerHistory.current;
   const latestGW = currentSeason[currentSeason.length - 1];
   const totalTransfers = currentSeason.reduce((sum, gw) => sum + gw.event_transfers, 0);
+  const totalTransferPointsDeducted = currentSeason.reduce((sum, gw) => sum + gw.event_transfers_cost, 0);
   const chipsUsed = managerHistory.chips.map(chip => chip.name);
   const pointsOnBench = currentSeason.reduce((sum, gw) => sum + gw.points_on_bench, 0);
 
@@ -53,6 +54,7 @@ async function fetchManagerData(teamId: number, eventId: number, players: Player
     pointsOnBench,
     captain,
     viceCaptain,
+    totalTransferPointsDeducted,
   };
 }
 
