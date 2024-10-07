@@ -16,10 +16,10 @@ const defaultColumns = [
   { header: "Manager Name", accessorKey: "managerName" },
   { header: "Team Name", accessorKey: "teamName" },
   { header: "Total Points", accessorKey: "totalPoints" },
-  { header: "Event Total", accessorKey: "eventTotal" },
+  { header: "GW Total", accessorKey: "eventTotal" },
   { header: "Overall Rank", accessorKey: "overallRank" },
   { header: "Total Transfers", accessorKey: "totalTransfers" },
-  { header: "Transfers This Week", accessorKey: "transfersThisWeek" },
+  { header: "GW Transfers", accessorKey: "transfersThisWeek" },
   { header: "Team Value", accessorKey: "teamValue" },
   { header: "Bank", accessorKey: "bank" },
   {
@@ -29,7 +29,7 @@ const defaultColumns = [
   },
   
   { header: "Points on Bench", accessorKey: "pointsOnBench" },
-  { header: "Total Transfer Points Deducted", accessorKey: "totalTransferPointsDeducted" },
+  { header: "Total Hits", accessorKey: "totalTransferPointsDeducted" },
   { header: "Captain", accessorKey: "captain" },
   { header: "Vice Captain", accessorKey: "viceCaptain" },
 ];
