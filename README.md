@@ -2,12 +2,13 @@
 
 ## Overview
 
-The **FPL-Dashboard** is a web application built using modern web development technologies, including **Next.js** with **App Router**, **Server-Side Rendering (SSR)**, and **TanStack Table**. The application is designed to help users track their Fantasy Premier League mini-leagues, providing rich statistics and insights on both player(relative to league) and team performances.
+The **FPL-Dashboard** is a web application built using modern web development technologies, including **Next.js** with **App Router**, **Server-Side Rendering (SSR)**, and **TanStack Table**. The application is designed to help users track their Fantasy Premier League mini-leagues, providing rich statistics and insights on team performances.
 
 ## Features
 
-- **Team Statistics**: Display comprehensive statistics for teams in a given league, including points, rankings, and transfers.
-- **Player Statistics**: Track how individual players have effected the league standing.
+- **Team Statistics**: Display customizable comprehensive statistics for teams in a given league. The table currently allows you choose which columns to hide and show. 
+- **Player Statistics**: Not Yet Started: Display customizable comprehensive statistics for players selected in a given league.
+- **Awards**:
 - **Dynamic Data Rendering**: Real-time updates using SSR for fetching and displaying data from the Fantasy Premier League API.
 - **Modular Table Components**: Highly customizable data tables using TanStack Table, allowing for sorting, filtering, and column customization.
 
@@ -16,7 +17,7 @@ The **FPL-Dashboard** is a web application built using modern web development te
 - **Next.js**: A React-based framework for server-side rendering and static site generation.
 - **TanStack Table**: A powerful table component library for managing and displaying large datasets.
 - **Bootstrap**: Provides a clean, responsive design for the user interface.
-- **Fantasy Premier League API**: Data is fetched from the official FPL API to ensure real-time accuracy.
+- **Fantasy Premier League API**: Data is fetched from the official FPL Website to ensure accuracy.
 
 ## Installation
 
