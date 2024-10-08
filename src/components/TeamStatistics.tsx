@@ -1,24 +1,11 @@
 // src/components/TeamStatistics.tsx
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
-import { Team, ApiTeam, ManagerHistory, ManagerPicks, Player, GameEvent, Pick } from '@/types';
-
-async function fetchTeamStandings(leagueId: string): Promise<{ standings: { results: ApiTeam[] } }> {
-  const res = await fetch(
-    `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
-    { cache: 'no-store' }
-  );
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch team standings');
-  }
-
-  return res.json();
-}
+import { Team, ApiTeam, ManagerHistory, Player, GameEvent, Pick, LiveElement, LiveData } from '@/types';
 
 async function fetchManagerData(
   teamId: number,
   completedGameweeks: number[],
-  liveDataMap: Map<number, any>,
+  liveDataMap: Map<number, LiveElement[]>,
   players: Player[]
 ) {
   // Fetch manager history
@@ -69,7 +56,7 @@ async function fetchManagerData(
         console.warn(`No live data found for gameweek ${gw}`);
         return;
       }
-      const playerData = liveElements.find((element: any) => element.id === playerId);
+      const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
       if (playerData) {
         totalCaptainPoints += playerData.stats.total_points;
       } else {
@@ -143,13 +130,14 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
       if (!res.ok) {
         throw new Error(`Failed to fetch live data for gameweek ${gw}`);
       }
-      const data = await res.json();
+      const data : LiveData = await res.json();
       return { gw, elements: data.elements };
     });
+
     const liveDataArray = await Promise.all(liveDataPromises);
 
     // Map live data for easy access
-    const liveDataMap = new Map<number, any>();
+    const liveDataMap = new Map<number, LiveElement[]>();
     liveDataArray.forEach(({ gw, elements }) => {
       liveDataMap.set(gw, elements);
     });
