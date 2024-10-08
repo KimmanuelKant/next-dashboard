@@ -29,14 +29,18 @@ export interface ManagerHistory {
   }>;
 }
 
+// Define the Pick interface
+export interface Pick {
+  element: number;
+  position: number;
+  multiplier: number;
+  is_captain: boolean;
+  is_vice_captain: boolean;
+}
+
+// Update ManagerPicks to use the Pick interface
 export interface ManagerPicks {
-  picks: Array<{
-    element: number;
-    position: number;
-    multiplier: number;
-    is_captain: boolean;
-    is_vice_captain: boolean;
-  }>;
+  picks: Pick[];
 }
 
 export interface Team {
@@ -57,6 +61,7 @@ export interface Team {
   totalTransferPointsDeducted: number;
   teamId: number;
   highestGameweekScore: number;
+  totalCaptainPoints: number;
 }
 
 export interface Player {
@@ -68,4 +73,16 @@ export interface GameEvent {
   id: number;
   name: string;
   is_current: boolean;
+  finished: boolean;
+}
+
+export interface LiveElement {
+  id: number;
+  stats: {
+    total_points: number;
+  };
+}
+
+export interface LiveData {
+  elements: LiveElement[];
 }
