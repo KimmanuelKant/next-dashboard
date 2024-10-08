@@ -8,7 +8,8 @@ The **FPL-Dashboard** is a web application built using modern web development te
 
 - **Team Statistics**: Display customizable comprehensive statistics for teams in a given league. The table currently allows you choose which columns to hide and show. 
 - **Player Statistics**: Not Yet Started: Display customizable comprehensive statistics for players selected in a given league.
-- **Awards**:
+- **Awards**: Not Yet Started: Weekly updated awards based on team preformance 
+- **Chat**: Not Yet Started: The plan is to have a messaging board for the league.
 - **Dynamic Data Rendering**: Real-time updates using SSR for fetching and displaying data from the Fantasy Premier League API.
 - **Modular Table Components**: Highly customizable data tables using TanStack Table, allowing for sorting, filtering, and column customization.
 
@@ -46,7 +47,7 @@ Visit `http://localhost:3000` in your browser to view the app.
 
 1. Enter your Fantasy Premier League **League ID** on the homepage to view the league's dashboard.
 2. Use the navigation tabs to toggle between **Team Statistics**, **Player Statistics**, **Awards** and **Chat**.
-3. Tables are interactive, allowing you to sort and filter data based on your preferences. (not yet implemented)
+3. Tables are interactive, allowing you to filter data based on your preferences.
 
 ## Future Plans
 
