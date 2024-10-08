@@ -28,7 +28,7 @@ const defaultColumns = [
     accessorKey: "chipsUsed",
     cell: (info: CellContext<Team, string[]>) => info.getValue().join(', '),
   },
-  
+  { header: "Total Captain Points", accessorKey: "totalCaptainPoints" },
   { header: "Points on Bench", accessorKey: "pointsOnBench" },
   { header: "Total Hits", accessorKey: "totalTransferPointsDeducted" },
   { header: "Captain", accessorKey: "captain" },
