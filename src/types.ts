@@ -1,5 +1,7 @@
 // src/types.ts
 
+
+// Interface for the team data from the league standings API
 export interface ApiTeam {
   rank: number;
   player_name: string;
@@ -9,6 +11,7 @@ export interface ApiTeam {
   entry: number; // Team ID
 }
 
+// Interface for the manager's season history
 export interface ManagerHistory {
   current: Array<{
     event: number;
@@ -29,7 +32,7 @@ export interface ManagerHistory {
   }>;
 }
 
-// Define the Pick interface
+// Interface for a single player pick
 export interface Pick {
   element: number;
   position: number;
@@ -38,11 +41,12 @@ export interface Pick {
   is_vice_captain: boolean;
 }
 
-// Update ManagerPicks to use the Pick interface
+// Interface for the manager's picks in a gameweek
 export interface ManagerPicks {
   picks: Pick[];
 }
 
+// Interface for the processed team data used in the application
 export interface Team {
   rank: number;
   managerName: string;
@@ -64,11 +68,13 @@ export interface Team {
   totalCaptainPoints: number;
 }
 
+// Interface for player information
 export interface Player {
   id: number;
   web_name: string;
 }
 
+// Interface for game event (gameweek) information
 export interface GameEvent {
   id: number;
   name: string;
@@ -76,6 +82,7 @@ export interface GameEvent {
   finished: boolean;
 }
 
+// Interface for live data of a player in a gameweek
 export interface LiveElement {
   id: number;
   stats: {
@@ -83,6 +90,7 @@ export interface LiveElement {
   };
 }
 
+// Interface for live data of all players in a gameweek
 export interface LiveData {
   elements: LiveElement[];
 }
