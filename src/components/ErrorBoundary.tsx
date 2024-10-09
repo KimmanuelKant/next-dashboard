@@ -10,26 +10,32 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
+// ErrorBoundary component to catch JavaScript errors in child components
 export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // Initialize state
   state: ErrorBoundaryState = { hasError: false };
 
+  // Update state when an error is caught
   static getDerivedStateFromError(error: Error) {
-    // You can log the error to an error reporting service
+    // Log the error (could be sent to an error reporting service down the line)
     console.error('Error captured in getDerivedStateFromError:', error);
-    // Update state so the next render will show the fallback UI.
+    // Set the error state to display fallback UI
     return { hasError: true };
   }
 
+  // Lifecycle method to catch errors in child components
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // You can also log the error to an error reporting service
+    // Log detailed error information
     console.error('ErrorBoundary caught an error', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
+      // Render fallback UI when an error occurs
       return <div>Error loading team statistics. Please try again later.</div>;
     }
 
+    // Render child components when there's no error
     return this.props.children;
   }
 }
