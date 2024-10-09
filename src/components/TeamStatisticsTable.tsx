@@ -26,6 +26,7 @@ const defaultColumns = [
   {
     header: "Chips Used",
     accessorKey: "chipsUsed",
+    // Custom cell renderer to display chips as a comma-separated string
     cell: (info: CellContext<Team, string[]>) => info.getValue().join(', '),
   },
   { header: "Total Captain Points", accessorKey: "totalCaptainPoints" },
@@ -36,11 +37,13 @@ const defaultColumns = [
   { header: "Highest GW Score", accessorKey: "highestGameweekScore" },
 ];
 
+// Component to render the team statistics table
 export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     teamId: false,
   });
 
+  // Initialize the table using React Table library
   const table = useReactTable({
     data: stats,
     columns: defaultColumns,
