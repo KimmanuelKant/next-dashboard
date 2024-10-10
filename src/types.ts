@@ -66,6 +66,7 @@ export interface Team {
   teamId: number;
   highestGameweekScore: number;
   totalCaptainPoints: number;
+  captainPointsPercentage: number;
 }
 
 // Interface for player information
