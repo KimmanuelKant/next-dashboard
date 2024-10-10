@@ -41,10 +41,14 @@ export interface Pick {
   is_vice_captain: boolean;
 }
 
+
 // Interface for the manager's picks in a gameweek
-export interface ManagerPicks {
+export interface PicksData {
+  gw: number;
   picks: Pick[];
 }
+
+
 
 // Interface for the processed team data used in the application
 export interface Team {
@@ -67,6 +71,9 @@ export interface Team {
   highestGameweekScore: number;
   totalCaptainPoints: number;
   captainPointsPercentage: number;
+  wildcardsUsed: number;
+  tripleCaptainPoints: number | string;
+  benchBoostPoints: number | string;
 }
 
 // Interface for player information
