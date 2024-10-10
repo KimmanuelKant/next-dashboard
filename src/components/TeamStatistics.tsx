@@ -2,15 +2,15 @@
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
 import { Team, ApiTeam, ManagerHistory, Player, GameEvent, Pick, LiveElement, LiveData } from '@/types';
 
-
 // Asynchronous function to fetch and process manager data
 async function fetchManagerData(
   teamId: number,
   completedGameweeks: number[],
   liveDataMap: Map<number, LiveElement[]>,
-  players: Player[]
+  players: Player[],
+  totalPoints: number // New parameter
 ) {
-   // Fetch the manager's season history
+  // Fetch the manager's season history
   const managerHistoryRes = await fetch(`https://fantasy.premierleague.com/api/entry/${teamId}/history/`);
   if (!managerHistoryRes.ok) {
     throw new Error(`Failed to fetch manager history for team ID ${teamId}`);
@@ -21,10 +21,10 @@ async function fetchManagerData(
   const currentSeason = managerHistory.current;
   const latestGW = currentSeason[currentSeason.length - 1];
 
-   // Calculate total transfers and transfer points deducted over the season
+  // Calculate total transfers and transfer points deducted over the season
   const totalTransfers = currentSeason.reduce((sum, gw) => sum + gw.event_transfers, 0);
   const totalTransferPointsDeducted = currentSeason.reduce((sum, gw) => sum + gw.event_transfers_cost, 0);
-  
+
   // Extract chips used and points on bench
   const chipsUsed = managerHistory.chips.map(chip => chip.name);
 
@@ -57,26 +57,29 @@ async function fetchManagerData(
       return;
     }
     // Find the captain pick for the gameweek
-      const captainPick = picks.find((pick: Pick) => pick.is_captain);
+    const captainPick = picks.find((pick: Pick) => pick.is_captain);
     if (captainPick) {
       const playerId = captainPick.element;
-      // Get live for the gameweek
       const liveElements = liveDataMap.get(gw);
       if (!liveElements) {
         console.warn(`No live data found for gameweek ${gw}`);
         return;
       }
-      // Find the captain's performance data
       const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
       if (playerData) {
-        totalCaptainPoints += playerData.stats.total_points;
+        // Multiply the player's points by the captain's multiplier
+        const captainPoints = playerData.stats.total_points * captainPick.multiplier;
+        totalCaptainPoints += captainPoints;
       } else {
-      console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
+        console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
+      }
+    } else {
+      console.warn(`No captain found for team ID ${teamId} in gameweek ${gw}`);
     }
-  } else {
-    console.warn(`No captain found for team ID ${teamId} in gameweek ${gw}`);
-  }
   });
+
+  // Calculate captainPointsPercentage
+  const captainPointsPercentage = totalPoints > 0 ? (totalCaptainPoints / totalPoints) * 100 : 0;
 
   // Fetch the latest picks to get current captain and vice-captain
   const latestPicksRes = await fetch(`https://fantasy.premierleague.com/api/entry/${teamId}/event/${latestGW.event}/picks/`);
@@ -85,12 +88,15 @@ async function fetchManagerData(
   }
   const latestPicksData = await latestPicksRes.json();
   const latestPicks = latestPicksData.picks;
+
   // Identify the captain and vice-captain from the latest picks
   const captainPick = latestPicks.find((pick: Pick) => pick.is_captain);
   const viceCaptainPick = latestPicks.find((pick: Pick) => pick.is_vice_captain);
+
   // Get the names of the captain and vice-captain
   const captain = players.find(player => player.id === captainPick?.element)?.web_name || '';
   const viceCaptain = players.find(player => player.id === viceCaptainPick?.element)?.web_name || '';
+
   // Return the aggregated data for the manager
   return {
     totalTransfers,
@@ -103,6 +109,7 @@ async function fetchManagerData(
     totalTransferPointsDeducted,
     highestGameweekScore,
     totalCaptainPoints,
+    captainPointsPercentage,
     captain,
     viceCaptain,
   };
@@ -114,7 +121,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
     // Fetch league standings data
     const standingsDataRes = await fetch(
       `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
-      { cache: 'no-store' } // Disable caching to get the latest data for now
+      { cache: 'no-store' }
     );
     if (!standingsDataRes.ok) {
       throw new Error('Failed to fetch team standings');
@@ -133,7 +140,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
     // Get the list of game events (gameweeks)
     const events: GameEvent[] = playersData.events;
 
-       // Identify all completed gameweeks
+    // Identify all completed gameweeks
     const completedGameweeks = events.filter(event => event.finished).map(event => event.id);
 
     // Fetch live data for all completed gameweeks
@@ -142,7 +149,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
       if (!res.ok) {
         throw new Error(`Failed to fetch live data for gameweek ${gw}`);
       }
-      const data : LiveData = await res.json();
+      const data: LiveData = await res.json();
       return { gw, elements: data.elements };
     });
 
@@ -159,7 +166,13 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
       const teamId = team.entry;
 
       // Fetch detailed data for each manager
-      const managerData = await fetchManagerData(teamId, completedGameweeks, liveDataMap, players);
+      const managerData = await fetchManagerData(
+        teamId,
+        completedGameweeks,
+        liveDataMap,
+        players,
+        team.total // Pass totalPoints here
+      );
 
       // Map the data to the Team interface
       const mappedTeam: Team = {
