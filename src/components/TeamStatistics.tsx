@@ -171,7 +171,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
         completedGameweeks,
         liveDataMap,
         players,
-        team.total // Pass totalPoints here
+        team.total
       );
 
       // Map the data to the Team interface

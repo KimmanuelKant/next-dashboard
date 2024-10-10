@@ -30,6 +30,11 @@ const defaultColumns = [
     cell: (info: CellContext<Team, string[]>) => info.getValue().join(', '),
   },
   { header: "Total Captain Points", accessorKey: "totalCaptainPoints" },
+  {
+    header: "Captain Points %",
+    accessorKey: "captainPointsPercentage",
+    cell: (info: CellContext<Team, number>) => `${info.getValue().toFixed(1)}%`,
+  },
   { header: "Points on Bench", accessorKey: "pointsOnBench" },
   { header: "Total Hits", accessorKey: "totalTransferPointsDeducted" },
   { header: "Captain", accessorKey: "captain" },
