@@ -23,6 +23,17 @@ const defaultColumns = [
   { header: "GW Transfers", accessorKey: "transfersThisWeek" },
   { header: "Team Value", accessorKey: "teamValue" },
   { header: "Bank", accessorKey: "bank" },
+  { header: "Wildcards Used", accessorKey: "wildcardsUsed" },
+  {
+    header: "Triple Captain Points",
+    accessorKey: "tripleCaptainPoints",
+    cell: (info: CellContext<Team, number | string>) => info.getValue().toString(),
+  },
+  {
+    header: "Bench Boost Points",
+    accessorKey: "benchBoostPoints",
+    cell: (info: CellContext<Team, number | string>) => info.getValue().toString(),
+  },
   {
     header: "Chips Used",
     accessorKey: "chipsUsed",

@@ -1,14 +1,24 @@
 // src/components/TeamStatistics.tsx
-import TeamStatisticsTable from '@/components/TeamStatisticsTable';
-import { Team, ApiTeam, ManagerHistory, Player, GameEvent, Pick, LiveElement, LiveData } from '@/types';
 
-// Asynchronous function to fetch and process manager data
+import TeamStatisticsTable from '@/components/TeamStatisticsTable';
+import {
+  Team,
+  ApiTeam,
+  ManagerHistory,
+  Player,
+  GameEvent,
+  Pick,
+  LiveElement,
+  LiveData,
+  PicksData,
+} from '@/types';
+
 async function fetchManagerData(
   teamId: number,
   completedGameweeks: number[],
   liveDataMap: Map<number, LiveElement[]>,
   players: Player[],
-  totalPoints: number // New parameter
+  totalPoints: number
 ) {
   // Fetch the manager's season history
   const managerHistoryRes = await fetch(`https://fantasy.premierleague.com/api/entry/${teamId}/history/`);
@@ -36,6 +46,9 @@ async function fetchManagerData(
     return gw.points > max ? gw.points : max;
   }, 0);
 
+  // Count the number of wildcards used
+  const wildcardsUsed = managerHistory.chips.filter(chip => chip.name === 'wildcard').length;
+
   // Fetch picks for all completed gameweeks
   const picksPromises = completedGameweeks.map(async (gw) => {
     const res = await fetch(`https://fantasy.premierleague.com/api/entry/${teamId}/event/${gw}/picks/`);
@@ -47,11 +60,67 @@ async function fetchManagerData(
     const data = await res.json();
     return { gw, picks: data.picks };
   });
-  const picksArray = await Promise.all(picksPromises);
+  const picksArray: PicksData[] = await Promise.all(picksPromises);
+
+  // Initialize tripleCaptainPoints
+  let tripleCaptainPoints: number | string = 'Not used';
+
+  // Find if triple captain chip was used
+  const tripleCaptainChip = managerHistory.chips.find(chip => chip.name === '3xc');
+
+  if (tripleCaptainChip) {
+    const gw = tripleCaptainChip.event;
+
+    // Find picks for the gameweek when triple captain was used
+    const picksData = picksArray.find((pickData: PicksData) => pickData.gw === gw);
+    if (picksData && picksData.picks.length > 0) {
+      const captainPick = picksData.picks.find((pick: Pick) => pick.is_captain);
+      if (captainPick) {
+        const playerId = captainPick.element;
+        const liveElements = liveDataMap.get(gw);
+        if (liveElements) {
+          const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+          if (playerData) {
+            // Calculate the extra points gained from triple captain
+            const basePoints = playerData.stats.total_points;
+            const extraPoints = basePoints; // Triple Captain adds an extra x1 multiplier
+            tripleCaptainPoints = extraPoints;
+          } else {
+            console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
+          }
+        } else {
+          console.warn(`No live data found for gameweek ${gw}`);
+        }
+      } else {
+        console.warn(`No captain found for team ID ${teamId} in gameweek ${gw}`);
+      }
+    } else {
+      console.warn(`No picks found for team ID ${teamId} in gameweek ${gw}`);
+    }
+  }
+
+  // Initialize benchBoostPoints
+  let benchBoostPoints: number | string = 'Not used';
+
+  // Find if bench boost chip was used
+  const benchBoostChip = managerHistory.chips.find(chip => chip.name === 'bboost');
+
+  if (benchBoostChip) {
+    const gw = benchBoostChip.event;
+
+    // Find gameweek data for when bench boost was used
+    const gwData = currentSeason.find(gwData => gwData.event === gw);
+    if (gwData) {
+      // Points on bench are the extra points gained from bench boost
+      benchBoostPoints = gwData.points_on_bench;
+    } else {
+      console.warn(`No gameweek data found for team ID ${teamId} in gameweek ${gw}`);
+    }
+  }
 
   // Calculate total captain points over the season
   let totalCaptainPoints = 0;
-  picksArray.forEach(({ gw, picks }) => {
+  picksArray.forEach(({ gw, picks }: PicksData) => {
     if (picks.length === 0) {
       console.warn(`Warning: No picks found for team ID ${teamId} in gameweek ${gw}`);
       return;
@@ -82,7 +151,9 @@ async function fetchManagerData(
   const captainPointsPercentage = totalPoints > 0 ? (totalCaptainPoints / totalPoints) * 100 : 0;
 
   // Fetch the latest picks to get current captain and vice-captain
-  const latestPicksRes = await fetch(`https://fantasy.premierleague.com/api/entry/${teamId}/event/${latestGW.event}/picks/`);
+  const latestPicksRes = await fetch(
+    `https://fantasy.premierleague.com/api/entry/${teamId}/event/${latestGW.event}/picks/`
+  );
   if (!latestPicksRes.ok) {
     throw new Error(`Failed to fetch picks for team ID ${teamId} in gameweek ${latestGW.event}`);
   }
@@ -90,19 +161,19 @@ async function fetchManagerData(
   const latestPicks = latestPicksData.picks;
 
   // Identify the captain and vice-captain from the latest picks
-  const captainPick = latestPicks.find((pick: Pick) => pick.is_captain);
-  const viceCaptainPick = latestPicks.find((pick: Pick) => pick.is_vice_captain);
+  const latestCaptainPick = latestPicks.find((pick: Pick) => pick.is_captain);
+  const latestViceCaptainPick = latestPicks.find((pick: Pick) => pick.is_vice_captain);
 
   // Get the names of the captain and vice-captain
-  const captain = players.find(player => player.id === captainPick?.element)?.web_name || '';
-  const viceCaptain = players.find(player => player.id === viceCaptainPick?.element)?.web_name || '';
+  const captain = players.find(player => player.id === latestCaptainPick?.element)?.web_name || '';
+  const viceCaptain = players.find(player => player.id === latestViceCaptainPick?.element)?.web_name || '';
 
   // Return the aggregated data for the manager
   return {
     totalTransfers,
     transfersThisWeek: latestGW.event_transfers,
     teamValue: latestGW.value / 10, // Convert value to correct format
-    bank: latestGW.bank / 10, // Convert bank to correct format
+    bank: latestGW.bank / 10,       // Convert bank to correct format
     overallRank: latestGW.overall_rank,
     chipsUsed,
     pointsOnBench,
@@ -110,12 +181,14 @@ async function fetchManagerData(
     highestGameweekScore,
     totalCaptainPoints,
     captainPointsPercentage,
+    wildcardsUsed,
+    tripleCaptainPoints,
+    benchBoostPoints,
     captain,
     viceCaptain,
   };
 }
 
-// Main component to fetch and display team statistics
 export default async function TeamStatistics({ leagueId }: { leagueId: string }) {
   try {
     // Fetch league standings data
