@@ -11,6 +11,7 @@ import {
   LiveElement,
   LiveData,
   PicksData,
+  ChipData,
 } from '@/types';
 
 async function fetchManagerData(
@@ -62,80 +63,83 @@ async function fetchManagerData(
   });
   const picksArray: PicksData[] = await Promise.all(picksPromises);
 
-  // Initialize tripleCaptainPoints
-  let tripleCaptainPoints: number | string = 'Not used';
+  // Initialize tripleCaptainData
+let tripleCaptainData: ChipData | null = null;
 
-  // Find if triple captain chip was used
-  const tripleCaptainChip = managerHistory.chips.find(chip => chip.name === '3xc');
+// Find if triple captain chip was used
+const tripleCaptainChip = managerHistory.chips.find(chip => chip.name === '3xc');
 
-  if (tripleCaptainChip) {
-    const gw = tripleCaptainChip.event;
+if (tripleCaptainChip) {
+  const gw = tripleCaptainChip.event;
 
-    // Find picks for the gameweek when triple captain was used
-    const picksData = picksArray.find((pickData: PicksData) => pickData.gw === gw);
-    if (picksData && picksData.picks.length > 0) {
-      const captainPick = picksData.picks.find((pick: Pick) => pick.is_captain);
-      if (captainPick) {
-        const playerId = captainPick.element;
-        const liveElements = liveDataMap.get(gw);
-        if (liveElements) {
-          const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
-          if (playerData) {
-            // Calculate the extra points gained from triple captain
-            const basePoints = playerData.stats.total_points;
-            const extraPoints = basePoints; // Triple Captain adds an extra x1 multiplier
-            tripleCaptainPoints = extraPoints;
-          } else {
-            console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
-          }
+  // Find picks for the gameweek when triple captain was used
+  const picksData = picksArray.find((pickData: PicksData) => pickData.gw === gw);
+  if (picksData && picksData.picks.length > 0) {
+    const captainPick = picksData.picks.find((pick: Pick) => pick.is_captain);
+    if (captainPick) {
+      const playerId = captainPick.element;
+      const liveElements = liveDataMap.get(gw);
+      if (liveElements) {
+        const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+        if (playerData) {
+          // Calculate the extra points gained from triple captain
+          const basePoints = playerData.stats.total_points;
+          const extraPoints = basePoints; // Triple Captain adds an extra x1 multiplier
+          tripleCaptainData = { points: extraPoints, gw };
         } else {
-          console.warn(`No live data found for gameweek ${gw}`);
+          console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
         }
       } else {
-        console.warn(`No captain found for team ID ${teamId} in gameweek ${gw}`);
+        console.warn(`No live data found for gameweek ${gw}`);
       }
     } else {
-      console.warn(`No picks found for team ID ${teamId} in gameweek ${gw}`);
+      console.warn(`No captain found for team ID ${teamId} in gameweek ${gw}`);
     }
+  } else {
+    console.warn(`No picks found for team ID ${teamId} in gameweek ${gw}`);
   }
+}
 
-  // Initialize benchBoostPoints
-  let benchBoostPoints: number | string = 'Not used';
+// Initialize benchBoostData
+let benchBoostData: ChipData | null = null;
 
-  // Find if bench boost chip was used
-  const benchBoostChip = managerHistory.chips.find(chip => chip.name === 'bboost');
+// Find if bench boost chip was used
+const benchBoostChip = managerHistory.chips.find(chip => chip.name === 'bboost');
 
-  if (benchBoostChip) {
-    const gw = benchBoostChip.event;
+if (benchBoostChip) {
+  const gw = benchBoostChip.event;
 
-    // Find gameweek data for when bench boost was used
-    const gwData = currentSeason.find(gwData => gwData.event === gw);
-    if (gwData) {
-      // Points on bench are the extra points gained from bench boost
-      benchBoostPoints = gwData.points_on_bench;
-    } else {
-      console.warn(`No gameweek data found for team ID ${teamId} in gameweek ${gw}`);
-    }
+  // Find gameweek data for when bench boost was used
+  const gwData = currentSeason.find(gwData => gwData.event === gw);
+  if (gwData) {
+    // Points on bench are the extra points gained from bench boost
+    benchBoostData = { points: gwData.points_on_bench, gw };
+  } else {
+    console.warn(`No gameweek data found for team ID ${teamId} in gameweek ${gw}`);
   }
+}
 
-  // Initialize freeHitPoints
-  let freeHitPoints: number | string = 'Not used';
 
-  // Find if Free Hit chip was used
-  const freeHitChip = managerHistory.chips.find(chip => chip.name === 'freehit');
 
-  if (freeHitChip) {
-    const gw = freeHitChip.event;
+ // Initialize freeHitData
+let freeHitData: ChipData | null = null;
 
-    // Find gameweek data for when Free Hit was used
-    const gwData = currentSeason.find(gwData => gwData.event === gw);
-    if (gwData) {
-      // The total points for that gameweek
-      freeHitPoints = gwData.points;
-    } else {
-      console.warn(`No gameweek data found for team ID ${teamId} in gameweek ${gw}`);
-    }
+// Find if Free Hit chip was used
+const freeHitChip = managerHistory.chips.find(chip => chip.name === 'freehit');
+
+if (freeHitChip) {
+  const gw = freeHitChip.event;
+
+  // Find gameweek data for when Free Hit was used
+  const gwData = currentSeason.find(gwData => gwData.event === gw);
+  if (gwData) {
+    // The total points for that gameweek
+    freeHitData = { points: gwData.points, gw };
+  } else {
+    console.warn(`No gameweek data found for team ID ${teamId} in gameweek ${gw}`);
   }
+}
+
 
   // Calculate total captain points over the season
   let totalCaptainPoints = 0;
@@ -201,9 +205,9 @@ async function fetchManagerData(
     totalCaptainPoints,
     captainPointsPercentage,
     wildcardsUsed,
-    tripleCaptainPoints,
-    benchBoostPoints,
-    freeHitPoints,
+    tripleCaptainData,
+    benchBoostData,
+    freeHitData,
     captain,
     viceCaptain,
   };

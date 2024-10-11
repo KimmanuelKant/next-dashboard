@@ -1,7 +1,7 @@
 // src/components/TeamStatisticsTable.tsx
 "use client";
 import React, { useState } from "react";
-import { Team } from '@/types';
+import { Team, ChipData } from '@/types';
 import {
   flexRender,
   getCoreRowModel,
@@ -25,19 +25,40 @@ const defaultColumns = [
   { header: "Bank", accessorKey: "bank" },
   { header: "Wildcards Used", accessorKey: "wildcardsUsed" },
   {
-    header: "Free Hit Points", // New column
-    accessorKey: "freeHitPoints",
-    cell: (info: CellContext<Team, number | string>) => info.getValue().toString(),
+    header: "Triple Captain",
+    accessorKey: "tripleCaptainData",
+    cell: ({ getValue }: CellContext<Team, ChipData | null>) => {
+      const data = getValue();
+      if (data) {
+        return `${data.points} (GW:${data.gw})`;
+      } else {
+        return "Not used";
+      }
+    },
   },
   {
-    header: "Triple Captain Points",
-    accessorKey: "tripleCaptainPoints",
-    cell: (info: CellContext<Team, number | string>) => info.getValue().toString(),
+    header: "Bench Boost",
+    accessorKey: "benchBoostData",
+    cell: ({ getValue }: CellContext<Team, ChipData | null>) => {
+      const data = getValue();
+      if (data) {
+        return `${data.points} (GW:${data.gw})`;
+      } else {
+        return "Not used";
+      }
+    },
   },
   {
-    header: "Bench Boost Points",
-    accessorKey: "benchBoostPoints",
-    cell: (info: CellContext<Team, number | string>) => info.getValue().toString(),
+    header: "Free Hit",
+    accessorKey: "freeHitData",
+    cell: ({ getValue }: CellContext<Team, ChipData | null>) => {
+      const data = getValue();
+      if (data) {
+        return `${data.points} (GW:${data.gw})`;
+      } else {
+        return "Not used";
+      }
+    },
   },
   {
     header: "Chips Used",
