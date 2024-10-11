@@ -81,6 +81,10 @@ const defaultColumns = [
   { header: "Worst Overall Rank", accessorKey: "worstOverallRank" },
   { header: "Best GW Rank", accessorKey: "highestGameweekRank" },
   { header: "Worst GW Rank", accessorKey: "lowestGameweekRank" },
+  { header: "GK Points", accessorKey: "totalGKPoints" },
+  { header: "DEF Points", accessorKey: "totalDEFPoints" },
+  { header: "MID Points", accessorKey: "totalMIDPoints" },
+  { header: "FWD Points", accessorKey: "totalFWDPoints" },
 ];
 
 // Component to render the team statistics table

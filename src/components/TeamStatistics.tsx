@@ -36,7 +36,7 @@ async function fetchManagerData(
   const totalTransfers = currentSeason.reduce((sum, gw) => sum + gw.event_transfers, 0);
   const totalTransferPointsDeducted = currentSeason.reduce((sum, gw) => sum + gw.event_transfers_cost, 0);
 
-  // Extract chips used and points on bench
+  // Extract chips used this season
   const chipsUsed = managerHistory.chips.map(chip => chip.name);
 
   // Calculate total points on bench over the season
@@ -62,6 +62,8 @@ async function fetchManagerData(
     return { gw, picks: data.picks };
   });
   const picksArray: PicksData[] = await Promise.all(picksPromises);
+
+
 
   // Initialize tripleCaptainData
 let tripleCaptainData: ChipData | null = null;
@@ -99,6 +101,68 @@ if (tripleCaptainChip) {
     console.warn(`No picks found for team ID ${teamId} in gameweek ${gw}`);
   }
 }
+
+
+// Initialize positional point accumulators
+let totalGKPoints = 0;
+let totalDEFPoints = 0;
+let totalMIDPoints = 0;
+let totalFWDPoints = 0;  
+
+// Iterate over gameweeks and picks to calculate points by position
+picksArray.forEach(({ gw, picks }: PicksData) => {
+  if (picks.length === 0) {
+    console.warn(`Warning: No picks found for team ID ${teamId} in gameweek ${gw}`);
+    return;
+  }
+  
+  // Get live data for the current gameweek
+  const liveElements = liveDataMap.get(gw);
+  if (!liveElements) {
+    console.warn(`No live data found for gameweek ${gw}`);
+    return;
+  }
+
+  picks.forEach((pick: Pick) => {
+    const playerId = pick.element;
+    const player = players.find(player => player.id === playerId);
+
+    if (!player) {
+      console.warn(`Player with ID ${playerId} not found in players data`);
+      return;
+    }
+
+    // Get the player's position
+    const position = player.element_type; // 1: GK, 2: DEF, 3: MID, 4: FWD
+    
+    // Get the player's points for the gameweek
+    const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+    if (!playerData) {
+      console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
+      return;
+    }
+
+    const playerPoints = playerData.stats.total_points * pick.multiplier;
+
+    // Accumulate points based on position
+    switch (position) {
+      case 1:
+        totalGKPoints += playerPoints;
+        break;
+      case 2:
+        totalDEFPoints += playerPoints;
+        break;
+      case 3:
+        totalMIDPoints += playerPoints;
+        break;
+      case 4:
+        totalFWDPoints += playerPoints;
+        break;
+      default:
+        console.warn(`Unknown position ${position} for player ID ${playerId}`);
+    }
+  });
+});
 
 // Initialize benchBoostData
 let benchBoostData: ChipData | null = null;
@@ -235,6 +299,10 @@ if (freeHitChip) {
     worstOverallRank,
     highestGameweekRank,
     lowestGameweekRank,
+    totalGKPoints,
+    totalDEFPoints,
+    totalMIDPoints,
+    totalFWDPoints,
   };
 }
 

@@ -79,12 +79,17 @@ export interface Team {
   worstOverallRank: number;
   highestGameweekRank: number;
   lowestGameweekRank: number;
+  totalGKPoints: number;
+  totalDEFPoints: number;
+  totalMIDPoints: number;
+  totalFWDPoints: number;
 }
 
 // Interface for player information
 export interface Player {
   id: number;
   web_name: string;
+  element_type: number;
 }
 
 // Interface to hold score and gameweek information for a played chip
