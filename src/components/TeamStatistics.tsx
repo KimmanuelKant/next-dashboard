@@ -118,6 +118,25 @@ async function fetchManagerData(
     }
   }
 
+  // Initialize freeHitPoints
+  let freeHitPoints: number | string = 'Not used';
+
+  // Find if Free Hit chip was used
+  const freeHitChip = managerHistory.chips.find(chip => chip.name === 'freehit');
+
+  if (freeHitChip) {
+    const gw = freeHitChip.event;
+
+    // Find gameweek data for when Free Hit was used
+    const gwData = currentSeason.find(gwData => gwData.event === gw);
+    if (gwData) {
+      // The total points for that gameweek
+      freeHitPoints = gwData.points;
+    } else {
+      console.warn(`No gameweek data found for team ID ${teamId} in gameweek ${gw}`);
+    }
+  }
+
   // Calculate total captain points over the season
   let totalCaptainPoints = 0;
   picksArray.forEach(({ gw, picks }: PicksData) => {
@@ -184,6 +203,7 @@ async function fetchManagerData(
     wildcardsUsed,
     tripleCaptainPoints,
     benchBoostPoints,
+    freeHitPoints,
     captain,
     viceCaptain,
   };

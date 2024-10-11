@@ -74,6 +74,7 @@ export interface Team {
   wildcardsUsed: number;
   tripleCaptainPoints: number | string;
   benchBoostPoints: number | string;
+  freeHitPoints: number | string;
 }
 
 // Interface for player information

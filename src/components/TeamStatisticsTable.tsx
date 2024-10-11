@@ -25,6 +25,11 @@ const defaultColumns = [
   { header: "Bank", accessorKey: "bank" },
   { header: "Wildcards Used", accessorKey: "wildcardsUsed" },
   {
+    header: "Free Hit Points", // New column
+    accessorKey: "freeHitPoints",
+    cell: (info: CellContext<Team, number | string>) => info.getValue().toString(),
+  },
+  {
     header: "Triple Captain Points",
     accessorKey: "tripleCaptainPoints",
     cell: (info: CellContext<Team, number | string>) => info.getValue().toString(),
