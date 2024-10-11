@@ -201,6 +201,17 @@ if (freeHitChip) {
     return gw.overall_rank > max ? gw.overall_rank : max;
   }, currentSeason[0].overall_rank);
 
+  // Find the highest gameweek rank achieved by the manager
+  const highestGameweekRank = currentSeason.reduce((min, gw) => {
+    return gw.rank < min ? gw.rank : min;
+  }, currentSeason[0].rank);
+
+  // Find the lowest gameweek rank achieved by the manager
+  const lowestGameweekRank = currentSeason.reduce((max, gw) => {
+    return gw.rank > max ? gw.rank : max;
+  }, currentSeason[0].rank);
+
+
   // Return the aggregated data for the manager
   return {
     totalTransfers,
@@ -221,7 +232,9 @@ if (freeHitChip) {
     captain,
     viceCaptain,
     bestOverallRank,
-    worstOverallRank
+    worstOverallRank,
+    highestGameweekRank,
+    lowestGameweekRank,
   };
 }
 

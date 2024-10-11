@@ -77,6 +77,8 @@ export interface Team {
   freeHitData: ChipData | null;
   bestOverallRank: number;
   worstOverallRank: number;
+  highestGameweekRank: number;
+  lowestGameweekRank: number;
 }
 
 // Interface for player information
