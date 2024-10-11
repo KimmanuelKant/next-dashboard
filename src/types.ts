@@ -72,15 +72,21 @@ export interface Team {
   totalCaptainPoints: number;
   captainPointsPercentage: number;
   wildcardsUsed: number;
-  tripleCaptainPoints: number | string;
-  benchBoostPoints: number | string;
-  freeHitPoints: number | string;
+  tripleCaptainData: ChipData | null;
+  benchBoostData: ChipData | null;
+  freeHitData: ChipData | null;
 }
 
 // Interface for player information
 export interface Player {
   id: number;
   web_name: string;
+}
+
+// Interface to hold score and gameweek information for a played chip
+export interface ChipData {
+  points: number;
+  gw: number;
 }
 
 // Interface for game event (gameweek) information
