@@ -75,6 +75,8 @@ export interface Team {
   tripleCaptainData: ChipData | null;
   benchBoostData: ChipData | null;
   freeHitData: ChipData | null;
+  bestOverallRank: number;
+  worstOverallRank: number;
 }
 
 // Interface for player information

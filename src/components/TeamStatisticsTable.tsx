@@ -77,6 +77,8 @@ const defaultColumns = [
   { header: "Captain", accessorKey: "captain" },
   { header: "Vice Captain", accessorKey: "viceCaptain" },
   { header: "Highest GW Score", accessorKey: "highestGameweekScore" },
+  { header: "Best Overall Rank", accessorKey: "bestOverallRank" },
+  { header: "Worst Overall Rank", accessorKey: "worstOverallRank" },
 ];
 
 // Component to render the team statistics table

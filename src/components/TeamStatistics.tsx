@@ -191,6 +191,16 @@ if (freeHitChip) {
   const captain = players.find(player => player.id === latestCaptainPick?.element)?.web_name || '';
   const viceCaptain = players.find(player => player.id === latestViceCaptainPick?.element)?.web_name || '';
 
+  // Find the best overall rank achieved for the season by the manager
+  const bestOverallRank = currentSeason.reduce((min, gw) => {
+    return gw.overall_rank < min ? gw.overall_rank : min;
+  }, currentSeason[0].overall_rank);
+
+  // find the worst overall rank achieved for the season by the manager
+  const worstOverallRank = currentSeason.reduce((max, gw) => {
+    return gw.overall_rank > max ? gw.overall_rank : max;
+  }, currentSeason[0].overall_rank);
+
   // Return the aggregated data for the manager
   return {
     totalTransfers,
@@ -210,6 +220,8 @@ if (freeHitChip) {
     freeHitData,
     captain,
     viceCaptain,
+    bestOverallRank,
+    worstOverallRank
   };
 }
 
