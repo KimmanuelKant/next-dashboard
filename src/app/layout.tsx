@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import 'bootstrap/dist/css/bootstrap.min.css';
 import "../styles/global.css";
+import { Analytics } from "@vercel/analytics/react"
 
 export const metadata = {
   title: "FPL Dashboard",
