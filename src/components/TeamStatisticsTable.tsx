@@ -175,6 +175,12 @@ const defaultColumns = [
   }),
 ];
 
+/*
+defaultColumns.forEach((col, index) => {
+  console.log(`Column ${index}:`, col);
+});
+*/
+
 // Define presets
 interface Preset {
   name: string;
@@ -196,6 +202,13 @@ const presets: Preset[] = [
   },
   // Add more presets as needed
 ];
+
+/*()
+console.log('Preset Columns:', presets.map((preset) => ({
+  name: preset.name,
+  columns: preset.columns,
+}))); */
+
 
 // Component to render the team statistics table
 export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
@@ -235,7 +248,7 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
               // Create a visibility map
               const visibilityMap: VisibilityState = {};
               defaultColumns.forEach((col) => {
-                const key = col.id;
+                const key = col.accessorKey;
                 if (typeof key === 'string') {
                   visibilityMap[key] = selectedPreset.columns.includes(key);
                 }
