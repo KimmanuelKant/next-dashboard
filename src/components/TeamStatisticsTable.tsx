@@ -251,7 +251,38 @@ const presets: Preset[] = [
       'benchBoostData',
       'freeHitData',],
   },
-  // Add more presets as needed
+  {
+    name: 'Captaincy',
+    columns: [
+      'managerName', 
+      'captain', 
+      'viceCaptain', 
+      'totalCaptainPoints',
+      'captainPointsPercentage',
+    ],
+  },
+  {
+    name: 'Rankings',
+    columns: [
+      'managerName', 
+      'overallRank', 
+      'bestOverallRank', 
+      'worstOverallRank',
+      'highestGameweekRank',
+      'lowestGameweekRank',
+    ],
+  },
+  {
+    name: 'Points Distribution',
+    columns: [
+      'managerName', 
+      'totalGKPoints', 
+      'totalDEFPoints', 
+      'totalMIDPoints',
+      'totalFWDPoints',
+      'totalPoints',
+    ],
+  },
 ];
 
 /*()
