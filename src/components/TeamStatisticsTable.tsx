@@ -249,7 +249,8 @@ const presets: Preset[] = [
       'wildcardsUsed', 
       'tripleCaptainData', 
       'benchBoostData',
-      'freeHitData',],
+      'freeHitData',
+    ],
   },
   {
     name: 'Captaincy',
