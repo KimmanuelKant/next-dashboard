@@ -317,40 +317,40 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
 
   return (
     <div className="p-2">
-      {/* Preset Dropdown */}
-      <div className="mb-3">
-        <label htmlFor="preset-select">Select View: </label>
-        <select
-          id="preset-select"
-          value={selectedPresetName}
-          onChange={(e) => {
-            const presetName = e.target.value;
-            setSelectedPresetName(presetName);
-            const selectedPreset = presets.find((p) => p.name === presetName);
-            if (selectedPreset) {
-              // Create a visibility map
-              const visibilityMap: VisibilityState = {};
-              defaultColumns.forEach((col) => {
-                const key = col.accessorKey;
-                if (typeof key === 'string') {
-                  visibilityMap[key] = selectedPreset.columns.includes(key);
-                }
-              });
-              setColumnVisibility(visibilityMap);
-            }
-          }}
+      {/* Controls Container */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        {/* Preset Dropdown */}
+        <DropdownButton
+          id="presetDropdown"
+          title={selectedPresetName || "Preset Views"}
+          size="sm"
+          variant="secondary"
         >
-          <option value="">-- Select a Preset --</option>
           {presets.map((preset) => (
-            <option key={preset.name} value={preset.name}>
+            <Dropdown.Item
+              key={preset.name}
+              onClick={() => {
+                setSelectedPresetName(preset.name);
+                const selectedPreset = presets.find((p) => p.name === preset.name);
+                if (selectedPreset) {
+                  // Create a visibility map
+                  const visibilityMap: VisibilityState = {};
+                  defaultColumns.forEach((col) => {
+                    const key = col.accessorKey;
+                    if (typeof key === "string") {
+                      visibilityMap[key] = selectedPreset.columns.includes(key);
+                    }
+                  });
+                  setColumnVisibility(visibilityMap);
+                }
+              }}
+            >
               {preset.name}
-            </option>
+            </Dropdown.Item>
           ))}
-        </select>
-      </div>
+        </DropdownButton>
 
-      {/* Column Visibility Dropdown */}
-      <div className="mb-3">
+        {/* Column Visibility Dropdown */}
         <DropdownButton
           id="columnVisibilityDropdown"
           title="Columns"
