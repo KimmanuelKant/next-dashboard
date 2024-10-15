@@ -33,7 +33,16 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
     {
       header: 'Global Ownership',
       accessorKey: 'globalOwnershipCount',
-      cell: (info) => info.getValue().toLocaleString(),
+      cell: (info) => {
+        const count = info.getValue();
+        const percentage = info.row.original.globalOwnershipPercentage;
+
+        if (percentage === 0 || count === 0) {
+          return 'Very low';
+        } else {
+          return `~${count.toLocaleString()}`;
+        }
+      },
       enableSorting: true,
     },
     {
@@ -45,7 +54,16 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
     {
       header: 'League Ownership',
       accessorKey: 'leagueOwnershipCount',
-      cell: (info) => info.getValue(),
+      cell: (info) => {
+        const count = info.getValue();
+        const percentage = info.row.original.leagueOwnershipPercentage;
+
+        if (percentage === 0 || count === 0) {
+          return 'Very low';
+        } else {
+          return count.toString();
+        }
+      },
       enableSorting: true,
     },
     {
