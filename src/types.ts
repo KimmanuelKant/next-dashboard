@@ -50,7 +50,7 @@ export interface PicksData {
 
 
 
-// Interface for the processed team data used in the application
+// Interface for the processed team data used in TanStack Table(TeamStatisticsTable)
 export interface Team {
   rank: number;
   managerName: string;
@@ -85,11 +85,43 @@ export interface Team {
   totalFWDPoints: number;
 }
 
+// Interface for the player data used in TanStack Table(PlayerStatisticsTable
+export interface LeaguePlayer {
+  id: number;
+  name: string;
+  position: string;
+  team: string;
+  leagueOwnershipPercentage: number;
+  globalOwnershipPercentage: number;
+  totalLeaguePoints: number;
+  totalGlobalPoints: number;
+  timesCaptainedInLeague: number;
+  timesViceCaptainedInLeague: number;
+  transfersInInLeague: number;
+  transfersOutInLeague: number;
+  price: number;
+  status: string; // e.g., 'fit', 'injured'
+  // Add more fields as needed
+}
+
+
 // Interface for player information
 export interface Player {
   id: number;
   web_name: string;
   element_type: number;
+  team: number; // Team ID
+  now_cost: number; // Current price in tenths of a million
+  status: string;
+  selected_by_percent: string; // Global ownership %
+  total_points: number; // Total points scored globally
+}
+
+// Interface for team information from the bootstrap-static data
+export interface TeamData {
+  id: number;
+  name: string;
+  // Add other fields as needed
 }
 
 // Interface to hold score and gameweek information for a played chip
@@ -117,4 +149,11 @@ export interface LiveElement {
 // Interface for live data of all players in a gameweek
 export interface LiveData {
   elements: LiveElement[];
+}
+
+// Interface for transfer information
+export interface Transfer {
+  element_in: number;
+  element_out: number;
+  time: string;
 }
