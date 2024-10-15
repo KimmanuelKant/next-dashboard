@@ -43,20 +43,35 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
     const latestGameweek = latestFinishedEvent.id;
 
     // Create a map of player IDs to player information
-    const playerMap = new Map<number, { name: string; position: string; team: string; value: number }>();
+    const playerMap = new Map<
+      number,
+      {
+        name: string;
+        position: string;
+        team: string;
+        value: number;
+        globalOwnershipPercentage: number;
+      }
+    >();
 
     players.forEach((player) => {
       const positionName = getPositionName(player.element_type);
       const teamName = getTeamName(player.team, teamsData);
       const playerValue = player.now_cost / 10; // Convert from tenths of millions to millions
+      const globalOwnershipPercentage = parseFloat(player.selected_by_percent);
 
       playerMap.set(player.id, {
         name: player.web_name,
         position: positionName,
         team: teamName,
         value: playerValue,
+        globalOwnershipPercentage,
       });
     });
+
+    // Map to store the teams owning each player
+    const teamsOwningPlayerMap = new Map<number, Set<number>>(); // playerId => Set of teamIds
+
 
     // Set to store unique player IDs selected by teams in the league
     const selectedPlayerIds = new Set<number>();
@@ -77,14 +92,24 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
       const picksData = await picksRes.json();
       const picks: Pick[] = picksData.picks;
 
-      // Add player IDs to the set
+      // Add player IDs to the set and track ownership
       picks.forEach((pick) => {
-        selectedPlayerIds.add(pick.element);
+        const playerId = pick.element;
+        selectedPlayerIds.add(playerId);
+
+        // Track teams owning the player
+        if (!teamsOwningPlayerMap.has(playerId)) {
+          teamsOwningPlayerMap.set(playerId, new Set());
+        }
+        teamsOwningPlayerMap.get(playerId)!.add(teamId);
       });
     });
 
+
     // Wait for all team data to be fetched
     await Promise.all(teamPromises);
+
+
 
     // Get the information of the selected players
     const selectedPlayers: LeaguePlayer[] = Array.from(selectedPlayerIds).map((playerId) => {
@@ -96,6 +121,8 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
           position: 'Unknown',
           team: 'Unknown',
           value: 0,
+          globalOwnershipPercentage: 0,
+          leagueOwnershipPercentage: 0, // Initialize to 0
         };
       }
       return {
@@ -104,8 +131,25 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
         position: playerInfo.position,
         team: playerInfo.team,
         value: playerInfo.value,
+        globalOwnershipPercentage: playerInfo.globalOwnershipPercentage,
+        leagueOwnershipPercentage: 0, // Initialize to 0
       };
     });
+    
+
+    
+    // Total number of teams in the league
+    const totalTeamsInLeague = teams.length;
+
+    // Calculate league ownership percentage for each player
+    selectedPlayers.forEach((player) => {
+      const teamsOwningPlayer = teamsOwningPlayerMap.get(player.id);
+      const ownershipCount = teamsOwningPlayer ? teamsOwningPlayer.size : 0;
+      const leagueOwnershipPercentage = (ownershipCount / totalTeamsInLeague) * 100;
+
+      player.leagueOwnershipPercentage = leagueOwnershipPercentage;
+    });
+
 
     // Sort the players by name
     selectedPlayers.sort((a, b) => a.name.localeCompare(b.name));

@@ -9,13 +9,7 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 
-interface LeaguePlayer {
-  id: number;
-  name: string;
-  position: string;
-  team: string;
-  value: number;
-}
+import { LeaguePlayer } from '@/types';
 
 export default function PlayerStatisticsTable({ players }: { players: LeaguePlayer[] }) {
   const columns: ColumnDef<LeaguePlayer, any>[] = [
@@ -35,6 +29,18 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
       header: 'Value',
       accessorKey: 'value',
       cell: (info) => `£${info.getValue().toFixed(1)}m`,
+    },
+    {
+      header: 'Global Ownership %',
+      accessorKey: 'globalOwnershipPercentage',
+      cell: (info) => `${info.getValue().toFixed(1)}%`,
+      enableSorting: true,
+    },
+    {
+      header: 'League Ownership %',
+      accessorKey: 'leagueOwnershipPercentage',
+      cell: (info) => `${info.getValue().toFixed(1)}%`,
+      enableSorting: true,
     },
   ];
 
