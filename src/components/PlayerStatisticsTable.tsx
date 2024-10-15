@@ -5,7 +5,6 @@ import React from 'react';
 import {
   useReactTable,
   getCoreRowModel,
-  ColumnDef,
   flexRender,
   createColumnHelper,
 } 
