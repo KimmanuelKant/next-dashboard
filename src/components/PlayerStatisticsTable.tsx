@@ -1,5 +1,6 @@
 // src/components/PlayerStatisticsTable.tsx
 "use client";
+
 import React from 'react';
 import {
   useReactTable,
@@ -8,16 +9,32 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 
-interface Player {
+interface LeaguePlayer {
   id: number;
   name: string;
+  position: string;
+  team: string;
+  value: number;
 }
 
-export default function PlayerStatisticsTable({ players }: { players: Player[] }) {
-  const columns: ColumnDef<Player, any>[] = [
+export default function PlayerStatisticsTable({ players }: { players: LeaguePlayer[] }) {
+  const columns: ColumnDef<LeaguePlayer, any>[] = [
     {
       header: 'Player Name',
       accessorKey: 'name',
+    },
+    {
+      header: 'Position',
+      accessorKey: 'position',
+    },
+    {
+      header: 'Team',
+      accessorKey: 'team',
+    },
+    {
+      header: 'Value',
+      accessorKey: 'value',
+      cell: (info) => `£${info.getValue().toFixed(1)}m`,
     },
   ];
 

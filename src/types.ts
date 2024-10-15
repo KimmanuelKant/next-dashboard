@@ -91,17 +91,7 @@ export interface LeaguePlayer {
   name: string;
   position: string;
   team: string;
-  leagueOwnershipPercentage: number;
-  globalOwnershipPercentage: number;
-  totalLeaguePoints: number;
-  totalGlobalPoints: number;
-  timesCaptainedInLeague: number;
-  timesViceCaptainedInLeague: number;
-  transfersInInLeague: number;
-  transfersOutInLeague: number;
-  price: number;
-  status: string; // e.g., 'fit', 'injured'
-  // Add more fields as needed
+  value: number;
 }
 
 

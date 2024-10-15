@@ -1,7 +1,7 @@
 // src/components/PlayerStatistics.tsx
 
 import React from 'react';
-import { ApiTeam, Pick, Player, GameEvent } from '@/types';
+import { ApiTeam, Pick, Player, GameEvent, TeamData, LeaguePlayer } from '@/types';
 import PlayerStatisticsTable from '@/components/PlayerStatisticsTable';
 
 interface PlayerStatisticsProps {
@@ -21,13 +21,14 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
     const standingsData = await standingsRes.json();
     const teams: ApiTeam[] = standingsData.standings.results;
 
-    // Fetch player data (names and IDs)
+    // Fetch global player data (including teams)
     const playersRes = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
     if (!playersRes.ok) {
       throw new Error('Failed to fetch player data');
     }
     const playersData = await playersRes.json();
     const players: Player[] = playersData.elements;
+    const teamsData: TeamData[] = playersData.teams;
 
     // Fetch events to get the latest finished gameweek
     const events: GameEvent[] = playersData.events;
@@ -41,10 +42,20 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
 
     const latestGameweek = latestFinishedEvent.id;
 
-    // Create a map of player IDs to player names
-    const playerMap = new Map<number, string>();
+    // Create a map of player IDs to player information
+    const playerMap = new Map<number, { name: string; position: string; team: string; value: number }>();
+
     players.forEach((player) => {
-      playerMap.set(player.id, player.web_name);
+      const positionName = getPositionName(player.element_type);
+      const teamName = getTeamName(player.team, teamsData);
+      const playerValue = player.now_cost / 10; // Convert from tenths of millions to millions
+
+      playerMap.set(player.id, {
+        name: player.web_name,
+        position: positionName,
+        team: teamName,
+        value: playerValue,
+      });
     });
 
     // Set to store unique player IDs selected by teams in the league
@@ -75,12 +86,24 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
     // Wait for all team data to be fetched
     await Promise.all(teamPromises);
 
-    // Get the names of the selected players
-    const selectedPlayers = Array.from(selectedPlayerIds).map((playerId) => {
-      const playerName = playerMap.get(playerId) || 'Unknown Player';
+    // Get the information of the selected players
+    const selectedPlayers: LeaguePlayer[] = Array.from(selectedPlayerIds).map((playerId) => {
+      const playerInfo = playerMap.get(playerId);
+      if (!playerInfo) {
+        return {
+          id: playerId,
+          name: 'Unknown Player',
+          position: 'Unknown',
+          team: 'Unknown',
+          value: 0,
+        };
+      }
       return {
         id: playerId,
-        name: playerName,
+        name: playerInfo.name,
+        position: playerInfo.position,
+        team: playerInfo.team,
+        value: playerInfo.value,
       };
     });
 
@@ -93,4 +116,20 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
     console.error('Error fetching player statistics:', error);
     return <div>Error loading player statistics.</div>;
   }
+}
+
+// Helper functions
+function getPositionName(elementType: number): string {
+  const positions: { [key: number]: string } = {
+    1: 'Goalkeeper',
+    2: 'Defender',
+    3: 'Midfielder',
+    4: 'Forward',
+  };
+  return positions[elementType] || 'Unknown';
+}
+
+function getTeamName(teamId: number, teamsData: TeamData[]): string {
+  const team = teamsData.find((t) => t.id === teamId);
+  return team ? team.name : 'Unknown';
 }
