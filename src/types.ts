@@ -92,7 +92,9 @@ export interface LeaguePlayer {
   position: string;
   team: string;
   value: number;
+  globalOwnershipCount: number;
   globalOwnershipPercentage: number;
+  leagueOwnershipCount: number;
   leagueOwnershipPercentage: number;
 }
 

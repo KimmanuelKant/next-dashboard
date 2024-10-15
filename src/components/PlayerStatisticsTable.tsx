@@ -31,9 +31,21 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
       cell: (info) => `£${info.getValue().toFixed(1)}m`,
     },
     {
+      header: 'Global Ownership',
+      accessorKey: 'globalOwnershipCount',
+      cell: (info) => info.getValue().toLocaleString(),
+      enableSorting: true,
+    },
+    {
       header: 'Global Ownership %',
       accessorKey: 'globalOwnershipPercentage',
       cell: (info) => `${info.getValue().toFixed(1)}%`,
+      enableSorting: true,
+    },
+    {
+      header: 'League Ownership',
+      accessorKey: 'leagueOwnershipCount',
+      cell: (info) => info.getValue(),
       enableSorting: true,
     },
     {
@@ -42,6 +54,7 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
       cell: (info) => `${info.getValue().toFixed(1)}%`,
       enableSorting: true,
     },
+    // Other columns...
   ];
 
   const table = useReactTable({
