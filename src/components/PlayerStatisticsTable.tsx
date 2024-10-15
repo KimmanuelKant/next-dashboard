@@ -7,73 +7,72 @@ import {
   getCoreRowModel,
   ColumnDef,
   flexRender,
-} from '@tanstack/react-table';
-
+  createColumnHelper,
+} 
+from '@tanstack/react-table';
 import { LeaguePlayer } from '@/types';
 
+
+const columnHelper = createColumnHelper<LeaguePlayer>();
 export default function PlayerStatisticsTable({ players }: { players: LeaguePlayer[] }) {
-  const columns: ColumnDef<LeaguePlayer, any>[] = [
-    {
-      header: 'Player Name',
-      accessorKey: 'name',
-    },
-    {
-      header: 'Position',
-      accessorKey: 'position',
-    },
-    {
-      header: 'Team',
-      accessorKey: 'team',
-    },
-    {
-      header: 'Value',
-      accessorKey: 'value',
-      cell: (info) => `£${info.getValue().toFixed(1)}m`,
-    },
-    {
-      header: 'Global Ownership',
-      accessorKey: 'globalOwnershipCount',
-      cell: (info) => {
-        const count = info.getValue();
-        const percentage = info.row.original.globalOwnershipPercentage;
-
-        if (percentage === 0 || count === 0) {
-          return 'Very low';
-        } else {
-          return `~${count.toLocaleString()}`;
-        }
-      },
-      enableSorting: true,
-    },
-    {
-      header: 'Global Ownership %',
-      accessorKey: 'globalOwnershipPercentage',
-      cell: (info) => `${info.getValue().toFixed(1)}%`,
-      enableSorting: true,
-    },
-    {
-      header: 'League Ownership',
-      accessorKey: 'leagueOwnershipCount',
-      cell: (info) => {
-        const count = info.getValue();
-        const percentage = info.row.original.leagueOwnershipPercentage;
-
-        if (percentage === 0 || count === 0) {
-          return 'Very low';
-        } else {
-          return count.toString();
-        }
-      },
-      enableSorting: true,
-    },
-    {
-      header: 'League Ownership %',
-      accessorKey: 'leagueOwnershipPercentage',
-      cell: (info) => `${info.getValue().toFixed(1)}%`,
-      enableSorting: true,
-    },
-    // Other columns...
-  ];
+    const columns = [
+        columnHelper.accessor('name', {
+          header: 'Player Name',
+          enableSorting: true,
+        }),
+        columnHelper.accessor('position', {
+          header: 'Position',
+          enableSorting: true,
+        }),
+        columnHelper.accessor('team', {
+          header: 'Team',
+          enableSorting: true,
+        }),
+        columnHelper.accessor('value', {
+          header: 'Value',
+          cell: ({ getValue }) => `£${getValue().toFixed(1)}m`,
+          enableSorting: true,
+        }),
+        columnHelper.accessor('globalOwnershipCount', {
+          header: 'Global Ownership',
+          cell: ({ getValue, row }) => {
+            const count = getValue();
+            const percentage = row.original.globalOwnershipPercentage;
+      
+            if (percentage === 0 || count === 0) {
+              return 'Very low';
+            } else {
+              return `~${count.toLocaleString()}`;
+            }
+          },
+          enableSorting: true,
+        }),
+        columnHelper.accessor('globalOwnershipPercentage', {
+          header: 'Global Ownership %',
+          cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
+          enableSorting: true,
+        }),
+        columnHelper.accessor('leagueOwnershipCount', {
+          header: 'League Ownership',
+          cell: ({ getValue, row }) => {
+            const count = getValue();
+            const percentage = row.original.leagueOwnershipPercentage;
+      
+            if (percentage === 0 || count === 0) {
+              return 'Very low';
+            } else {
+              return count.toString();
+            }
+          },
+          enableSorting: true,
+        }),
+        columnHelper.accessor('leagueOwnershipPercentage', {
+          header: 'League Ownership %',
+          cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
+          enableSorting: true,
+        }),
+      ];
+    
 
   const table = useReactTable({
     data: players,
