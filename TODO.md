@@ -15,17 +15,17 @@
 
 
 **1. Awards page** 
-    ```bash
+    ```
     Display a page full off bootstrap cards, showcasing various "awards", and maybe a toggle between weekly and seasonal
     ```
 
 **2. User Log In**
-    ```bash
+    ```
     Implement a user database and allow users to log in, connecting the account with a user and giving you acces to all your minileagues.
     ```
 
 **3. Chat**
-    ```bash
+    ```
     A league specific chat for each league. It should be visible for everyone, but you need to be logged in to send a message.
     ```
 
