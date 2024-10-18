@@ -29,11 +29,16 @@
     A league specific chat for each league. It should be visible for everyone, but you need to be logged in to send a message.
     ```
 
+**4. Max League Size Limitation**
+    ```
+    Look into maximum league size of 50, as that is what we are currently fetching from the API. Our current code only fetches the first "page", but I need to look into how many more pages I can fetch before preformance becomes a real issue.
+    ```
 
 ## NEW COLUMNS
 
 **Team Stats**
 1. Team Sell Value: How much money would the team be left with if they sold all players.
+2. Fix points for BB-week column. Currently shows zero.
 
 **Player Stats**
 1. League Captaincy: show how many teams in the league has the played as their captain. (and vice captain). It can be broken down into percentage and a digit in two different columns.
