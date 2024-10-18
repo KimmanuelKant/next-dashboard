@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
+import Accordion from 'react-bootstrap/Accordion';
+
 
 export default function HomePage() {
   const [leagueId, setLeagueId] = useState("");
@@ -51,6 +53,18 @@ export default function HomePage() {
             </div>
           </form>
         </div>
+        <Accordion defaultActiveKey="0" flush>
+      <Accordion.Item eventKey="0">
+        <Accordion.Header>About MyFPL.net</Accordion.Header>
+        <Accordion.Body>
+          <p>
+            MyFPL.net provides improved tables and statistics for your Fantasy Premier League (FPL) mini-leagues.
+            <br>
+            </br>Find new statistics for your league presented in a user friendly table
+          </p>
+        </Accordion.Body>
+      </Accordion.Item>
+    </Accordion>
         <div className="card-footer text-center">
           <p className="mb-0">© KunstiguIntelligens 2024</p>
         </div>
