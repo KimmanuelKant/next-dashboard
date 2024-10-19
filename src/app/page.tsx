@@ -41,6 +41,7 @@ export default function HomePage() {
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <input
+                id="leagueId"
                 type="text"
                 className="form-control"
                 placeholder="Enter League ID"
