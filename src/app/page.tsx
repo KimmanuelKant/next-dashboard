@@ -22,7 +22,7 @@ export default function HomePage() {
       {/* Centered logo */}
       <div className="text-center mb-4">
         <Image
-          src="/myfplnetlogo.png"
+          src="/myfplnetlogoblue.png"
           alt="MyFPL.net Logo"
           width={382}
           height={371}
