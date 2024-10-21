@@ -6,11 +6,6 @@
     When hoovering a column in the "show/hide"-dropdown, there should be a tooltip describing what the column shows. This needs to also work on mobile, so my first instinct is to add a little "info" button that is clickable, and will open a small overlay describing the different columns.
     ```
 
-**2. About this page-div on src\app\page.tsx**
-    ```bash
-    Bootstrap Accordian dropdown on the frontpage with "about" info, describing the webpage. I assume this will improve search engine visibility?
-    ```
-
 ## Features
 
 
