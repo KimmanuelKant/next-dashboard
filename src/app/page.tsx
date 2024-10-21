@@ -61,9 +61,9 @@ export default function HomePage() {
           <p>
             Head to the <a href="https://fantasy.premierleague.com/leagues" target="_blank" rel="noreferrer">Fantasy Premier Leagues</a> page and click on your league. The League ID is the number at the end of the URL.
             <br />
-            For example, the League ID for <a href="https://fantasy.premierleague.com/leagues/2355363/standings/c" target="_blank" rel="noreferrer">MyFPL.net's league</a> is <strong>2355363</strong>.
+            For example, the League ID for <a href="https://fantasy.premierleague.com/leagues/2355363/standings/c" target="_blank" rel="noreferrer">MyFPL.net&apos;s league</a> is <strong>2355363</strong>.
           </p>
-          <Image
+           <Image
             src="/findleagueid.PNG"
             alt="Screenshot showing where to find the League ID"
             width={450} // Adjust width as needed
@@ -86,7 +86,7 @@ export default function HomePage() {
       </Accordion.Item>
     </Accordion>
         <div className="card-footer text-center">
-          <p className="mb-0">© 2024 "(Not really)"</p>
+          <p className="mb-0">© 2024 “(Not really)”</p>
         </div>
       </div>
     </div>
