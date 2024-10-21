@@ -29,11 +29,6 @@
     A league specific chat for each league. It should be visible for everyone, but you need to be logged in to send a message.
     ```
 
-**4. Max League Size Limitation**
-    ```
-    Look into maximum league size of 50, as that is what we are currently fetching from the API. Our current code only fetches the first "page", but I need to look into how many more pages I can fetch before preformance becomes a real issue.
-    ```
-
 ## NEW COLUMNS
 
 **Team Stats**
@@ -43,3 +38,9 @@
 **Player Stats**
 1. League Captaincy: show how many teams in the league has the played as their captain. (and vice captain). It can be broken down into percentage and a digit in two different columns.
 2. League Points: How many points has the player scored for all teams in the league total this season, and last gameweek.
+
+## Debugging
+
+**1. Max League Size Limitation**
+
+    Look into maximum league size of 50, as that is what we are currently fetching from the API. Our current code only fetches the first "page", but I need to look into how many more pages I can fetch before preformance becomes a real issue.
