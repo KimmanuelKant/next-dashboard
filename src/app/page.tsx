@@ -78,7 +78,8 @@ export default function HomePage() {
         <Accordion.Body>
           <p>
             MyFPL.net is still under development. The current version is a prototype with very limited functionality.
-            <strong>MyFPL.net</strong> is a comprehensive dashboard that offers enhanced tables and detailed statistics for your Fantasy Premier League (FPL) mini-leagues.
+            <br />
+            <strong>MyFPL.net</strong> aims to be a comprehensive dashboard that offers enhanced tables and detailed statistics for your Fantasy Premier League (FPL) mini-leagues.
             <br />
             Discover new insights for your league, presented in user-friendly, customizable tables.
           </p>
