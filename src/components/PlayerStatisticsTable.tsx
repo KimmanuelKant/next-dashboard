@@ -19,31 +19,35 @@ import { InfoCircleFill } from 'react-bootstrap-icons';
 export default function PlayerStatisticsTable({ players }: { players: LeaguePlayer[] }) {
   const columnHelper = createColumnHelper<LeaguePlayer>();
 
-  // Define columns using the column helper
   const defaultColumns = [
     columnHelper.accessor('name', {
+      id: 'name',
       header: 'Player Name',
       enableSorting: true,
     }),
     columnHelper.accessor('position', {
+      id: 'position',
       header: 'Position',
       enableSorting: true,
     }),
     columnHelper.accessor('team', {
+      id: 'team',
       header: 'Team',
       enableSorting: true,
     }),
     columnHelper.accessor('value', {
+      id: 'value',
       header: 'Value',
       cell: ({ getValue }) => `£${getValue().toFixed(1)}m`,
       enableSorting: true,
     }),
     columnHelper.accessor('globalOwnershipCount', {
+      id: 'globalOwnershipCount',
       header: 'Global Ownership',
       cell: ({ getValue, row }) => {
         const count = getValue();
         const percentage = row.original.globalOwnershipPercentage;
-
+  
         if (percentage === 0 || count === 0) {
           return 'Very low';
         } else {
@@ -53,16 +57,18 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
       enableSorting: true,
     }),
     columnHelper.accessor('globalOwnershipPercentage', {
+      id: 'globalOwnershipPercentage',
       header: 'Global Ownership %',
       cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
       enableSorting: true,
     }),
     columnHelper.accessor('leagueOwnershipCount', {
+      id: 'leagueOwnershipCount',
       header: 'League Ownership',
       cell: ({ getValue, row }) => {
         const count = getValue();
         const percentage = row.original.leagueOwnershipPercentage;
-
+  
         if (percentage === 0 || count === 0) {
           return 'Very low';
         } else {
@@ -72,13 +78,12 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
       enableSorting: true,
     }),
     columnHelper.accessor('leagueOwnershipPercentage', {
+      id: 'leagueOwnershipPercentage',
       header: 'League Ownership %',
       cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
       enableSorting: true,
     }),
-    // Add more columns as needed
-  ];
-
+  ]; 
 
 
   // Define presets
@@ -171,6 +176,7 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
                   setColumnVisibility(visibilityMap);
                 }
               }}
+              
             >
               {preset.name}
             </Dropdown.Item>
