@@ -20,55 +20,68 @@ const columnHelper = createColumnHelper<Team>();
 // Define your columns using the column helper
 const defaultColumns = [
   columnHelper.accessor('rank', {
+    id: 'rank',
     header: 'Rank',
     enableSorting: true,
   }),
   columnHelper.accessor('managerName', {
+    id: 'managerName',
     header: 'Manager Name',
     enableSorting: true,
   }),
   columnHelper.accessor('teamName', {
+    id: 'teamName',
     header: 'Team Name',
     enableSorting: true,
   }),
   columnHelper.accessor('teamId', {
+    id: 'teamId',
     header: 'Team ID',
     enableSorting: true,
   }),
   columnHelper.accessor('totalPoints', {
+    id: 'totalPoints',
     header: 'Total Points',
     enableSorting: true,
   }),
   columnHelper.accessor('eventTotal', {
+    id: 'eventTotal',
     header: 'GW Total',
     enableSorting: true,
   }),
   columnHelper.accessor('overallRank', {
+    id: 'overallRank',
     header: 'Overall Rank',
     enableSorting: true,
   }),
   columnHelper.accessor('totalTransfers', {
+    id: 'totalTransfers',
     header: 'Total Transfers',
     enableSorting: true,
   }),
   columnHelper.accessor('transfersThisWeek', {
+    id: 'transfersThisWeek',
     header: 'GW Transfers',
     enableSorting: true,
   }),
   columnHelper.accessor('teamValue', {
+    id: 'teamValue',
     header: 'Team Value',
     enableSorting: true,
   }),
   columnHelper.accessor('bank', {
+    id: 'bank',
     header: 'Bank',
     enableSorting: true,
   }),
   columnHelper.accessor('wildcardsUsed', {
+    id: 'wildcardsUsed',
     header: 'Wildcards Used',
     enableSorting: true,
   }),
   // Custom cell renderer for tripleCaptainData
   columnHelper.accessor('tripleCaptainData', {
+    id: 'tripleCaptainData',
     header: 'Triple Captain',
     cell: ({ getValue }) => {
       const data = getValue() as ChipData | null;
@@ -82,6 +95,7 @@ const defaultColumns = [
   }),
   // Custom cell renderer for benchBoostData
   columnHelper.accessor('benchBoostData', {
+    id: 'benchBoostData',
     header: 'Bench Boost',
     cell: ({ getValue }) => {
       const data = getValue() as ChipData | null;
@@ -95,6 +109,7 @@ const defaultColumns = [
   }),
   // Custom cell renderer for freeHitData
   columnHelper.accessor('freeHitData', {
+    id: 'freeHitData',
     header: 'Free Hit',
     cell: ({ getValue }) => {
       const data = getValue() as ChipData | null;
@@ -108,69 +123,85 @@ const defaultColumns = [
   }),
   // Custom cell renderer for chipsUsed
   columnHelper.accessor('chipsUsed', {
+    id: 'chipsUsed',
     header: 'Chips Used',
     cell: ({ getValue }) => getValue().join(', '),
     enableSorting: true,
   }),
   columnHelper.accessor('totalCaptainPoints', {
+    id: 'totalCaptainPoints',
     header: 'Total Captain Points',
     enableSorting: true,
   }),
   // Custom cell renderer for captainPointsPercentage
   columnHelper.accessor('captainPointsPercentage', {
+    id: 'captainPointsPercentage',
     header: 'Captain Points %',
     cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
     enableSorting: true,
   }),
   columnHelper.accessor('pointsOnBench', {
+    id: 'pointsOnBench',
     header: 'Points on Bench',
     enableSorting: true,
   }),
   columnHelper.accessor('totalTransferPointsDeducted', {
+    id: 'totalTransferPointsDeducted',
     header: 'Total Hits',
     enableSorting: true,
   }),
   columnHelper.accessor('captain', {
+    id: 'captain',
     header: 'Captain',
     enableSorting: true,
   }),
   columnHelper.accessor('viceCaptain', {
+    id: 'viceCaptain',
     header: 'Vice Captain',
     enableSorting: true,
   }),
   columnHelper.accessor('highestGameweekScore', {
+    id: 'highestGameweekScore',
     header: 'Highest GW Score',
     enableSorting: true,
   }),
   columnHelper.accessor('bestOverallRank', {
+    id: 'bestOverallRank',  
     header: 'Best Overall Rank',
     enableSorting: true,
   }),
   columnHelper.accessor('worstOverallRank', {
+    id: 'worstOverallRank',
     header: 'Worst Overall Rank',
     enableSorting: true,
   }),
   columnHelper.accessor('highestGameweekRank', {
+    id: 'highestGameweekRank',
     header: 'Best GW Rank',
     enableSorting: true,
   }),
   columnHelper.accessor('lowestGameweekRank', {
+    id: 'lowestGameweekRank',
     header: 'Worst GW Rank',
     enableSorting: true,
   }),
   columnHelper.accessor('totalGKPoints', {
+    id: 'totalGKPoints',
     header: 'GK Points',
     enableSorting: true,
   }),
   columnHelper.accessor('totalDEFPoints', {
+    id: 'totalDEFPoints',
     header: 'DEF Points',
     enableSorting: true,
   }),
   columnHelper.accessor('totalMIDPoints', {
+    id: 'totalMIDPoints',
     header: 'MID Points',
     enableSorting: true,
   }),
   columnHelper.accessor('totalFWDPoints', {
+    id: 'totalFWDPoints',
     header: 'FWD Points',
     enableSorting: true,
   }),
