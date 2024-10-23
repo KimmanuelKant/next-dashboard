@@ -12,7 +12,9 @@ import {
   VisibilityState,
 } from '@tanstack/react-table';
 import { LeaguePlayer } from '@/types';
-import { Dropdown, DropdownButton, Form } from 'react-bootstrap';
+import { Dropdown, DropdownButton, Form, OverlayTrigger, Popover } from 'react-bootstrap';
+import { InfoCircleFill } from 'react-bootstrap-icons';
+
 
 export default function PlayerStatisticsTable({ players }: { players: LeaguePlayer[] }) {
   const columnHelper = createColumnHelper<LeaguePlayer>();
@@ -77,6 +79,8 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
     // Add more columns as needed
   ];
 
+
+
   // Define presets
   interface Preset {
     name: string;
@@ -109,6 +113,19 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
     },
     // Add more presets as needed
   ];
+
+  // Define descriptions for each column
+  const columnDescriptions: { [key: string]: string } = {
+    name: "The player's full name.",
+    position: "The player's position on the field (e.g., Goalkeeper, Defender, Midfielder, Forward).",
+    team: "The Premier League team the player belongs to.",
+    value: "The player's current market value in millions of pounds.",
+    globalOwnershipCount: "Approximate number of FPL managers worldwide who own this player.",
+    globalOwnershipPercentage: "Percentage of FPL managers worldwide who own this player.",
+    leagueOwnershipCount: "Number of managers in your league who own this player.",
+    leagueOwnershipPercentage: "Percentage of managers in your league who own this player.",
+    // Add more descriptions for additional columns as needed
+  };
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -169,8 +186,9 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
           variant="secondary"
           autoClose="outside"
         >
-          {table.getAllLeafColumns().map((column) => (
-            <Dropdown.Item key={column.id} as="div">
+        {table.getAllLeafColumns().map((column, index) => (
+          <Dropdown.Item key={column.id} as="div">
+            <div className="d-flex align-items-center">
               <Form.Check
                 type="checkbox"
                 id={`column-${column.id}`}
@@ -178,8 +196,29 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
                 checked={column.getIsVisible()}
                 onChange={column.getToggleVisibilityHandler()}
               />
-            </Dropdown.Item>
-          ))}
+              {index === 0 && (
+                <OverlayTrigger
+                  trigger="click"
+                  placement="left"
+                  overlay={
+                    <Popover id={`popover-${column.id}`}>
+                      <Popover.Body>
+                        {columnDescriptions[column.id as string]}
+                      </Popover.Body>
+                    </Popover>
+                  }
+                >
+                  <InfoCircleFill
+                    className="ms-2"
+                    style={{ cursor: 'pointer' }}
+                    size={16}
+                  />
+                </OverlayTrigger>
+              )}
+            </div>
+          </Dropdown.Item>
+        ))}
+        
         </DropdownButton>
       </div>
 
