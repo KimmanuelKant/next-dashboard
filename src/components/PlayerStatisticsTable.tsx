@@ -186,9 +186,12 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
           variant="secondary"
           autoClose="outside"
         >
-        {table.getAllLeafColumns().map((column, index) => (
+        {table.getAllLeafColumns().map((column) => (
           <Dropdown.Item key={column.id} as="div">
-            <div className="d-flex align-items-center">
+            <div
+              className="d-flex align-items-center"
+              onClick={(e) => e.stopPropagation()} // Prevents the dropdown from closing when clicking inside
+            >
               <Form.Check
                 type="checkbox"
                 id={`column-${column.id}`}
@@ -196,7 +199,7 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
                 checked={column.getIsVisible()}
                 onChange={column.getToggleVisibilityHandler()}
               />
-              {index === 0 && (
+              {columnDescriptions[column.id as string] && (
                 <OverlayTrigger
                   trigger="click"
                   placement="left"
@@ -212,12 +215,15 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
                     className="ms-2"
                     style={{ cursor: 'pointer' }}
                     size={16}
+                    aria-label={`Info about ${column.columnDef.header}`}
                   />
                 </OverlayTrigger>
               )}
             </div>
           </Dropdown.Item>
         ))}
+
+
         
         </DropdownButton>
       </div>
