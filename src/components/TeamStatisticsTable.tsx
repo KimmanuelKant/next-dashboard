@@ -11,7 +11,8 @@ import {
   createColumnHelper,
   SortingState,
 } from "@tanstack/react-table";
-import { Dropdown, DropdownButton, Form } from "react-bootstrap";
+import { Dropdown, DropdownButton, Form, OverlayTrigger, Popover } from "react-bootstrap";
+import { InfoCircleFill } from 'react-bootstrap-icons';
 
 // Create a column helper for the Team type
 const columnHelper = createColumnHelper<Team>();
@@ -181,6 +182,42 @@ defaultColumns.forEach((col, index) => {
 });
 */
 
+// Column descriptions for tooltips
+const columnDescriptions: { [key: string]: string } = {
+  rank: "The manager's rank within the league.",
+  managerName: "The name of the team manager.",
+  teamName: "The name of the team.",
+  teamId: "The ID of the team.",
+  totalPoints: "The total points scored by the team.",
+  eventTotal: "The total points scored in the current gameweek.",
+  overallRank: "The team's current overall rank.",
+  totalTransfers: "The total number of transfers made by the manager.",
+  transfersThisWeek: "The number of transfers made in the current gameweek.",
+  teamValue: "The total value of the team.",
+  bank: "The amount of money in the bank.",
+  wildcardsUsed: "The number of wildcards used.",
+  tripleCaptainData: "The points scored and gameweek of the Triple Captain chip.",
+  benchBoostData: "The points scored and gameweek of the Bench Boost chip.",
+  freeHitData: "The points scored and gameweek of the Free Hit chip.",
+  chipsUsed: "The chips used by the manager.",
+  totalCaptainPoints: "The total points scored by the captain.",
+  captainPointsPercentage: "The percentage of points scored by the captain.",
+  pointsOnBench: "The points scored by players on the bench.",
+  totalTransferPointsDeducted: "The total points deducted from hits.",
+  captain: "The captain of the team.",
+  viceCaptain: "The vice captain of the team.",
+  highestGameweekScore: "The highest score in a gameweek.",
+  bestOverallRank: "The best overall rank achieved.",
+  worstOverallRank: "The worst overall rank achieved.",
+  highestGameweekRank: "The best rank in a gameweek.",
+  lowestGameweekRank: "The worst rank in a gameweek.",
+  totalGKPoints: "The total points scored by goalkeepers.",
+  totalDEFPoints: "The total points scored by defenders.",
+  totalMIDPoints: "The total points scored by midfielders.",
+  totalFWDPoints: "The total points scored by forwards.",
+};
+
+
 // Define presets
 interface Preset {
   name: string;
@@ -336,10 +373,8 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
                   // Create a visibility map
                   const visibilityMap: VisibilityState = {};
                   defaultColumns.forEach((col) => {
-                    const key = col.accessorKey;
-                    if (typeof key === "string") {
-                      visibilityMap[key] = selectedPreset.columns.includes(key);
-                    }
+                    const key = col.id as string;
+                    visibilityMap[key] = selectedPreset.columns.includes(key);
                   });
                   setColumnVisibility(visibilityMap);
                 }
@@ -360,13 +395,38 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
         >
           {table.getAllLeafColumns().map((column) => (
             <Dropdown.Item key={column.id} as="div">
-              <Form.Check
-                type="checkbox"
-                id={`column-${column.id}`}
-                label={String(column.columnDef.header)}
-                checked={column.getIsVisible()}
-                onChange={column.getToggleVisibilityHandler()}
-              />
+              <div
+                className="d-flex align-items-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Form.Check
+                  type="checkbox"
+                  id={`column-${column.id}`}
+                  label={String(column.columnDef.header)}
+                  checked={column.getIsVisible()}
+                  onChange={column.getToggleVisibilityHandler()}
+                />
+                {columnDescriptions[column.id as string] && (
+                  <OverlayTrigger
+                    trigger="click"
+                    placement="left"
+                    overlay={
+                      <Popover id={`popover-${column.id}`}>
+                        <Popover.Body>
+                          {columnDescriptions[column.id as string]}
+                        </Popover.Body>
+                      </Popover>
+                    }
+                  >
+                    <InfoCircleFill
+                      className="ms-2"
+                      style={{ cursor: 'pointer' }}
+                      size={16}
+                      aria-label={`Info about ${column.columnDef.header}`}
+                    />
+                  </OverlayTrigger>
+                )}
+              </div>
             </Dropdown.Item>
           ))}
         </DropdownButton>
