@@ -29,6 +29,8 @@
 **Team Stats**
 1. Team Sell Value: How much money would the team be left with if they sold all players.
 2. Fix points for BB-week column. Currently shows zero.
+3. Highest league rank + lowest league rank. (during the season, the teams best and worst place in the league table)
+4. Chip point total (just sumarize bbpoints+tcpoints+fh-points)
 
 **Player Stats**
 1. League Captaincy: show how many teams in the league has the played as their captain. (and vice captain). It can be broken down into percentage and a digit in two different columns.
