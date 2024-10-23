@@ -87,6 +87,7 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
     columns: string[];
   }
 
+  // I'll come up with more presets when theres more columns. Just a placeholder for now
   const presets: Preset[] = [
     {
       name: 'All Columns',
@@ -111,10 +112,9 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
         'value',
       ],
     },
-    // Add more presets as needed
   ];
 
-  // Define descriptions for each column
+  // Tooltip descriptions for each column
   const columnDescriptions: { [key: string]: string } = {
     name: "The player's full name.",
     position: "The player's position on the field (e.g., Goalkeeper, Defender, Midfielder, Forward).",
@@ -124,7 +124,6 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
     globalOwnershipPercentage: "Percentage of FPL managers worldwide who own this player.",
     leagueOwnershipCount: "Number of managers in your league who own this player.",
     leagueOwnershipPercentage: "Percentage of managers in your league who own this player.",
-    // Add more descriptions for additional columns as needed
   };
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
