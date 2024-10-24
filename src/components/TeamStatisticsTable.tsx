@@ -128,14 +128,14 @@ const defaultColumns = [
     cell: ({ getValue }) => getValue().join(', '),
     enableSorting: true,
   }),
-  columnHelper.accessor('totalCaptainPoints', {
-    id: 'totalCaptainPoints',
-    header: 'Total Captain Points',
-    enableSorting: true,
-  }),
   columnHelper.accessor('totalChipPoints', {
     id: 'totalChipPoints',
     header: 'Total Chip Points',
+    enableSorting: true,
+  }),
+  columnHelper.accessor('totalCaptainPoints', {
+    id: 'totalCaptainPoints',
+    header: 'Total Captain Points',
     enableSorting: true,
   }),
   // Custom cell renderer for captainPointsPercentage
