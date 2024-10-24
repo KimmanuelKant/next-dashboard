@@ -39,6 +39,7 @@ export interface Pick {
   multiplier: number;
   is_captain: boolean;
   is_vice_captain: boolean;
+  selling_price: number;
 }
 
 
@@ -75,6 +76,7 @@ export interface Team {
   tripleCaptainData: ChipData | null;
   benchBoostData: ChipData | null;
   freeHitData: ChipData | null;
+  totalChipPoints: number;
   bestOverallRank: number;
   worstOverallRank: number;
   highestGameweekRank: number;

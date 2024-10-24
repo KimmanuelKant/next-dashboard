@@ -133,6 +133,11 @@ const defaultColumns = [
     header: 'Total Captain Points',
     enableSorting: true,
   }),
+  columnHelper.accessor('totalChipPoints', {
+    id: 'totalChipPoints',
+    header: 'Total Chip Points',
+    enableSorting: true,
+  }),
   // Custom cell renderer for captainPointsPercentage
   columnHelper.accessor('captainPointsPercentage', {
     id: 'captainPointsPercentage',
@@ -231,6 +236,7 @@ const columnDescriptions: { [key: string]: string } = {
   benchBoostData: "The points scored and gameweek of the Bench Boost chip.",
   freeHitData: "The points scored and gameweek of the Free Hit chip.",
   chipsUsed: "The chips used by the manager.",
+  totalChipPoints: "Total points gained from using the Triple Captain, Bench Boost, and Free Hit chips.",
   totalCaptainPoints: "The total points scored by the captain.",
   captainPointsPercentage: "The percentage of points scored by the captain.",
   pointsOnBench: "The points scored by players on the bench.",

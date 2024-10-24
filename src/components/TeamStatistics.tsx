@@ -63,8 +63,6 @@ async function fetchManagerData(
   });
   const picksArray: PicksData[] = await Promise.all(picksPromises);
 
-
-
   // Initialize tripleCaptainData
 let tripleCaptainData: ChipData | null = null;
 
@@ -173,16 +171,30 @@ const benchBoostChip = managerHistory.chips.find(chip => chip.name === 'bboost')
 if (benchBoostChip) {
   const gw = benchBoostChip.event;
 
-  // Find gameweek data for when bench boost was used
-  const gwData = currentSeason.find(gwData => gwData.event === gw);
-  if (gwData) {
-    // Points on bench are the extra points gained from bench boost
-    benchBoostData = { points: gwData.points_on_bench, gw };
+  // Find picks for the gameweek when bench boost was used
+  const picksData = picksArray.find((pickData: PicksData) => pickData.gw === gw);
+  if (picksData && picksData.picks.length > 0) {
+    const benchPicks = picksData.picks.filter((pick: Pick) => pick.position >= 12 && pick.position <= 15);
+    const liveElements = liveDataMap.get(gw);
+    if (liveElements) {
+      let benchPoints = 0;
+      benchPicks.forEach((pick: Pick) => {
+        const playerId = pick.element;
+        const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+        if (playerData) {
+          benchPoints += playerData.stats.total_points;
+        } else {
+          console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
+        }
+      });
+      benchBoostData = { points: benchPoints, gw };
+    } else {
+      console.warn(`No live data found for gameweek ${gw}`);
+    }
   } else {
-    console.warn(`No gameweek data found for team ID ${teamId} in gameweek ${gw}`);
+    console.warn(`No picks found for team ID ${teamId} in gameweek ${gw}`);
   }
 }
-
 
 
  // Initialize freeHitData
@@ -275,6 +287,18 @@ if (freeHitChip) {
     return gw.rank > max ? gw.rank : max;
   }, currentSeason[0].rank);
 
+  // Calculate total chip points
+  let totalChipPoints = 0;
+  if (tripleCaptainData && tripleCaptainData.points) {
+    totalChipPoints += tripleCaptainData.points;
+  }
+  if (benchBoostData && benchBoostData.points) {
+    totalChipPoints += benchBoostData.points;
+  }
+  if (freeHitData && freeHitData.points) {
+    totalChipPoints += freeHitData.points;
+  }
+
 
   // Return the aggregated data for the manager
   return {
@@ -293,6 +317,7 @@ if (freeHitChip) {
     tripleCaptainData,
     benchBoostData,
     freeHitData,
+    totalChipPoints,
     captain,
     viceCaptain,
     bestOverallRank,
