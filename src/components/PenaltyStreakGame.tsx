@@ -150,11 +150,7 @@ const PenaltyStreakGameComponent: React.FC = () => {
     window.PenaltyGame = PenaltyGame;
   }, []);
 
-  return (
-    <div>
-      <p>Easter Egg</p>
-    </div>
-  );
+  return null;
 };
 
 export default PenaltyStreakGameComponent;
