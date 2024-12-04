@@ -152,7 +152,7 @@ const PenaltyStreakGameComponent: React.FC = () => {
 
   return (
     <div>
-      <p>Check your browser's console to play the Penalty Streak Game!</p>
+      <p>Easter Egg</p>
     </div>
   );
 };
