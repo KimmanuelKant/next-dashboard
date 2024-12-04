@@ -136,12 +136,18 @@ class PenaltyStreakGame {
   }
 }
 
+declare global {
+  interface Window {
+    PenaltyGame: PenaltyStreakGame;
+  }
+}
+
 let PenaltyGame: PenaltyStreakGame;
 
 const PenaltyStreakGameComponent: React.FC = () => {
   useEffect(() => {
     PenaltyGame = new PenaltyStreakGame();
-    (window as any).PenaltyGame = PenaltyGame; // Expose globally
+    window.PenaltyGame = PenaltyGame;
   }, []);
 
   return (
