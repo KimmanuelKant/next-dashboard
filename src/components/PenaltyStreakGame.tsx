@@ -132,7 +132,7 @@ class PenaltyStreakGame {
   startRound() {
     this.streak = 0;
     this.roundActive = true;
-    console.log("The round has started! Shoot by calling PenaltyGame.shoot(1), PenaltyGame.shoot(2), or PenaltyGame.shoot(3).");
+    console.log("The round has started! Shoot by calling PenaltyGame.shoot(1), PenaltyGame.shoot(2), or PenaltyGame.shoot(3)."); 
   }
 }
 
