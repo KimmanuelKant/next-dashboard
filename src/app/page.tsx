@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
 import Accordion from 'react-bootstrap/Accordion';
+import PenaltyStreakGame from "../components/PenaltyStreakGame";
 
 
 export default function HomePage() {
@@ -27,6 +28,7 @@ export default function HomePage() {
           width={382}
           height={371}
         />
+        <PenaltyStreakGame />
       </div>
 
       {/* Card with welcome message and form */}
