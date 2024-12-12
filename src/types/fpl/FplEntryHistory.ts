@@ -1,3 +1,6 @@
+// src/types/fpl/FplEntryHistory.ts
+// https://fantasy.premierleague.com/api/entry/{entry-ID}/history/
+
 export interface FplEntryHistoryCurrent {
     event: number;
     points: number;

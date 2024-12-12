@@ -1,3 +1,6 @@
+// src/types/fpl/FplEventLive.ts
+// https://fantasy.premierleague.com/api/event/{GW-ID}/live/
+
 export interface FplEventLiveElementStatExplain {
     identifier: string;
     points: number;

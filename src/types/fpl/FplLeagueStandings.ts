@@ -1,3 +1,6 @@
+// src/types/fpl/FplLeagueStandings.ts
+// https://fantasy.premierleague.com/api/leagues-classic/{league-ID}/standings/
+
 export interface FplLeagueNewEntries {
     has_next: boolean;
     page: number;

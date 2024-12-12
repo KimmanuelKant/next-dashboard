@@ -1,3 +1,6 @@
+// src/types/fpl/FplElementSummary.ts
+// https://fantasy.premierleague.com/api/element-summary/{player-ID}/
+
 export interface FplElementSummaryFixture {
     id: number;
     code: number;

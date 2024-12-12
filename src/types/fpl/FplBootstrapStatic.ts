@@ -1,3 +1,6 @@
+// src/types/fpl/FplBootstrapStatic.ts
+// https://fantasy.premierleague.com/api/bootstrap-static/
+
 export interface FplEventChipPlay {
     chip_name: string;
     num_played: number;
