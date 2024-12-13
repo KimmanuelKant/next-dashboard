@@ -4,7 +4,7 @@
 export interface FplLeagueNewEntries {
     has_next: boolean;
     page: number;
-    results: any[];
+    results: unknown[];
   }
   
   export interface FplLeagueInfo {

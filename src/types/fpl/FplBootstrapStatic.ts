@@ -55,7 +55,7 @@ export interface FplEventChipPlay {
     cup_stop_event_id: number | null;
     cup_qualifying_method: string | null;
     cup_type: string | null;
-    featured_entries: any[];
+    featured_entries: unknown[];
     percentile_ranks: number[];
     squad_squadplay: number;
     squad_squadsize: number;
@@ -63,7 +63,7 @@ export interface FplEventChipPlay {
     squad_total_spend: number;
     ui_currency_multiplier: number;
     ui_use_special_shirts: boolean;
-    ui_special_shirt_exclusions: any[];
+    ui_special_shirt_exclusions: unknown[];
     stats_form_days: number;
     sys_vice_captain_enabled: boolean;
     transfers_cap: number;
