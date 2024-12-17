@@ -11,7 +11,7 @@ import {
   SortingState,
   VisibilityState,
 } from '@tanstack/react-table';
-import { LeaguePlayer } from '@/types';
+import { LeaguePlayer } from '@/types/derived/LeagueDerivedTypes';
 import { Dropdown, DropdownButton, Form, OverlayTrigger, Popover } from 'react-bootstrap';
 import { InfoCircleFill } from 'react-bootstrap-icons';
 
