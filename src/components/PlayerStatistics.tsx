@@ -1,5 +1,4 @@
 // src/components/PlayerStatistics.tsx
-
 import React from 'react';
 import { FplLeagueStandingResult } from '@/types/fpl/FplLeagueStandings';
 import { FplElement, FplTeam, FplEvent } from '@/types/fpl/FplBootstrapStatic'; 
