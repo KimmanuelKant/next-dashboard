@@ -1,24 +1,20 @@
 // src/components/TeamStatistics.tsx
 
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
-import {
-  Team,
-  ApiTeam,
-  ManagerHistory,
-  Player,
-  GameEvent,
-  Pick,
-  LiveElement,
-  LiveData,
-  PicksData,
-  ChipData,
-} from '@/types';
+import { Team, PicksData, ChipData } from '@/types/derived/LeagueDerivedTypes';
+import { FplLeagueStandingResult } from '@/types/fpl/FplLeagueStandings';
+import { FplEntryHistory } from '@/types/fpl/FplEntryHistory';
+import { FplElement, FplEvent } from '@/types/fpl/FplBootstrapStatic';
+import { FplPick } from '@/types/fpl/FplEntryEventPicks';
+import { FplEventLive, FplEventLiveElement } from '@/types/fpl/FplEventLive';
+
+
 
 async function fetchManagerData(
   teamId: number,
   completedGameweeks: number[],
-  liveDataMap: Map<number, LiveElement[]>,
-  players: Player[],
+  liveDataMap: Map<number, FplEventLiveElement[]>,
+  players: FplElement[],
   totalPoints: number
 ) {
   // Fetch the manager's season history
@@ -26,7 +22,7 @@ async function fetchManagerData(
   if (!managerHistoryRes.ok) {
     throw new Error(`Failed to fetch manager history for team ID ${teamId}`);
   }
-  const managerHistory: ManagerHistory = await managerHistoryRes.json();
+  const managerHistory: FplEntryHistory = await managerHistoryRes.json();
 
   // Extract current season data
   const currentSeason = managerHistory.current;
@@ -75,12 +71,12 @@ if (tripleCaptainChip) {
   // Find picks for the gameweek when triple captain was used
   const picksData = picksArray.find((pickData: PicksData) => pickData.gw === gw);
   if (picksData && picksData.picks.length > 0) {
-    const captainPick = picksData.picks.find((pick: Pick) => pick.is_captain);
+    const captainPick = picksData.picks.find((pick: FplPick) => pick.is_captain);
     if (captainPick) {
       const playerId = captainPick.element;
       const liveElements = liveDataMap.get(gw);
       if (liveElements) {
-        const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+        const playerData = liveElements.find((element: FplEventLiveElement) => element.id === playerId);
         if (playerData) {
           // Calculate the extra points gained from triple captain
           const basePoints = playerData.stats.total_points;
@@ -121,7 +117,7 @@ picksArray.forEach(({ gw, picks }: PicksData) => {
     return;
   }
 
-  picks.forEach((pick: Pick) => {
+  picks.forEach((pick: FplPick) => {
     const playerId = pick.element;
     const player = players.find(player => player.id === playerId);
 
@@ -134,7 +130,7 @@ picksArray.forEach(({ gw, picks }: PicksData) => {
     const position = player.element_type; // 1: GK, 2: DEF, 3: MID, 4: FWD
     
     // Get the player's points for the gameweek
-    const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+    const playerData = liveElements.find((element: FplEventLiveElement) => element.id === playerId);
     if (!playerData) {
       console.warn(`No player data found for player ID ${playerId} in gameweek ${gw}`);
       return;
@@ -174,13 +170,13 @@ if (benchBoostChip) {
   // Find picks for the gameweek when bench boost was used
   const picksData = picksArray.find((pickData: PicksData) => pickData.gw === gw);
   if (picksData && picksData.picks.length > 0) {
-    const benchPicks = picksData.picks.filter((pick: Pick) => pick.position >= 12 && pick.position <= 15);
+    const benchPicks = picksData.picks.filter((pick: FplPick) => pick.position >= 12 && pick.position <= 15);
     const liveElements = liveDataMap.get(gw);
     if (liveElements) {
       let benchPoints = 0;
-      benchPicks.forEach((pick: Pick) => {
+      benchPicks.forEach((pick: FplPick) => {
         const playerId = pick.element;
-        const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+        const playerData = liveElements.find((element: FplEventLiveElement) => element.id === playerId);
         if (playerData) {
           benchPoints += playerData.stats.total_points;
         } else {
@@ -225,7 +221,7 @@ if (freeHitChip) {
       return;
     }
     // Find the captain pick for the gameweek
-    const captainPick = picks.find((pick: Pick) => pick.is_captain);
+    const captainPick = picks.find((pick: FplPick) => pick.is_captain);
     if (captainPick) {
       const playerId = captainPick.element;
       const liveElements = liveDataMap.get(gw);
@@ -233,7 +229,7 @@ if (freeHitChip) {
         console.warn(`No live data found for gameweek ${gw}`);
         return;
       }
-      const playerData = liveElements.find((element: LiveElement) => element.id === playerId);
+      const playerData = liveElements.find((element: FplEventLiveElement) => element.id === playerId);
       if (playerData) {
         // Multiply the player's points by the captain's multiplier
         const captainPoints = playerData.stats.total_points * captainPick.multiplier;
@@ -260,8 +256,8 @@ if (freeHitChip) {
   const latestPicks = latestPicksData.picks;
 
   // Identify the captain and vice-captain from the latest picks
-  const latestCaptainPick = latestPicks.find((pick: Pick) => pick.is_captain);
-  const latestViceCaptainPick = latestPicks.find((pick: Pick) => pick.is_vice_captain);
+  const latestCaptainPick = latestPicks.find((pick: FplPick) => pick.is_captain);
+  const latestViceCaptainPick = latestPicks.find((pick: FplPick) => pick.is_vice_captain);
 
   // Get the names of the captain and vice-captain
   const captain = players.find(player => player.id === latestCaptainPick?.element)?.web_name || '';
@@ -342,7 +338,7 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
       throw new Error('Failed to fetch team standings');
     }
     const standingsData = await standingsDataRes.json();
-    const teams: ApiTeam[] = standingsData.standings.results;
+    const teams: FplLeagueStandingResult[] = standingsData.standings.results;
 
     // Fetch player data (names, IDs, etc.)
     const playersDataRes = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
@@ -350,10 +346,10 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
       throw new Error('Failed to fetch player data');
     }
     const playersData = await playersDataRes.json();
-    const players: Player[] = playersData.elements;
+    const players: FplElement[] = playersData.elements;
 
     // Get the list of game events (gameweeks)
-    const events: GameEvent[] = playersData.events;
+    const events: FplEvent[] = playersData.events;
 
     // Identify all completed gameweeks
     const completedGameweeks = events.filter(event => event.finished).map(event => event.id);
@@ -364,14 +360,14 @@ export default async function TeamStatistics({ leagueId }: { leagueId: string })
       if (!res.ok) {
         throw new Error(`Failed to fetch live data for gameweek ${gw}`);
       }
-      const data: LiveData = await res.json();
+      const data: FplEventLive = await res.json();
       return { gw, elements: data.elements };
     });
 
     const liveDataArray = await Promise.all(liveDataPromises);
 
     // Create a map of live data for quick access by gameweek
-    const liveDataMap = new Map<number, LiveElement[]>();
+    const liveDataMap = new Map<number, FplEventLiveElement[]>();
     liveDataArray.forEach(({ gw, elements }) => {
       liveDataMap.set(gw, elements);
     });

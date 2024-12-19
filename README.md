@@ -56,3 +56,4 @@ Adding new features, such as:
 - **Awards and Badges**: Showcase achievements and awards for top-performing managers last week.
 - **Chat**: A place to communicate with others in your mini-league.
 - **Caching Implementation**: Introduce a caching layer to optimize API calls and performance.
+- **Log In**: Make an account and log in, to get a dropdown menu so you can toggle between all your leagues

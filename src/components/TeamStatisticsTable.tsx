@@ -1,7 +1,7 @@
 // src/components/TeamStatisticsTable.tsx
 "use client";
 import React, { useState } from "react";
-import { Team, ChipData } from "@/types";
+import { Team, ChipData } from "@/types/derived/LeagueDerivedTypes";
 import {
   useReactTable,
   flexRender,

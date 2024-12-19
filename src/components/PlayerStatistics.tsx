@@ -1,7 +1,10 @@
 // src/components/PlayerStatistics.tsx
-
 import React from 'react';
-import { ApiTeam, Pick, Player, GameEvent, TeamData, LeaguePlayer } from '@/types';
+import { FplLeagueStandingResult } from '@/types/fpl/FplLeagueStandings';
+import { FplElement, FplTeam, FplEvent } from '@/types/fpl/FplBootstrapStatic'; 
+import { FplPick } from '@/types/fpl/FplEntryEventPicks';
+import { LeaguePlayer } from '@/types/derived/LeagueDerivedTypes';
+
 import PlayerStatisticsTable from '@/components/PlayerStatisticsTable';
 
 interface PlayerStatisticsProps {
@@ -19,7 +22,7 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
       throw new Error('Failed to fetch league standings');
     }
     const standingsData = await standingsRes.json();
-    const teams: ApiTeam[] = standingsData.standings.results;
+    const teams: FplLeagueStandingResult[] = standingsData.standings.results;
 
     // Fetch global player data (including teams)
     const playersRes = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
@@ -27,8 +30,8 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
       throw new Error('Failed to fetch player data');
     }
     const playersData = await playersRes.json();
-    const players: Player[] = playersData.elements;
-    const teamsData: TeamData[] = playersData.teams;
+    const players: FplElement[] = playersData.elements;
+    const teamsData: FplTeam[] = playersData.teams;
     const totalPlayers = playersData.total_players; // Total number of players globally
 
 
@@ -73,7 +76,7 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
     const selectedPlayerIds = new Set<number>();
 
     // Fetch events to get the latest finished gameweek
-    const events: GameEvent[] = playersData.events;
+    const events: FplEvent[] = playersData.events;
     const latestFinishedEvent = events
       .filter((event) => event.finished)
       .sort((a, b) => b.id - a.id)[0];
@@ -98,7 +101,7 @@ export default async function PlayerStatistics({ leagueId }: PlayerStatisticsPro
         return;
       }
       const picksData = await picksRes.json();
-      const picks: Pick[] = picksData.picks;
+      const picks: FplPick[] = picksData.picks;
 
       // Add player IDs to the set and track ownership
       picks.forEach((pick) => {
@@ -186,7 +189,7 @@ function getPositionName(elementType: number): string {
   return positions[elementType] || 'Unknown';
 }
 
-function getTeamName(teamId: number, teamsData: TeamData[]): string {
+function getTeamName(teamId: number, teamsData: FplTeam[]): string {
   const team = teamsData.find((t) => t.id === teamId);
   return team ? team.name : 'Unknown';
 }
