@@ -1,6 +1,6 @@
 // src/app/dashboard/[leagueId]/player/page.tsx
 
-import PlayerStatistics from '@/components/PlayerStatistics';
+import LeaguePlayerStats from '@/components/LeaguePlayerStats';
 import { Suspense } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -16,7 +16,7 @@ export default function PlayerPage({ params }: PageProps) {
   return (
     <ErrorBoundary>
       <Suspense fallback={<div>Loading player statistics...</div>}>
-      <PlayerStatistics leagueId={leagueId} />
+      <LeaguePlayerStats leagueId={leagueId} />
       </Suspense>
     </ErrorBoundary>
   );
