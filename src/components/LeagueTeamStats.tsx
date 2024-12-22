@@ -1,4 +1,4 @@
-// src/pages/dashboard/[leagueId]/team.tsx
+// src/components/LeagueTeamStats.tsx
 
 import React from 'react';
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
