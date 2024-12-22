@@ -192,11 +192,29 @@ export async function getEntryEventPicks(
     console.warn(
       `Warning: Failed to fetch picks for team ${teamId}, GW ${gameweek}. Status: ${res.status}`
     );
-    return { gw: gameweek, picks: [] };
+    // Return a complete FplEntryEventPicks object with default values
+    return {
+      picks: [],
+      event: gameweek,
+      active_chip: null,
+      automatic_subs: [],
+      entry_history: {
+        event: gameweek,
+        points: 0,
+        total_points: 0,
+        rank: 0,
+        rank_sort: 0,
+        overall_rank: 0,
+        percentile_rank: 0,
+        bank: 0,
+        value: 0,
+        event_transfers: 0,
+        event_transfers_cost: 0,
+        points_on_bench: 0,
+      },
+    };
   }
 
   const data: FplEntryEventPicks = await res.json();
   return data;
 }
-
-// You can add more functions here for transfers, fixtures, etc., as needed.

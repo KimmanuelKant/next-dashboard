@@ -1,14 +1,11 @@
 // src/lib/leagueTeamData.ts
 
-import {
-  FplLeagueStandingResult,
-  FplLeagueStandings,
-} from "@/types/fpl/FplLeagueStandings";
+import { FplLeagueStandings } from "@/types/fpl/FplLeagueStandings";
 import { FplElement, FplEvent } from "@/types/fpl/FplBootstrapStatic";
 import { FplEntryHistory } from "@/types/fpl/FplEntryHistory";
 import { FplEventLiveElement } from "@/types/fpl/FplEventLive";
 import { FplPick } from "@/types/fpl/FplEntryEventPicks";
-import { Team, PicksData, ChipData } from "@/types/derived/LeagueDerivedTypes";
+import { Team, ChipData } from "@/types/derived/LeagueDerivedTypes";
 import {
   getLeagueStandings,
   getBootstrapData,
@@ -21,6 +18,14 @@ import {
  * Set this to the manager ID you want to debug in detail.
  */
 const debugManagerId = 295349;
+
+/**
+ * Define a type for picks with gw and picks
+ */
+interface PicksData {
+  gw: number;
+  picks: FplPick[];
+}
 
 /**
  * Fetches picks for all completed gameweeks.
@@ -454,7 +459,12 @@ export async function computeLeagueTeamStats(
     return mappedTeam;
   });
 
-  const mappedTeams = await Promise.all(managerDataPromises);
-  console.log("=== DEBUG: All managers processed ===");
-  return mappedTeams;
+  try {
+    const mappedTeams = await Promise.all(managerDataPromises);
+    console.log("=== DEBUG: All managers processed ===");
+    return mappedTeams;
+  } catch (error) {
+    console.error("Error in computeLeagueTeamStats:", error);
+    throw error;
+  }
 }
