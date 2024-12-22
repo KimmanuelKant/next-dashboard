@@ -32,5 +32,3 @@ export interface FplEntryEventHistory {
     picks: FplPick[];
   }
   
-
-  // https://fantasy.premierleague.com//api/entry/{teamId}/transfers

@@ -12,7 +12,7 @@ export interface ChipData {
 }
 
 /**
- * Represents a team's aggregated statistics within a particular league.
+ * Represents a team's aggregated statistics.
  * This includes data pulled from multiple endpoints and processed into a single coherent structure.
  */
 export interface Team {
