@@ -14,9 +14,6 @@ import {
   getEntryEventPicks,
 } from "@/lib/fplApi";
 
-/**
- * Set this to the manager ID you want to debug in detail.
- */
 const debugManagerId = 295349;
 
 /**
@@ -39,10 +36,6 @@ async function fetchPicksForAllGWs(
       const picksData = await getEntryEventPicks(teamId, gw);
       return { gw, picks: picksData.picks };
     } catch (error) {
-      console.warn(
-        `Warning: Error fetching picks for team ${teamId}, GW ${gw}:`,
-        error
-      );
       return { gw, picks: [] };
     }
   });
@@ -51,7 +44,6 @@ async function fetchPicksForAllGWs(
 
 /**
  * Gathers partial stats for a manager.
- * Logs detailed information if the manager is the debug manager.
  */
 async function fetchManagerPartialStats(
   teamId: number,
@@ -62,28 +54,10 @@ async function fetchManagerPartialStats(
 ) {
   const isDebug = teamId === debugManagerId;
 
-  if (isDebug) {
-    console.log(
-      `\n=== DEBUG: Fetching Partial Stats for Manager ${teamId} ===`
-    );
-    console.log("Completed Gameweeks:", completedGameweeks);
-    console.log(
-      "Official Total Points (League Standings):",
-      officialTotalPoints
-    );
-  }
-
   // Fetch manager's history
   const managerHistory = await getEntryHistory(teamId);
   const currentSeason = managerHistory.current;
   const latestGW = currentSeason[currentSeason.length - 1];
-
-  if (isDebug) {
-    console.log(`ManagerHistory length: ${currentSeason.length}`);
-    console.log(
-      `Latest GW: ${latestGW.event}, Total Points: ${latestGW.total_points}, Overall Rank: ${latestGW.overall_rank}`
-    );
-  }
 
   // Basic season-wide aggregates
   const totalTransfers = currentSeason.reduce(
@@ -114,11 +88,6 @@ async function fetchManagerPartialStats(
   // Fetch picks for all completed GWs
   const picksArray = await fetchPicksForAllGWs(teamId, completedGameweeks);
 
-  if (isDebug) {
-    console.log(`Picks Array Length: ${picksArray.length}`);
-    console.log("First few picksArray items:", picksArray.slice(0, 2));
-  }
-
   // Triple Captain
   const tripleCaptainChip = managerHistory.chips.find(
     (chip) => chip.name === "3xc"
@@ -136,11 +105,6 @@ async function fetchManagerPartialStats(
           );
           if (playerData) {
             tripleCaptainData = { points: playerData.stats.total_points, gw };
-            if (isDebug) {
-              console.log(
-                `Triple Captain used in GW ${gw}: Player ID ${captainPick.element} scored ${playerData.stats.total_points} points.`
-              );
-            }
           }
         }
       }
@@ -168,11 +132,6 @@ async function fetchManagerPartialStats(
           }
         });
         benchBoostData = { points: benchPoints, gw };
-        if (isDebug) {
-          console.log(
-            `Bench Boost used in GW ${gw}: Total Bench Points = ${benchPoints}`
-          );
-        }
       }
     }
   }
@@ -186,9 +145,6 @@ async function fetchManagerPartialStats(
     const gwData = currentSeason.find((g) => g.event === gw);
     if (gwData) {
       freeHitData = { points: gwData.points, gw };
-      if (isDebug) {
-        console.log(`Free Hit used in GW ${gw}: Points = ${gwData.points}`);
-      }
     }
   }
 
@@ -241,11 +197,6 @@ async function fetchManagerPartialStats(
         if (playerData) {
           totalCaptainPoints +=
             playerData.stats.total_points * captainPick.multiplier;
-          if (isDebug) {
-            console.log(
-              `Captain in GW ${gw}: Player ID ${captainPick.element} scored ${playerData.stats.total_points} points.`
-            );
-          }
         }
       }
     }
@@ -293,40 +244,6 @@ async function fetchManagerPartialStats(
     (benchBoostData?.points ?? 0) +
     (freeHitData?.points ?? 0);
 
-  // Log partial stats if this is the debug manager
-  if (isDebug) {
-    console.log(`\n=== Partial Stats for Manager ${teamId} ===`);
-    console.log({
-      totalTransfers,
-      transfersThisWeek: latestGW.event_transfers,
-      teamValue: latestGW.value / 10,
-      bank: latestGW.bank / 10,
-      overallRank: latestGW.overall_rank,
-      chipsUsed,
-      pointsOnBench,
-      totalTransferPointsDeducted,
-      highestGameweekScore,
-      totalCaptainPoints,
-      captainPointsPercentage,
-      wildcardsUsed,
-      tripleCaptainData,
-      benchBoostData,
-      freeHitData,
-      totalGKPoints,
-      totalDEFPoints,
-      totalMIDPoints,
-      totalFWDPoints,
-      totalChipPoints,
-      captain,
-      viceCaptain,
-      bestOverallRank,
-      worstOverallRank,
-      highestGameweekRank,
-      lowestGameweekRank,
-    });
-    console.log("=== END Partial Stats ===\n");
-  }
-
   return {
     totalTransfers,
     transfersThisWeek: latestGW.event_transfers,
@@ -365,14 +282,10 @@ export async function computeLeagueTeamStats(
   allFplPlayers: FplElement[],
   fplEvents: FplEvent[]
 ): Promise<Team[]> {
-  console.log("\n=== DEBUG: computeLeagueTeamStats called ===");
-
   const leagueEntries = leagueStandings.standings.results;
   const completedGameweeks = fplEvents
     .filter((e) => e.finished)
     .map((e) => e.id);
-
-  console.log("Completed Gameweeks identified:", completedGameweeks);
 
   // Fetch live data for all completed gameweeks
   const liveDataMap = new Map<number, FplEventLiveElement[]>();
@@ -386,22 +299,9 @@ export async function computeLeagueTeamStats(
     liveDataMap.set(gw, elements);
   });
 
-  console.log("Live data fetched and mapped.");
-
   // Process each manager
   const managerDataPromises = leagueEntries.map(async (entry) => {
     const officialTotalPoints = entry.total;
-
-    // Determine if this manager is the debug manager
-    const isDebugManager = entry.entry === debugManagerId;
-
-    if (isDebugManager) {
-      console.log(`\n=== DEBUG: Processing Manager ${entry.entry} ===`);
-      console.log(`Manager Name: ${entry.player_name}`);
-      console.log(`Team Name: ${entry.entry_name}`);
-      console.log(`Official Total Points: ${officialTotalPoints}`);
-      console.log(`Official Rank: ${entry.rank}`);
-    }
 
     // Fetch partial stats
     const partialStats = await fetchManagerPartialStats(
@@ -448,23 +348,9 @@ export async function computeLeagueTeamStats(
       lowestGameweekRank: partialStats.lowestGameweekRank,
     };
 
-    if (isDebugManager) {
-      console.log(
-        `\n=== DEBUG: Merged Team Data for Manager ${entry.entry} ===`
-      );
-      console.log(mappedTeam);
-      console.log(`=== END DEBUG: Manager ${entry.entry} ===\n`);
-    }
-
     return mappedTeam;
   });
 
-  try {
-    const mappedTeams = await Promise.all(managerDataPromises);
-    console.log("=== DEBUG: All managers processed ===");
-    return mappedTeams;
-  } catch (error) {
-    console.error("Error in computeLeagueTeamStats:", error);
-    throw error;
-  }
+  const mappedTeams = await Promise.all(managerDataPromises);
+  return mappedTeams;
 }

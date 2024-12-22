@@ -14,16 +14,11 @@ interface Props {
 
 const LeagueTeamStats: React.FC<Props> = async ({ leagueId }) => {
   try {
-    console.log("\n=== DEBUG: LeagueTeamStats Component Started ===");
-    console.log("Fetching league standings and bootstrap data...");
-
     // Fetch league standings and bootstrap data in parallel
     const [standings, bootstrapData] = await Promise.all([
       getLeagueStandings(leagueId),
       getBootstrapData(),
     ]);
-
-    console.log("League standings and bootstrap data fetched.");
 
     // Compute league team stats
     const teams: Team[] = await computeLeagueTeamStats(
@@ -31,8 +26,6 @@ const LeagueTeamStats: React.FC<Props> = async ({ leagueId }) => {
       bootstrapData.elements,
       bootstrapData.events
     );
-
-    console.log("League team stats computed successfully.");
 
     // Render the table with the fetched data
     return (
