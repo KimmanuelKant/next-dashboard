@@ -170,7 +170,7 @@ Refer to the [KNOWN ISSUES](TODO.md#known-issues) section in the `TODO.md` for k
 
 ## Additional Resources
 
-- [Fantasy Premier League API Documentation](https://fantasy.premierleague.com/api/bootstrap-static/)
+- [A Complete Guide to the Fantasy Premier League (FPL) API](https://www.game-change.co.uk/2023/02/10/a-complete-guide-to-the-fantasy-premier-league-fpl-api/)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [TanStack Table Documentation](https://tanstack.com/table/v8/docs/overview)
 
