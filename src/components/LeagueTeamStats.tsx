@@ -4,8 +4,6 @@ import React from 'react';
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
 import { computeLeagueTeamStats } from '@/lib/leagueTeamData';
 import { getLeagueStandings, getBootstrapData } from '@/lib/fplApi';
-import { FplElement, FplEvent } from '@/types/fpl/FplBootstrapStatic';
-import { FplLeagueStandings } from '@/types/fpl/FplLeagueStandings';
 import { Team } from '@/types/derived/LeagueDerivedTypes';
 
 interface Props {

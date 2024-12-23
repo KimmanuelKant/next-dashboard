@@ -2,19 +2,14 @@
 
 import { FplLeagueStandings } from "@/types/fpl/FplLeagueStandings";
 import { FplElement, FplEvent } from "@/types/fpl/FplBootstrapStatic";
-import { FplEntryHistory } from "@/types/fpl/FplEntryHistory";
 import { FplEventLiveElement } from "@/types/fpl/FplEventLive";
 import { FplPick } from "@/types/fpl/FplEntryEventPicks";
 import { Team, ChipData } from "@/types/derived/LeagueDerivedTypes";
 import {
-  getLeagueStandings,
-  getBootstrapData,
   getLiveDataForGameweek,
   getEntryHistory,
   getEntryEventPicks,
 } from "@/lib/fplApi";
-
-const debugManagerId = 295349;
 
 /**
  * Define a type for picks with gw and picks
@@ -52,8 +47,6 @@ async function fetchManagerPartialStats(
   players: FplElement[],
   officialTotalPoints: number
 ) {
-  const isDebug = teamId === debugManagerId;
-
   // Fetch manager's history
   const managerHistory = await getEntryHistory(teamId);
   const currentSeason = managerHistory.current;
