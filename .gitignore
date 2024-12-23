@@ -35,10 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Ignore all legacy components starting with 'Old'
-/src/components/Old*.tsx
-
-
 # Photoshop files
 *.psd
 *.psb
