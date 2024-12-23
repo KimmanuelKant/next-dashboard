@@ -10,8 +10,7 @@ The **FPL-Dashboard** is a web application built using modern web development te
 - **Player Statistics**: Not Yet Started: Display customizable comprehensive statistics for players selected in a given league.
 - **Awards**: Not Yet Started: Weekly updated awards based on team preformance 
 - **Chat**: Not Yet Started: The plan is to have a messaging board for the league.
-- **Dynamic Data Rendering**: Real-time updates using SSR for fetching and displaying data from the Fantasy Premier League API.
-- **Modular Table Components**: Highly customizable data tables using TanStack Table, allowing for sorting, filtering, and column customization.
+
 
 ## Technologies Used
 
@@ -56,4 +55,4 @@ Adding new features, such as:
 - **Awards and Badges**: Showcase achievements and awards for top-performing managers last week.
 - **Chat**: A place to communicate with others in your mini-league.
 - **Caching Implementation**: Introduce a caching layer to optimize API calls and performance.
-- **Log In**: Make an account and log in, to get a dropdown menu so you can toggle between all your leagues
+- **Log In**: Make an account and log in, to get a dropdown menu so you can toggle between all your leagues, and save custom presets.
