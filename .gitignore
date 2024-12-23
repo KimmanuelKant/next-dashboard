@@ -34,8 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-/src/components/OldPlayerStatistics.tsx
-/src/components/OldTeamStatistics.tsx
+
+# Ignore all legacy components starting with 'Old'
+/src/components/Old*.tsx
+
 
 # Photoshop files
 *.psd
