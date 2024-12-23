@@ -1,7 +1,7 @@
 // src/components/LeagueTeamStats.tsx
 
 import { getLeagueStandings, getBootstrapData } from '@/lib/fplApiClient';
-import { computeLeaguePlayerStats } from '@/lib/leaguePlayerData';
+import { computeLeaguePlayerStats } from '@/lib/leaguePlayerService';
 import PlayerStatisticsTable from '@/components/PlayerStatisticsTable';
 
 export default async function NewPlayerStats({ leagueId }: { leagueId: string }) {
