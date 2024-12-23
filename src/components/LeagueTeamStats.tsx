@@ -30,7 +30,6 @@ const LeagueTeamStats: React.FC<Props> = async ({ leagueId }) => {
     // Render the table with the fetched data
     return (
       <div>
-        <h1>League Team Statistics</h1>
         <TeamStatisticsTable stats={teams} />
       </div>
     );
