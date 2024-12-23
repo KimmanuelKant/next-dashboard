@@ -1,6 +1,6 @@
 // src/components/LeagueTeamStats.tsx
 
-import { getLeagueStandings, getBootstrapData } from '@/lib/fplApi';
+import { getLeagueStandings, getBootstrapData } from '@/lib/fplApiClient';
 import { computeLeaguePlayerStats } from '@/lib/leaguePlayerData';
 import PlayerStatisticsTable from '@/components/PlayerStatisticsTable';
 

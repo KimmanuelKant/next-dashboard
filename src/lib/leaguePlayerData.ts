@@ -7,7 +7,7 @@ import {
 import { FplElement, FplTeam } from "@/types/fpl/FplBootstrapStatic";
 import { FplPick } from "@/types/fpl/FplEntryEventPicks";
 import { LeaguePlayer } from "@/types/derived/LeagueDerivedTypes";
-import { getEntryEventPicks } from "./fplApi";
+import { getEntryEventPicks } from "./fplApiClient";
 
 // Helper functions (can also be moved to a utils file)
 function getPositionName(elementType: number): string {

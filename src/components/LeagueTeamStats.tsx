@@ -3,7 +3,7 @@
 import React from 'react';
 import TeamStatisticsTable from '@/components/TeamStatisticsTable';
 import { computeLeagueTeamStats } from '@/lib/leagueTeamData';
-import { getLeagueStandings, getBootstrapData } from '@/lib/fplApi';
+import { getLeagueStandings, getBootstrapData } from '@/lib/fplApiClient';
 import { Team } from '@/types/derived/LeagueDerivedTypes';
 
 interface Props {

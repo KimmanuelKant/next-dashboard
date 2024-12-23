@@ -9,7 +9,7 @@ import {
   getLiveDataForGameweek,
   getEntryHistory,
   getEntryEventPicks,
-} from "@/lib/fplApi";
+} from "@/lib/fplApiClient";
 
 /**
  * Define a type for picks with gw and picks
