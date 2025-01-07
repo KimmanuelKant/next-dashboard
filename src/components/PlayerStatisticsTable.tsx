@@ -83,6 +83,16 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
       cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
       enableSorting: true,
     }),
+    columnHelper.accessor('leagueCaptainCount', {
+      id: 'leagueCaptainCount',
+      header: 'Captain Count',
+      enableSorting: true,
+    }),
+    columnHelper.accessor('leagueViceCaptainCount', {
+      id: 'leagueViceCaptainCount',
+      header: 'Vice Captain Count',
+      enableSorting: true,
+    }),
   ]; 
 
 
@@ -117,6 +127,16 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
         'value',
       ],
     },
+    {
+    name: 'Captaincy Overview',
+    columns: [
+      'name',
+      'leagueCaptainCount',
+      'leagueViceCaptainCount',
+      'leagueOwnershipPercentage',
+      'value',
+    ],
+  }
   ];
 
   // Tooltip descriptions for each column
@@ -129,6 +149,8 @@ export default function PlayerStatisticsTable({ players }: { players: LeaguePlay
     globalOwnershipPercentage: "Percentage of FPL managers worldwide who own this player.",
     leagueOwnershipCount: "Number of managers in your league who own this player.",
     leagueOwnershipPercentage: "Percentage of managers in your league who own this player.",
+    leagueCaptainCount: "Number of teams in the league that have this player as captain.",
+    leagueViceCaptainCount: "Number of teams in the league that have this player as vice captain.",
   };
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});

@@ -77,35 +77,55 @@ export async function computeLeaguePlayerStats(
       globalOwnershipCount,
     });
   });
-
+  
   // Determine players selected in the league
   const selectedPlayerIds = new Set<number>();
   const playerOwnershipMap = new Map<number, Set<number>>(); // playerId => set of teamIds
-
-  // Fetch picks for each team in parallel
-  await Promise.all(
-    leagueEntries.map(async (entry) => {
-      try {
-        const picksData = await getEntryEventPicks(
-          entry.entry,
-          latestFinishedGameweek
-        );
-        const picks: FplPick[] = picksData.picks;
-        picks.forEach((pick) => {
-          selectedPlayerIds.add(pick.element);
-          if (!playerOwnershipMap.has(pick.element)) {
-            playerOwnershipMap.set(pick.element, new Set());
-          }
-          playerOwnershipMap.get(pick.element)!.add(entry.entry);
-        });
-      } catch (err) {
-        console.warn(
-          `Failed to fetch picks for entry ${entry.entry}, GW ${latestFinishedGameweek}: ${err}`
+  
+  // Add maps for tracking captain and vice-captain counts
+  const captainCountMap = new Map<number, number>();
+  const viceCaptainCountMap = new Map<number, number>();
+// Fetch picks for each team in parallel
+await Promise.all(
+  leagueEntries.map(async (entry) => {
+    try {
+      const picksData = await getEntryEventPicks(
+        entry.entry,
+        latestFinishedGameweek
+      );
+      const picks: FplPick[] = picksData.picks;
+      picks.forEach((pick) => {
+        selectedPlayerIds.add(pick.element);
+        if (!playerOwnershipMap.has(pick.element)) {
+          playerOwnershipMap.set(pick.element, new Set());
+        }
+        playerOwnershipMap.get(pick.element)!.add(entry.entry);
+      });
+      
+      // Track captains and vice-captains
+      const captain = picks.find(p => p.is_captain);
+      const viceCaptain = picks.find(p => p.is_vice_captain);
+      
+      if (captain) {
+        captainCountMap.set(
+          captain.element,
+          (captainCountMap.get(captain.element) || 0) + 1
         );
       }
-    })
-  );
-
+      
+      if (viceCaptain) {
+        viceCaptainCountMap.set(
+          viceCaptain.element,
+          (viceCaptainCountMap.get(viceCaptain.element) || 0) + 1
+        );
+      }
+    } catch (err) {
+      console.warn(
+        `Failed to fetch picks for entry ${entry.entry}, GW ${latestFinishedGameweek}: ${err}`
+      );
+    }
+  })
+);
   // Construct LeaguePlayer array
   const totalTeamsInLeague = leagueEntries.length;
   const selectedPlayers: LeaguePlayer[] = Array.from(selectedPlayerIds).map(
@@ -122,6 +142,8 @@ export async function computeLeaguePlayerStats(
           globalOwnershipPercentage: 0,
           leagueOwnershipCount: 0,
           leagueOwnershipPercentage: 0,
+          leagueCaptainCount: 0,
+          leagueViceCaptainCount: 0,
         };
       }
 
@@ -135,6 +157,8 @@ export async function computeLeaguePlayerStats(
         globalOwnershipPercentage: info.globalOwnershipPercentage,
         leagueOwnershipCount: 0,
         leagueOwnershipPercentage: 0,
+        leagueCaptainCount: captainCountMap.get(playerId) || 0,
+        leagueViceCaptainCount: viceCaptainCountMap.get(playerId) || 0,
       };
     }
   );
