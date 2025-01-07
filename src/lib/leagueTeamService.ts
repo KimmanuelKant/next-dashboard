@@ -213,6 +213,36 @@ async function fetchManagerPartialStats(
     players.find((p) => p.id === latestViceCaptainPick?.element)?.web_name ||
     "";
 
+
+    const captainCounts = new Map<number, number>();
+    const uniqueCaptains = new Set<number>();
+  
+    for (const { picks } of picksArray) {
+      if (picks.length === 0) continue;
+      const captainPick = picks.find(p => p.is_captain);
+      if (captainPick) {
+        uniqueCaptains.add(captainPick.element);
+        captainCounts.set(
+          captainPick.element,
+          (captainCounts.get(captainPick.element) || 0) + 1
+        );
+      }
+    }
+  
+    // Find most captained player
+    let mostCaptainedPlayerId = 0;
+    let mostCaptainedCount = 0;
+    captainCounts.forEach((count, playerId) => {
+      if (count > mostCaptainedCount) {
+        mostCaptainedCount = count;
+        mostCaptainedPlayerId = playerId;
+      }
+    });
+  
+    const mostCaptainedPlayerName = players.find(p => p.id === mostCaptainedPlayerId)?.web_name || 'Unknown';
+    const mostCaptainedPlayer = `${mostCaptainedPlayerName} (${mostCaptainedCount})`;
+    const captainDiversity = uniqueCaptains.size;
+
   // Additional stats
   const bestOverallRank = currentSeason.reduce(
     (min, gw) => (gw.overall_rank < min ? gw.overall_rank : min),
@@ -264,6 +294,8 @@ async function fetchManagerPartialStats(
     totalDEFPoints,
     totalMIDPoints,
     totalFWDPoints,
+    mostCaptainedPlayer,
+    captainDiversity,
   };
 }
 
@@ -335,6 +367,8 @@ export async function computeLeagueTeamStats(
       captainPointsPercentage: partialStats.captainPointsPercentage,
       captain: partialStats.captain,
       viceCaptain: partialStats.viceCaptain,
+      mostCaptainedPlayer: partialStats.mostCaptainedPlayer,
+      captainDiversity: partialStats.captainDiversity,
       bestOverallRank: partialStats.bestOverallRank,
       worstOverallRank: partialStats.worstOverallRank,
       highestGameweekRank: partialStats.highestGameweekRank,

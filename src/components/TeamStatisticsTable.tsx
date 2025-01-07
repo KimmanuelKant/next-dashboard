@@ -145,6 +145,16 @@ const defaultColumns = [
     cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
     enableSorting: true,
   }),
+  columnHelper.accessor('mostCaptainedPlayer', {
+    id: 'mostCaptainedPlayer',
+    header: 'Most Captained',
+    enableSorting: true,
+  }),
+  columnHelper.accessor('captainDiversity', {
+    id: 'captainDiversity',
+    header: 'Different Captains',
+    enableSorting: true,
+  }),
   columnHelper.accessor('pointsOnBench', {
     id: 'pointsOnBench',
     header: 'Points on Bench',
@@ -239,6 +249,8 @@ const columnDescriptions: { [key: string]: string } = {
   totalChipPoints: "Total points gained from using the Triple Captain, Bench Boost, and Free Hit chips.",
   totalCaptainPoints: "The total points scored by the captain.",
   captainPointsPercentage: "The percentage of points scored by the captain.",
+  mostCaptainedPlayer: "The player most frequently chosen as captain, with the number of times in parentheses.",
+  captainDiversity: "The number of different players that have been captained throughout the season.",
   pointsOnBench: "The points scored by players on the bench.",
   totalTransferPointsDeducted: "The total points deducted from hits.",
   captain: "The captain of the team.",
@@ -329,9 +341,11 @@ const presets: Preset[] = [
   {
     name: 'Captaincy',
     columns: [
-      'managerName', 
-      'captain', 
-      'viceCaptain', 
+      'managerName',
+      'captain',
+      'viceCaptain',
+      'mostCaptainedPlayer',
+      'captainDiversity',
       'totalCaptainPoints',
       'captainPointsPercentage',
     ],
