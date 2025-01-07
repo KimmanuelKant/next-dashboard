@@ -48,6 +48,8 @@ export interface Team {
   totalDEFPoints: number;
   totalMIDPoints: number;
   totalFWDPoints: number;
+  mostCaptainedPlayer: string;  // Format: "Player Name (12)"
+  captainDiversity: number;     // Number of unique captains
 }
 
 /**
@@ -64,6 +66,8 @@ export interface LeaguePlayer {
   globalOwnershipPercentage: number;
   leagueOwnershipCount: number;
   leagueOwnershipPercentage: number;
+  leagueCaptainCount: number;
+  leagueViceCaptainCount: number;
 }
 
 /**
