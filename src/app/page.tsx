@@ -90,7 +90,7 @@ export default function HomePage() {
       </Accordion.Item>
     </Accordion>
         <div className="card-footer text-center">
-          <p className="mb-0">© 2024 “(Not really)”</p>
+          <p className="mb-0">© 2025 - MyFPL.net</p>
         </div>
       </div>
     </div>
