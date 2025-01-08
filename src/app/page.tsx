@@ -28,7 +28,6 @@ export default function HomePage() {
           width={382}
           height={371}
         />
-        <PenaltyStreakGame />
       </div>
 
       {/* Card with welcome message and form */}
