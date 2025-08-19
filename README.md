@@ -15,13 +15,13 @@ The **FPL-Dashboard** is a web application built using modern web development te
 ## Technologies Used
 
 - **Next.js**: A React-based framework for server-side rendering and static site generation.
-- **TanStack Table**: A powerful table component library for managing and displaying large datasets.
+- **TanStack Table**: A table component library for managing and displaying large datasets.
 - **Bootstrap**: Provides a clean, responsive design for the user interface.
 - **Fantasy Premier League API**: Data is fetched from the official FPL Website to ensure accuracy.
 
 ## Installation
 
-To run the application locally, follow these steps:
+To run the application locally:
 
 1. Clone the repository:
     ```bash
