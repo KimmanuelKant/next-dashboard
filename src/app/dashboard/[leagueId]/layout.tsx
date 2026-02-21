@@ -6,34 +6,27 @@ export default async function DashboardLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { leagueId: string };
+  params: Promise<{ leagueId: string }>;
 }) {
-  const { leagueId } = params;
+  const { leagueId } = await params;
 
-  // Fetch league data to get the league name
   const res = await fetch(
     `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`
   );
 
   if (!res.ok) {
-    // Handle the error as needed; you might want to display an error message or fallback
-    console.error('Failed to fetch league data');
-    // For now, we'll set a default league name
+    console.error("Failed to fetch league data");
     const defaultLeagueName = `League ${leagueId}`;
     return (
       <div>
         <h1>FPL Dashboard for {defaultLeagueName}</h1>
-        {/* ... rest of your code */}
+        <div>{children}</div>
       </div>
     );
   }
-  
-  const data = await res.json();
-  const leagueName = data.league.name;
 
-  if (!data) {
-    return <div>Loading...</div>;
-  }
+  const data = await res.json();
+  const leagueName = data?.league?.name ?? `League ${leagueId}`;
 
   return (
     <div>
