@@ -19,11 +19,13 @@
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^16.1.6",
     "@types/node": "^25.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.3",
     "eslint-config-next": "^16.1.6",
+    "globals": "^15.15.0",
     "typescript": "^5.9.3"
   },
   "engines": {
@@ -31,6 +33,6 @@
     "npm": "11.x"
   },
   "overrides": {
-  "minimatch": "^10.2.1"
-}
+    "minimatch": "^10.2.1"
+  }
 }
