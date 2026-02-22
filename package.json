@@ -29,5 +29,8 @@
   "engines": {
     "node": "20.x",
     "npm": "11.x"
-  }
+  },
+  "overrides": {
+  "minimatch": "^10.2.1"
+}
 }
