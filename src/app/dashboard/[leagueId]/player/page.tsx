@@ -1,22 +1,19 @@
 // src/app/dashboard/[leagueId]/player/page.tsx
+import LeaguePlayerStats from "@/components/LeaguePlayerStats";
+import { Suspense } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-import LeaguePlayerStats from '@/components/LeaguePlayerStats';
-import { Suspense } from 'react';
-import ErrorBoundary from '@/components/ErrorBoundary';
+type PageProps = {
+  params: Promise<{ leagueId: string }>;
+};
 
-interface PageProps {
-  params: {
-    leagueId: string;
-  };
-}
-
-export default function PlayerPage({ params }: PageProps) {
-  const { leagueId } = params;
+export default async function PlayerPage({ params }: PageProps) {
+  const { leagueId } = await params;
 
   return (
     <ErrorBoundary>
       <Suspense fallback={<div>Loading player statistics...</div>}>
-      <LeaguePlayerStats leagueId={leagueId} />
+        <LeaguePlayerStats leagueId={leagueId} />
       </Suspense>
     </ErrorBoundary>
   );

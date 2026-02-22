@@ -1,6 +1,11 @@
 // src/app/dashboard/[leagueId]/page.tsx
-import { redirect } from 'next/navigation';
+import { redirect } from "next/navigation";
 
-export default function DashboardPage({ params }: { params: { leagueId: string } }) {
-  redirect(`/dashboard/${params.leagueId}/team`);
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ leagueId: string }>;
+}) {
+  const { leagueId } = await params;
+  redirect(`/dashboard/${leagueId}/team`);
 }

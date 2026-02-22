@@ -30,7 +30,7 @@ async function fetchPicksForAllGWs(
     try {
       const picksData = await getEntryEventPicks(teamId, gw);
       return { gw, picks: picksData.picks };
-    } catch (error) {
+    } catch {
       return { gw, picks: [] };
     }
   });
