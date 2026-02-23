@@ -136,4 +136,3 @@ export async function getEntryEventPicks(
   return data;
 }
 
-// You can add more functions here for transfers, fixtures, etc., as needed.
