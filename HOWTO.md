@@ -1,4 +1,4 @@
-# HELPME.md
+# HOWTO.md
 
 # Fantasy Premier League Dashboard - Internal Documentation
 
@@ -103,11 +103,15 @@ Understanding how data moves through the application is essential for effective 
 
 **File:** `src/lib/leagueTeamData.ts`
 
-- **Purpose:** Processes and aggregates data fetched from the FPL API to compute meaningful statistics.
+- **Purpose:** Processes and aggregates data fetched from the FPL API to compute statistics for the league table.
 - **Key Functions:**
     - `fetchPicksForAllGWs(teamId, completedGameweeks)`: Fetches picks for all completed gameweeks for a team.
     - `fetchManagerPartialStats(teamId, completedGameweeks, liveDataMap, players, officialTotalPoints)`: Gathers and computes partial statistics for a manager, such as transfers, chip usage, captain points, etc.
     - `computeLeagueTeamStats(leagueStandings, allFplPlayers, fplEvents)`: Integrates league standings with processed data to compile comprehensive statistics for all teams in the league.
+
+**File:** `src/lib/leagueTeamData.ts`
+    
+- **Purpose:** Processes and aggregates data fetched from the FPL API to compute statistics for the player table.
 
 ### 3. Data Presentation
 
