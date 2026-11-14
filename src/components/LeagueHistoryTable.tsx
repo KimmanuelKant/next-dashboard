@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { Preset } from "@/components/DataTable";
+import { useMyTeamId } from "@/lib/myTeam";
 import type { LeagueHistory, LeagueHistoryRow } from "@/lib/stats/leagueHistory";
 
 const columnHelper = createColumnHelper<LeagueHistoryRow>();
@@ -12,6 +13,7 @@ const SUMMARY = ["weeksAtTop", "weeksAtBottom", "gameweekWins", "bestPosition", 
 const descriptions: Record<string, string> = {};
 
 export default function LeagueHistoryTable({ history }: { history: LeagueHistory }) {
+  const myTeam = useMyTeamId();
   const { columns, presets } = useMemo(() => {
     const positionIds = history.gameweeks.map((gw) => `pos${gw}`);
     const scoreIds = history.gameweeks.map((gw) => `pts${gw}`);
@@ -70,6 +72,8 @@ export default function LeagueHistoryTable({ history }: { history: LeagueHistory
       initialPreset="League position"
       initialSorting={lastGw !== undefined ? [{ id: `pos${lastGw}`, desc: false }] : []}
       hideColumnPicker
+      stickyColumn="teamName"
+      highlightRow={(row) => row.teamId === myTeam}
     />
   );
 }

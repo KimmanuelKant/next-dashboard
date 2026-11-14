@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
+import Link from "next/link";
+import { forgetLeague, useRememberedLeague } from "@/lib/rememberedLeague";
 import { Accordion } from 'react-bootstrap';
 import { parseLeagueId, parseLeagueUrl, MAX_MANAGERS } from "@/lib/leagueId";
 import { parseTeamId, parseTeamUrl } from "@/lib/teamId";
@@ -12,6 +14,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
+  const remembered = useRememberedLeague();
   const [teamId, setTeamId] = useState("");
   const [teamError, setTeamError] = useState("");
 
@@ -60,7 +63,7 @@ export default function HomePage() {
             alt="MyFPL.net Logo"
             width={382}
             height={371}
-            className="img-fluid"
+            className="img-fluid home-logo"
             priority
           />
         </div>
@@ -75,6 +78,25 @@ export default function HomePage() {
               <p className="card-text text-center">
                 Enter your Fantasy Premier League (FPL) league ID to go straight to your league, or your team ID to choose from your leagues.
               </p>
+              {remembered && (
+                <div className="d-flex gap-2 mb-3">
+                  <Link
+                    className="btn btn-primary flex-grow-1 text-truncate"
+                    href={`/dashboard/${remembered.id}/gameweek${
+                      remembered.team ? `?team=${remembered.team}` : ""
+                    }`}
+                  >
+                    Back to {remembered.name}
+                  </Link>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={forgetLeague}
+                  >
+                    Forget
+                  </button>
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="mb-3">
                 <label htmlFor="leagueId" className="form-label small mb-1">
                   League ID

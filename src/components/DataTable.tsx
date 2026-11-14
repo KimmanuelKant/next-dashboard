@@ -11,7 +11,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Dropdown, DropdownButton, Form, OverlayTrigger, Popover } from "react-bootstrap";
-import { InfoCircleFill } from "react-bootstrap-icons";
+import { InfoCircle, InfoCircleFill } from "react-bootstrap-icons";
 
 export interface ColumnGroup {
   name: string;
@@ -40,6 +40,36 @@ interface DataTableProps<T> {
   hideColumnPicker?: boolean;
   /** Shown instead of rows when there is no data. */
   emptyMessage?: string;
+  /** Id of the column that stays in view when the table scrolls sideways. */
+  stickyColumn?: string;
+  /** Rows to mark as the visitor's own. */
+  highlightRow?: (row: T) => boolean;
+}
+
+/** Tap-to-open explanation of a column, shown in its header. */
+function HeaderInfo({ id, label, text }: { id: string; label: string; text: string }) {
+  return (
+    // Stops the tap from also sorting the column.
+    <span onClick={(e) => e.stopPropagation()}>
+      <OverlayTrigger
+        trigger="click"
+        rootClose
+        placement="bottom"
+        overlay={
+          <Popover id={`header-popover-${id}`}>
+            <Popover.Body>{text}</Popover.Body>
+          </Popover>
+        }
+      >
+        <InfoCircle
+          className="ms-1 text-secondary"
+          role="button"
+          size={12}
+          aria-label={`About ${label}`}
+        />
+      </OverlayTrigger>
+    </span>
+  );
 }
 
 function visibilityFor<T>(
@@ -65,6 +95,8 @@ export default function DataTable<T>({
   groups,
   hideColumnPicker = false,
   emptyMessage = "Nothing to show.",
+  stickyColumn,
+  highlightRow,
 }: DataTableProps<T>) {
   const [presetName, setPresetName] = useState(initialPreset);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
@@ -182,6 +214,7 @@ export default function DataTable<T>({
                     <th
                       key={header.id}
                       scope="col"
+                      className={header.column.id === stickyColumn ? "sticky-col" : undefined}
                       data-sortable="true"
                       onClick={header.column.getToggleSortingHandler()}
                       aria-sort={
@@ -194,6 +227,14 @@ export default function DataTable<T>({
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {sorted === "asc" ? " ▲" : sorted === "desc" ? " ▼" : null}
+                      {/* The pinned name column needs no explanation. */}
+                      {header.column.id !== stickyColumn && descriptions[header.column.id] && (
+                        <HeaderInfo
+                          id={header.column.id}
+                          label={String(header.column.columnDef.header)}
+                          text={descriptions[header.column.id]}
+                        />
+                      )}
                     </th>
                   );
                 })}
@@ -212,9 +253,12 @@ export default function DataTable<T>({
               </tr>
             )}
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
+              <tr key={row.id} className={highlightRow?.(row.original) ? "my-team" : undefined}>
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>
+                  <td
+                    key={cell.id}
+                    className={cell.column.id === stickyColumn ? "sticky-col" : undefined}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

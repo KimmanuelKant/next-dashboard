@@ -3,6 +3,8 @@ import LeagueGameweekStats from "@/components/LeagueGameweekStats";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
+export const metadata = { title: "This Gameweek" };
+
 export default async function GameweekPage({
   params,
 }: {

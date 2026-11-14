@@ -2,6 +2,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTeamParam } from "@/lib/myTeam";
 
 const tabs = [
   { segment: "gameweek", label: "This Gameweek" },
@@ -12,6 +13,9 @@ const tabs = [
 
 export default function DashboardNav({ leagueId }: { leagueId: string }) {
   const pathname = usePathname();
+  // Carried from tab to tab so the visitor's own row stays highlighted.
+  const team = useTeamParam();
+  const query = team ? `?team=${team}` : "";
 
   return (
     <nav className="mb-3">
@@ -24,7 +28,7 @@ export default function DashboardNav({ leagueId }: { leagueId: string }) {
               <Link
                 className={`nav-link${isActive ? " active" : ""}`}
                 aria-current={isActive ? "page" : undefined}
-                href={href}
+                href={href + query}
               >
                 {label}
               </Link>

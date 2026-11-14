@@ -2,6 +2,7 @@
 "use client";
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
+import { useMyTeamId } from "@/lib/myTeam";
 import type { ChipUse, LabelledValue, NamedCount, TeamStats } from "@/lib/stats/teamStats";
 
 const columnHelper = createColumnHelper<TeamStats>();
@@ -292,6 +293,7 @@ const presets: Preset[] = [
 ];
 
 export default function SeasonStatisticsTable({ stats }: { stats: TeamStats[] }) {
+  const myTeam = useMyTeamId();
   return (
     <DataTable
       data={stats}
@@ -300,6 +302,8 @@ export default function SeasonStatisticsTable({ stats }: { stats: TeamStats[] })
       groups={groups}
       descriptions={descriptions}
       initialPreset="Standings"
+      stickyColumn="teamName"
+      highlightRow={(row) => row.teamId === myTeam}
     />
   );
 }

@@ -3,6 +3,8 @@ import LeagueTeamStats from "@/components/LeagueTeamStats";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
+export const metadata = { title: "Season" };
+
 export default async function SeasonPage({
   params,
 }: {

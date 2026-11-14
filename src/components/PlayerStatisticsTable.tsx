@@ -301,6 +301,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
         initialPreset="Differentials"
         initialSorting={[{ id: "leagueOwnershipCount", desc: false }]}
         emptyMessage="No players match these filters."
+        stickyColumn="name"
       />
     </>
   );

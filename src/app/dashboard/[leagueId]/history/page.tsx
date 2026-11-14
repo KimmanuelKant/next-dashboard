@@ -3,6 +3,8 @@ import LeagueHistoryView from "@/components/LeagueHistoryView";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
+export const metadata = { title: "League History" };
+
 export default async function HistoryPage({
   params,
 }: {

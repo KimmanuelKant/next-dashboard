@@ -3,6 +3,7 @@
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
 import type { GameweekStats } from "@/lib/stats/gameweekStats";
+import { useMyTeamId } from "@/lib/myTeam";
 
 const columnHelper = createColumnHelper<GameweekStats>();
 
@@ -146,6 +147,7 @@ const presets: Preset[] = [
 ];
 
 export default function GameweekStatisticsTable({ stats }: { stats: GameweekStats[] }) {
+  const myTeam = useMyTeamId();
   return (
     <DataTable
       data={stats}
@@ -155,6 +157,8 @@ export default function GameweekStatisticsTable({ stats }: { stats: GameweekStat
       descriptions={descriptions}
       initialPreset="Overview"
       initialSorting={[{ id: "position", desc: false }]}
+      stickyColumn="teamName"
+      highlightRow={(row) => row.teamId === myTeam}
     />
   );
 }

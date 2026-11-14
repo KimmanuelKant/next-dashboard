@@ -3,6 +3,8 @@ import LeaguePlayerStats from "@/components/LeaguePlayerStats";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
+export const metadata = { title: "Scout" };
+
 export default async function ScoutPage({
   params,
 }: {

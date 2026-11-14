@@ -19,13 +19,14 @@ function Message({ title, text }: { title: string; text: string }) {
   );
 }
 
-function LeagueList({ leagues }: { leagues: TeamLeague[] }) {
+function LeagueList({ leagues, teamId }: { leagues: TeamLeague[]; teamId: string }) {
   return (
     <div className="list-group mb-4">
       {leagues.map((league) => (
         <Link
           key={league.id}
-          href={`/dashboard/${league.id}/gameweek`}
+          // The team ID goes along so the league pages can highlight this team.
+          href={`/dashboard/${league.id}/gameweek?team=${teamId}`}
           className="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3"
         >
           <span>{league.name}</span>
@@ -90,7 +91,7 @@ export default async function TeamLeaguesPage({
 
       <h2 className="h5">Choose a league</h2>
       {own.length > 0 ? (
-        <LeagueList leagues={own} />
+        <LeagueList leagues={own} teamId={teamId} />
       ) : (
         <p>This team is not in any private or public classic league.</p>
       )}
@@ -98,7 +99,7 @@ export default async function TeamLeaguesPage({
       {general.length > 0 && (
         <>
           <h2 className="h5">General leagues</h2>
-          <LeagueList leagues={general} />
+          <LeagueList leagues={general} teamId={teamId} />
         </>
       )}
 

@@ -8,6 +8,49 @@
   overflow-y: auto;
 }
 
+/* The name column stays in view while a wide table scrolls sideways. */
+.table-responsive .sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+/* Cell borders scroll away under a pinned cell; draw its right edge here. */
+.table-responsive .sticky-col::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background: var(--bs-border-color);
+}
+
+/* On phones a long name must not take the whole screen width. */
+@media (max-width: 575.98px) {
+  .table-responsive td.sticky-col {
+    max-width: 38vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Stacked layout (phones, tablets): keep the logo small so the ID boxes are
+   on the first screen. */
+@media (max-width: 991.98px) {
+  .home-logo {
+    width: auto;
+    max-height: 140px;
+  }
+}
+
+/* The visitor's own team. */
+tr.my-team > * {
+  --bs-table-bg-state: rgba(var(--bs-primary-rgb), 0.3);
+  font-weight: 600;
+}
+
 th[data-sortable="true"] {
   cursor: pointer;
   user-select: none;
