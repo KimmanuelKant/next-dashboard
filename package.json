@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test.mjs",
+    "check": "npm run typecheck && npm run lint && npm test"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.20.5",

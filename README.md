@@ -27,6 +27,7 @@ from the public Fantasy Premier League API. There is no database and no login.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
+npm run check    # type check, lint and tests in one go
 npm test         # unit tests for the statistics
 npm run lint
 npm run build
@@ -34,16 +35,32 @@ npm run build
 
 Requires Node 20.9 or newer.
 
+`AGENTS.md` holds the project's rules for AI coding agents, and `.mcp.json`
+connects them to the running dev server.
+
 ## How it works
 
 ```
 src/lib/fpl/http.ts       FPL API access: concurrency limit and retries
 src/lib/fpl/sources.ts    Fetch, trim and cache each kind of FPL data
+src/lib/fpl/types.ts      The trimmed shapes, including LeagueSnapshot
 src/lib/fpl/snapshot.ts   getLeagueSnapshot(): everything known about a league
 src/lib/stats/            Pure functions that turn a snapshot into table rows
-src/components/           DataTable (shared) and the two table definitions
-src/app/dashboard/[leagueId]/   Routes: gameweek, season, scout, history
+src/types/fpl/            Shapes of the raw FPL API responses
+src/components/           DataTable (shared), one table definition per tab,
+                          and the League History chart
+src/app/page.tsx          Front page: the league ID and team ID boxes
+src/app/team/[teamId]/    A team's leagues, for visitors who only know
+                          their team ID
+src/app/dashboard/[leagueId]/   The tabs: gameweek, season, scout, history
 ```
+
+A tab is three small pieces. The route (`season/page.tsx`) renders a server
+component (`LeagueTeamStats`), which loads the snapshot, computes the rows
+(`computeTeamStats`) and hands them to a table definition
+(`SeasonStatisticsTable`): the columns, their explanations and the preset
+views. The `awards`, `player` and `team` routes under the dashboard only
+redirect from old addresses.
 
 Every table is computed from one **league snapshot** (standings, each manager's
 history, each manager's squad per gameweek, player points per gameweek). To add
