@@ -9,7 +9,7 @@ import {
   PICK_VICE,
   Player,
 } from "@/lib/fpl/types";
-import { computeTeamStats, effectiveCaptain } from "./teamStats";
+import { computeStreaks, computeTeamStats, effectiveCaptain } from "./teamStats";
 import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
 
@@ -265,10 +265,13 @@ describe("league history and squad habits", () => {
   });
 
   it("finds the longest-held player and favourite club", () => {
-    expect(ann.longestHeld?.count).toBe(3);
-    expect(bo.longestHeld?.count).toBe(2);
+    expect(ann.mostHeld?.count).toBe(3);
+    expect(bo.mostHeld?.count).toBe(2);
+    expect(ann.longestSquadStreak?.count).toBe(3);
     expect(ann.favouriteClub).toEqual({ name: "Club", count: 100 });
-    expect(cy.longestHeld).toBeNull();
+    expect(cy.mostHeld).toBeNull();
+    expect(cy.longestSquadStreak).toBeNull();
+    expect(cy.longestServingStarter).toBeNull();
   });
 
   it("counts incidents only for players in the starting eleven", () => {
@@ -281,6 +284,70 @@ describe("league history and squad habits", () => {
     // Bo had no team in GW1; P14 started for Bo in GW3.
     expect(bo.yellowCards).toBe(0);
     expect(bo.ownGoals).toBe(1);
+  });
+});
+
+describe("computeStreaks", () => {
+  // Squads of three for brevity: [id, multiplier, role]; multiplier 0 = benched.
+  const squad = (chip: string | null, ...picks: [number, number][]): ManagerGameweek => ({
+    chip,
+    picks: picks.map(([id, multiplier]) => [id, multiplier, PICK_NONE]),
+  });
+
+  it("finds the longest unbroken run in the squad, even if it has ended", () => {
+    const streaks = computeStreaks([
+      squad(null, [1, 1], [2, 1]),
+      squad(null, [1, 1], [2, 1]),
+      squad(null, [1, 1], [3, 1]),
+      squad(null, [4, 1], [3, 1]),
+    ]);
+    // Player 1 was held for GW1-3, then sold.
+    expect(streaks.longestSquad).toEqual([1, 3]);
+  });
+
+  it("restarts a run after a real gap", () => {
+    const streaks = computeStreaks([
+      squad(null, [1, 1], [2, 1]),
+      squad(null, [3, 1], [2, 1]),
+      squad(null, [1, 1], [3, 1]),
+      squad(null, [1, 1], [3, 1]),
+    ]);
+    // Player 1: one week, sold, then two weeks. Player 3: three weeks running.
+    expect(streaks.longestSquad).toEqual([3, 3]);
+  });
+
+  it("does not break a run for a player left out of a Free Hit squad", () => {
+    const streaks = computeStreaks([
+      squad(null, [1, 1], [2, 1]),
+      squad("freehit", [8, 1], [9, 1]),
+      squad(null, [1, 1], [2, 1]),
+    ]);
+    // Two real weeks either side of the Free Hit; the Free Hit week is not counted.
+    expect(streaks.longestSquad?.[1]).toBe(2);
+    expect(streaks.currentStarter?.[1]).toBe(2);
+  });
+
+  it("counts the Free Hit week for a player who is in the Free Hit squad", () => {
+    const streaks = computeStreaks([
+      squad(null, [1, 1], [2, 1]),
+      squad("freehit", [1, 1], [9, 1]),
+      squad(null, [1, 1], [2, 1]),
+    ]);
+    expect(streaks.longestSquad).toEqual([1, 3]);
+  });
+
+  it("reports the current starter with the longest run of starts", () => {
+    const streaks = computeStreaks([
+      squad(null, [1, 1], [2, 1], [3, 0]),
+      squad(null, [1, 0], [2, 1], [3, 1]),
+      squad(null, [1, 1], [2, 0], [3, 1]),
+    ]);
+    // Player 2 started twice but is benched now; player 3 has started the last two.
+    expect(streaks.currentStarter).toEqual([3, 2]);
+  });
+
+  it("returns nulls for a manager with no teams", () => {
+    expect(computeStreaks([])).toEqual({ longestSquad: null, currentStarter: null });
   });
 });
 

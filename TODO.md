@@ -19,3 +19,7 @@
 - Remember the last league and column choices in the browser.
 - Table state in the URL for sharing; CSV export.
 - Head-to-head leagues (only classic leagues are supported).
+
+## Post-season screen
+- An end-of-season summary for the league: the place for awards, built from
+  the outliers already visible in the tables.

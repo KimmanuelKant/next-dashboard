@@ -14,7 +14,7 @@ export default function DashboardNav({ leagueId }: { leagueId: string }) {
 
   return (
     <nav className="mb-3">
-      <ul className="nav nav-tabs">
+      <ul className="nav nav-tabs flex-nowrap overflow-x-auto overflow-y-hidden text-nowrap">
         {tabs.map(({ segment, label }) => {
           const href = `/dashboard/${leagueId}/${segment}`;
           const isActive = pathname === href;

@@ -14,6 +14,8 @@ const formatChip = (uses: ChipUse[]) =>
   uses.length
     ? uses.map((use) => `${use.points} (GW${use.gw})`).join(", ")
     : "Not used";
+const formatHeld = (held: { name: string; count: number } | null) =>
+  held ? `${held.name} (${held.count} GW)` : "–";
 const chipTotal = (uses: ChipUse[]) =>
   uses.length ? uses.reduce((sum, use) => sum + use.points, 0) : -1;
 
@@ -129,13 +131,20 @@ const columns = [
       return club ? `${club.name} (${club.count}%)` : "–";
     },
   }),
-  columnHelper.accessor((row) => row.longestHeld?.count ?? 0, {
-    id: "longestHeld",
-    header: "Longest-Held Player",
-    cell: ({ row }) => {
-      const held = row.original.longestHeld;
-      return held ? `${held.name} (${held.count} GW)` : "–";
-    },
+  columnHelper.accessor((row) => row.mostHeld?.count ?? 0, {
+    id: "mostHeld",
+    header: "Most-Held Player",
+    cell: ({ row }) => formatHeld(row.original.mostHeld),
+  }),
+  columnHelper.accessor((row) => row.longestSquadStreak?.count ?? 0, {
+    id: "longestSquadStreak",
+    header: "Longest Squad Streak",
+    cell: ({ row }) => formatHeld(row.original.longestSquadStreak),
+  }),
+  columnHelper.accessor((row) => row.longestServingStarter?.count ?? 0, {
+    id: "longestServingStarter",
+    header: "Longest-Serving Starter",
+    cell: ({ row }) => formatHeld(row.original.longestServingStarter),
   }),
   columnHelper.accessor("yellowCards", { id: "yellowCards", header: "Yellow Cards" }),
   columnHelper.accessor("redCards", { id: "redCards", header: "Red Cards" }),
@@ -184,7 +193,9 @@ const descriptions: Record<string, string> = {
   bestLeaguePosition: "The highest position reached in this league.",
   worstLeaguePosition: "The lowest position in this league.",
   favouriteClub: "The club whose players have filled the most squad places over the season, with its share of all squad places.",
-  longestHeld: "The player who has been in the squad for the most gameweeks.",
+  mostHeld: "The player who has been in the squad for the most gameweeks in total.",
+  longestSquadStreak: "The longest unbroken run of gameweeks any player has spent in the squad. Being left out of a Free Hit squad does not break a run.",
+  longestServingStarter: "Of the current starting eleven, the player who has started the most gameweeks in a row. Being left out of a Free Hit team does not break a run.",
   yellowCards: "Yellow cards received by players in the starting eleven.",
   redCards: "Red cards received by players in the starting eleven.",
   ownGoals: "Own goals scored by players in the starting eleven.",
@@ -222,7 +233,7 @@ const presets: Preset[] = [
   },
   {
     name: "Squad Habits",
-    columns: ["managerName", "favouriteClub", "longestHeld", "mostCaptained", "captainDiversity", "totalTransfers"],
+    columns: ["managerName", "favouriteClub", "mostHeld", "longestSquadStreak", "longestServingStarter", "mostCaptained", "captainDiversity", "totalTransfers"],
   },
   {
     name: "Cards and Mishaps",

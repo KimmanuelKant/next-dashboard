@@ -9,7 +9,7 @@ and get sortable, customisable tables the official site does not offer:
   Filter by name, position, club, owner, price and number of owners.
 - **Team Statistics**: per-manager transfers, hits, chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
-  longest-held player, cards and own goals.
+  most-held player and squad streaks, cards and own goals.
 - **League History**: a chart and table of every team's league position and
   score, gameweek by gameweek.
 

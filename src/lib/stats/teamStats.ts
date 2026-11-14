@@ -73,8 +73,12 @@ export interface TeamStats {
   worstLeaguePosition: number | null;
   /** Club that has filled the most squad places over the season; count is the percent of all squad places. */
   favouriteClub: NamedCount | null;
-  /** Player who has been in the squad for the most gameweeks. */
-  longestHeld: NamedCount | null;
+  /** Player who has been in the squad for the most gameweeks in total. */
+  mostHeld: NamedCount | null;
+  /** Longest unbroken run of gameweeks any player has spent in the squad. */
+  longestSquadStreak: NamedCount | null;
+  /** Of the current starting eleven, the player who has started the most gameweeks in a row. */
+  longestServingStarter: NamedCount | null;
   /** Cards, own goals and missed penalties by players who were in the starting eleven. */
   yellowCards: number;
   redCards: number;
@@ -106,6 +110,65 @@ export function effectiveCaptain(team: ManagerGameweek): Pick | null {
     }
   }
   return best;
+}
+
+export interface Streaks {
+  /** [playerId, gameweeks]: the longest unbroken run in the squad at any point. */
+  longestSquad: [number, number] | null;
+  /** [playerId, gameweeks]: the current starter with the longest unbroken run of starts. */
+  currentStarter: [number, number] | null;
+}
+
+/**
+ * Unbroken runs of gameweeks in the squad and in the starting eleven.
+ * `teams` is one manager's teams in gameweek order (weeks without a team left out).
+ *
+ * A Free Hit squad is temporary, so being left out of it does not end a run:
+ * the run pauses for that week and continues if the player is back the week
+ * after. A player who is in the Free Hit squad still gains the week.
+ */
+export function computeStreaks(teams: ManagerGameweek[]): Streaks {
+  let squadRuns = new Map<number, number>();
+  let starterRuns = new Map<number, number>();
+  let longestSquad: [number, number] | null = null;
+
+  const advance = (runs: Map<number, number>, present: number[], paused: boolean) => {
+    const next = new Map<number, number>();
+    for (const id of present) {
+      next.set(id, (runs.get(id) ?? 0) + 1);
+    }
+    if (paused) {
+      runs.forEach((run, id) => {
+        if (!next.has(id)) next.set(id, run);
+      });
+    }
+    return next;
+  };
+
+  for (const team of teams) {
+    const freeHit = team.chip === "freehit";
+    squadRuns = advance(squadRuns, team.picks.map((p) => p[0]), freeHit);
+    starterRuns = advance(
+      starterRuns,
+      team.picks.filter((p) => p[1] > 0).map((p) => p[0]),
+      freeHit
+    );
+    squadRuns.forEach((run, id) => {
+      if (!longestSquad || run > longestSquad[1]) longestSquad = [id, run];
+    });
+  }
+
+  let currentStarter: [number, number] | null = null;
+  const lastTeam = teams[teams.length - 1];
+  if (lastTeam) {
+    for (const [id, multiplier] of lastTeam.picks) {
+      const run = starterRuns.get(id) ?? 0;
+      if (multiplier > 0 && (!currentStarter || run > currentStarter[1])) {
+        currentStarter = [id, run];
+      }
+    }
+  }
+  return { longestSquad, currentStarter };
 }
 
 function minOrNull(values: (number | null)[]): number | null {
@@ -151,6 +214,7 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     const benchBoost: ChipUse[] = [];
     const clubSlots = new Map<number, number>();
     const weeksOwned = new Map<number, number>();
+    const teamsInOrder: ManagerGameweek[] = [];
     let squadSlots = 0;
     const incidentTotals = [0, 0, 0, 0];
 
@@ -158,6 +222,7 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       const team = snapshot.picks[gw]?.[manager.entryId];
       const points = snapshot.points[gw];
       if (!team || !points) continue;
+      teamsInOrder.push(team);
 
       const incidents = snapshot.incidents[gw] ?? {};
       for (const [playerId, multiplier] of team.picks) {
@@ -219,6 +284,9 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
 
     const topClub = topOf(clubSlots);
     const topPlayer = topOf(weeksOwned);
+    const streaks = computeStreaks(teamsInOrder);
+    const named = (entry: [number, number] | null): NamedCount | null =>
+      entry ? { name: playerName(entry[0]) || "Unknown", count: entry[1] } : null;
     const leagueRow = leagueHistory.get(manager.entryId);
 
     const hits = weeks.reduce((sum, w) => sum + w.transfersCost, 0);
@@ -275,9 +343,9 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
             count: Math.round((topClub[1] / squadSlots) * 100),
           }
         : null,
-      longestHeld: topPlayer
-        ? { name: playerName(topPlayer[0]) || "Unknown", count: topPlayer[1] }
-        : null,
+      mostHeld: named(topPlayer),
+      longestSquadStreak: named(streaks.longestSquad),
+      longestServingStarter: named(streaks.currentStarter),
       yellowCards: incidentTotals[0],
       redCards: incidentTotals[1],
       ownGoals: incidentTotals[2],
