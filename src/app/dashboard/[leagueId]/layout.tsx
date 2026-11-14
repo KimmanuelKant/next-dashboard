@@ -1,6 +1,7 @@
 // src/app/dashboard/[leagueId]/layout.tsx
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import DashboardNav from "@/components/DashboardNav";
 import RememberLeague from "@/components/RememberLeague";
@@ -66,10 +67,13 @@ export default async function DashboardLayout({
     <div className="container-fluid py-3">
       <div className="d-flex flex-wrap justify-content-between align-items-center column-gap-3 mb-3">
         <h1 className="h3 mb-0">{title}</h1>
-        {/* These read the URL's query string, which needs a Suspense boundary. */}
-        <Suspense>
-          <RememberLeague leagueId={leagueId} leagueName={title} />
-        </Suspense>
+        <div className="d-flex flex-wrap align-items-center column-gap-3 small">
+          {/* These read the URL's query string, which needs a Suspense boundary. */}
+          <Suspense>
+            <RememberLeague leagueId={leagueId} leagueName={title} />
+          </Suspense>
+          <Link href="/">Change league</Link>
+        </div>
       </div>
       <Suspense>
         <DashboardNav leagueId={leagueId} />

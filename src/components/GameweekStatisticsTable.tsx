@@ -2,6 +2,7 @@
 "use client";
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
+import Narrow from "@/components/Narrow";
 import type { GameweekStats } from "@/lib/stats/gameweekStats";
 import { useMyTeamId } from "@/lib/myTeam";
 
@@ -20,9 +21,18 @@ const columns = [
     cell: ({ row }) => {
       const change = row.original.positionChange;
       if (change === null) return "–";
-      if (change === 0) return "No change";
-      // Arrow plus words, so direction never depends on colour alone.
-      return change > 0 ? `▲ Up ${change}` : `▼ Down ${-change}`;
+      if (change === 0) return <Narrow short="–">No change</Narrow>;
+      // The arrow's shape shows the direction, so it never depends on colour
+      // alone. Phones get the arrow and number only, to keep the column narrow.
+      return change > 0 ? (
+        <span className="text-success-emphasis">
+          <Narrow short={`▲${change}`}>▲ Up {change}</Narrow>
+        </span>
+      ) : (
+        <span className="text-danger-emphasis">
+          <Narrow short={`▼${-change}`}>▼ Down {-change}</Narrow>
+        </span>
+      );
     },
   }),
   columnHelper.accessor("teamName", { id: "teamName", header: "Team Name" }),
@@ -88,7 +98,7 @@ const columns = [
     cell: ({ getValue }) => {
       const value = getValue();
       if (value === undefined) return "–";
-      if (value === 0) return "No change";
+      if (value === 0) return <Narrow short="0">No change</Narrow>;
       return `${value > 0 ? "+" : "-"}£${Math.abs(value).toFixed(1)}m`;
     },
     sortUndefined: "last",
@@ -143,6 +153,30 @@ const descriptions: Record<string, string> = {
   bestPlayer: "The player who contributed the most points, including any captaincy multiplier.",
 };
 
+// Headers for phone-width screens, where the full ones are wider than the data.
+const shortHeaders: Record<string, string> = {
+  position: "Pos",
+  positionChange: "+/−",
+  teamName: "Team",
+  managerName: "Manager",
+  score: "Gross",
+  netScore: "Pts",
+  leagueGameweekRank: "Lge Rank",
+  gameweekRank: "GW Rank",
+  overallRank: "Overall",
+  viceCaptain: "Vice",
+  captainPoints: "Capt Pts",
+  bestCaptain: "Best Capt",
+  captaincyPointsLost: "Capt Lost",
+  transfers: "Trfs",
+  teamValue: "Value",
+  valueChange: "Value ±",
+  playersIn: "In",
+  playersOut: "Out",
+  benchPoints: "Bench",
+  topBenched: "Top Benched",
+};
+
 const groups: ColumnGroup[] = [
   {
     name: "Scores",
@@ -179,7 +213,11 @@ export default function GameweekStatisticsTable({ stats }: { stats: GameweekStat
       descriptions={descriptions}
       initialPreset="Overview"
       initialSorting={[{ id: "position", desc: false }]}
+      shortHeaders={shortHeaders}
       stickyColumn="teamName"
+      subtitleColumn="managerName"
+      wrapColumns={["playersIn", "playersOut"]}
+      detailNoun="team"
       highlightRow={(row) => row.teamId === myTeam}
     />
   );

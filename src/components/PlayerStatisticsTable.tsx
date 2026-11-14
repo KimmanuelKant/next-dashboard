@@ -84,6 +84,23 @@ const descriptions: Record<string, string> = {
   owners: "The teams in this league that own the player.",
 };
 
+// Headers for phone-width screens, where the full ones are wider than the data.
+// EO is the usual FPL abbreviation for effective ownership.
+const shortHeaders: Record<string, string> = {
+  position: "Pos",
+  totalPoints: "Total",
+  gameweekPoints: "GW",
+  leagueOwnershipCount: "Owners",
+  leagueOwnershipPercentage: "League %",
+  globalOwnershipPercentage: "Global %",
+  ownershipDifference: "Diff",
+  globalOwnershipCount: "Global #",
+  leagueStartingCount: "Start",
+  effectiveOwnership: "EO %",
+  leagueCaptainCount: "Capt",
+  leagueViceCaptainCount: "Vice",
+};
+
 const presets: Preset[] = [
   {
     name: "Differentials",
@@ -301,7 +318,10 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
         initialPreset="Differentials"
         initialSorting={[{ id: "leagueOwnershipCount", desc: false }]}
         emptyMessage="No players match these filters."
+        shortHeaders={shortHeaders}
         stickyColumn="name"
+        subtitleColumn="club"
+        detailNoun="player"
       />
     </>
   );

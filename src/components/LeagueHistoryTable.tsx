@@ -12,6 +12,12 @@ const SUMMARY = ["weeksAtTop", "weeksAtBottom", "gameweekWins", "bestPosition", 
 
 const descriptions: Record<string, string> = {};
 
+// Headers for phone-width screens, where the full ones are wider than the data.
+const shortHeaders: Record<string, string> = {
+  weeksAtTop: "Wks 1st",
+  weeksAtBottom: "Wks Last",
+};
+
 export default function LeagueHistoryTable({ history }: { history: LeagueHistory }) {
   const myTeam = useMyTeamId();
   const { columns, presets } = useMemo(() => {
@@ -72,7 +78,9 @@ export default function LeagueHistoryTable({ history }: { history: LeagueHistory
       initialPreset="League position"
       initialSorting={lastGw !== undefined ? [{ id: `pos${lastGw}`, desc: false }] : []}
       hideColumnPicker
+      shortHeaders={shortHeaders}
       stickyColumn="teamName"
+      subtitleColumn="managerName"
       highlightRow={(row) => row.teamId === myTeam}
     />
   );

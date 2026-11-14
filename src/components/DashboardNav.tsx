@@ -2,13 +2,15 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Narrow from "@/components/Narrow";
 import { useTeamParam } from "@/lib/myTeam";
 
+// `short` is the label on phone-width screens, so all four tabs fit the row.
 const tabs = [
-  { segment: "gameweek", label: "This Gameweek" },
+  { segment: "gameweek", label: "This Gameweek", short: "Gameweek" },
   { segment: "season", label: "Season" },
   { segment: "scout", label: "Scout" },
-  { segment: "history", label: "League History" },
+  { segment: "history", label: "League History", short: "History" },
 ];
 
 export default function DashboardNav({ leagueId }: { leagueId: string }) {
@@ -20,7 +22,7 @@ export default function DashboardNav({ leagueId }: { leagueId: string }) {
   return (
     <nav className="mb-3">
       <ul className="nav nav-tabs flex-nowrap overflow-x-auto overflow-y-hidden text-nowrap">
-        {tabs.map(({ segment, label }) => {
+        {tabs.map(({ segment, label, short }) => {
           const href = `/dashboard/${leagueId}/${segment}`;
           const isActive = pathname === href;
           return (
@@ -30,16 +32,11 @@ export default function DashboardNav({ leagueId }: { leagueId: string }) {
                 aria-current={isActive ? "page" : undefined}
                 href={href + query}
               >
-                {label}
+                {short ? <Narrow short={short}>{label}</Narrow> : label}
               </Link>
             </li>
           );
         })}
-        <li className="nav-item ms-auto">
-          <Link className="nav-link" href="/">
-            Change league
-          </Link>
-        </li>
       </ul>
     </nav>
   );

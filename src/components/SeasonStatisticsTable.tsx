@@ -265,6 +265,61 @@ const descriptions: Record<string, string> = {
   worstGameweekRank: "The worst rank for a single gameweek among all FPL managers.",
 };
 
+// Headers for phone-width screens, where the full ones are wider than the data.
+// WC, TC, BB, FH and OR are the usual FPL abbreviations.
+const shortHeaders: Record<string, string> = {
+  rank: "Pos",
+  managerName: "Manager",
+  teamName: "Team",
+  teamId: "ID",
+  totalPoints: "Total",
+  highestGameweekScore: "Best GW",
+  weeksAtTop: "Wks 1st",
+  weeksAtBottom: "Wks Last",
+  bestLeaguePosition: "Best Pos",
+  worstLeaguePosition: "Worst Pos",
+  totalTransfers: "Trfs",
+  totalTransferPointsDeducted: "Hits",
+  transferGain: "Trf Gain",
+  transferGainAfterHits: "Net Gain",
+  bestTransfer: "Best Trf",
+  worstTransfer: "Worst Trf",
+  biggestProfitSale: "Best Sale",
+  totalSaleProfit: "Sale Profit",
+  teamValue: "Value",
+  wildcardsUsed: "WC",
+  tripleCaptain: "TC",
+  benchBoost: "BB",
+  freeHit: "FH",
+  chipsUsed: "Chips",
+  chipPointsGained: "Chip Pts",
+  totalCaptainPoints: "Capt Pts",
+  captainPointsPercentage: "Capt %",
+  captaincyPointsLost: "Capt Lost",
+  perfectCaptainWeeks: "Perfect Wks",
+  mostCaptained: "Most Capt",
+  captainDiversity: "Captains",
+  totalGKPoints: "GK",
+  totalDEFPoints: "DEF",
+  totalMIDPoints: "MID",
+  totalFWDPoints: "FWD",
+  pointsOnBench: "Bench",
+  biggestBenchedHaul: "Top Benched",
+  favouriteClub: "Fav Club",
+  mostHeld: "Most Held",
+  longestSquadStreak: "Squad Streak",
+  longestServingStarter: "Starter Streak",
+  yellowCards: "YC",
+  redCards: "RC",
+  ownGoals: "OG",
+  penaltiesMissed: "Pen Miss",
+  overallRank: "OR",
+  bestOverallRank: "Best OR",
+  worstOverallRank: "Worst OR",
+  bestGameweekRank: "Best GW Rk",
+  worstGameweekRank: "Worst GW Rk",
+};
+
 // Each group is both a heading in the column picker and a preset view.
 const groups: ColumnGroup[] = [
   { name: "Standings", columns: ["rank", "totalPoints", "highestGameweekScore"] },
@@ -320,7 +375,10 @@ export default function SeasonStatisticsTable({ stats }: { stats: TeamStats[] })
       groups={groups}
       descriptions={descriptions}
       initialPreset="Standings"
+      shortHeaders={shortHeaders}
       stickyColumn="teamName"
+      subtitleColumn="managerName"
+      detailNoun="team"
       highlightRow={(row) => row.teamId === myTeam}
     />
   );

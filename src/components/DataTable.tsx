@@ -2,6 +2,7 @@
 "use client";
 import React, { useState } from "react";
 import {
+  Cell,
   ColumnDef,
   SortingState,
   VisibilityState,
@@ -10,8 +11,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Dropdown, DropdownButton, Form, OverlayTrigger, Popover } from "react-bootstrap";
+import { Dropdown, DropdownButton, Form, Modal, OverlayTrigger, Popover } from "react-bootstrap";
 import { InfoCircle, InfoCircleFill } from "react-bootstrap-icons";
+import Narrow from "@/components/Narrow";
 
 export interface ColumnGroup {
   name: string;
@@ -31,6 +33,8 @@ interface DataTableProps<T> {
   presets: Preset[];
   /** Column id -> explanation shown in the column picker. */
   descriptions: Record<string, string>;
+  /** Column id -> header used on phone-width screens, where the full one is too wide. */
+  shortHeaders?: Record<string, string>;
   /** Name of the preset applied on first render. */
   initialPreset: string;
   initialSorting?: SortingState;
@@ -42,15 +46,34 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   /** Id of the column that stays in view when the table scrolls sideways. */
   stickyColumn?: string;
+  /**
+   * Id of a column that, on phone-width screens, is shown as a second line
+   * in the sticky column instead of taking a column of its own.
+   */
+  subtitleColumn?: string;
+  /**
+   * Ids of columns holding lists or long text. On phone-width screens every
+   * other cell stays on one line; these may wrap.
+   */
+  wrapColumns?: string[];
   /** Rows to mark as the visitor's own. */
   highlightRow?: (row: T) => boolean;
+  /**
+   * What a row is ("team", "player"). When set, selecting a row opens a
+   * panel listing every column for it, top to bottom.
+   */
+  detailNoun?: string;
 }
 
-/** Tap-to-open explanation of a column, shown in its header. */
+/**
+ * Tap-to-open explanation of a column, shown in its header. Left out on
+ * phone-width screens: the icon is too small a target there, and the row
+ * panel carries the explanations.
+ */
 function HeaderInfo({ id, label, text }: { id: string; label: string; text: string }) {
   return (
     // Stops the tap from also sorting the column.
-    <span onClick={(e) => e.stopPropagation()}>
+    <span className="d-none d-sm-inline" onClick={(e) => e.stopPropagation()}>
       <OverlayTrigger
         trigger="click"
         rootClose
@@ -72,6 +95,99 @@ function HeaderInfo({ id, label, text }: { id: string; label: string; text: stri
   );
 }
 
+interface DetailSection<T> {
+  name: string;
+  cells: Cell<T, unknown>[];
+}
+
+/** Every column for one row, listed top to bottom under its group headings. */
+function RowDetail<T>({
+  show,
+  title,
+  subtitle,
+  sections,
+  descriptions,
+  position,
+  total,
+  onStep,
+  onClose,
+}: {
+  show: boolean;
+  title: React.ReactNode;
+  subtitle: React.ReactNode;
+  sections: DetailSection<T>[];
+  descriptions: Record<string, string>;
+  /** Index of the row in the table's current order. */
+  position: number;
+  total: number;
+  onStep: (by: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal show={show} onHide={onClose} scrollable fullscreen="sm-down" aria-labelledby="rowDetailTitle">
+      <Modal.Header closeButton>
+        <Modal.Title as="h2" className="h5" id="rowDetailTitle">
+          {title}
+          {subtitle && <div className="small text-secondary fw-normal">{subtitle}</div>}
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {sections.map((section) => (
+          <section key={section.name || "ungrouped"} className="mb-3">
+            {section.name && <h3 className="detail-heading">{section.name}</h3>}
+            {section.cells.map((cell) => {
+              const label = String(cell.column.columnDef.header);
+              const value = flexRender(cell.column.columnDef.cell, cell.getContext());
+              const description = descriptions[cell.column.id];
+              if (!description) {
+                return (
+                  <div key={cell.id} className="detail-stat">
+                    <span>{label}</span>
+                    <span className="detail-value">{value}</span>
+                  </div>
+                );
+              }
+              return (
+                <details key={cell.id}>
+                  <summary className="detail-stat">
+                    <span>
+                      {label}
+                      <InfoCircle className="ms-1 text-secondary" size={12} aria-hidden="true" />
+                    </span>
+                    <span className="detail-value">{value}</span>
+                  </summary>
+                  <p className="small text-secondary mt-1 mb-2">{description}</p>
+                </details>
+              );
+            })}
+          </section>
+        ))}
+      </Modal.Body>
+      <Modal.Footer className="justify-content-between">
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary"
+          disabled={position <= 0}
+          onClick={() => onStep(-1)}
+        >
+          ‹ Previous
+        </button>
+        <span className="small text-secondary">
+          {position + 1} of {total}
+        </span>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary"
+          disabled={position >= total - 1}
+          onClick={() => onStep(1)}
+        >
+          Next ›
+        </button>
+      </Modal.Footer>
+    </Modal>
+  );
+}
+
 function visibilityFor<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: ColumnDef<T, any>[],
@@ -90,19 +206,27 @@ export default function DataTable<T>({
   columns,
   presets,
   descriptions,
+  shortHeaders = {},
   initialPreset,
   initialSorting = [],
   groups,
   hideColumnPicker = false,
   emptyMessage = "Nothing to show.",
   stickyColumn,
+  subtitleColumn,
+  wrapColumns = [],
   highlightRow,
+  detailNoun,
 }: DataTableProps<T>) {
   const [presetName, setPresetName] = useState(initialPreset);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
     visibilityFor(columns, presets.find((p) => p.name === initialPreset))
   );
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
+  // The row shown in the panel. Kept while the panel closes so it does not
+  // empty mid-animation; `detailOpen` says whether it is showing.
+  const [detail, setDetail] = useState<T | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const table = useReactTable({
     data,
@@ -126,6 +250,46 @@ export default function DataTable<T>({
       ),
     })),
   ].filter((section) => section.columns.length > 0);
+
+  const isVisible = (id: string | undefined) =>
+    Boolean(id && leafColumns.find((column) => column.id === id)?.getIsVisible());
+  // On phones the subtitle column folds into the sticky one, when both show.
+  const foldSubtitle = isVisible(stickyColumn) && isVisible(subtitleColumn);
+  const cellClass = (id: string) =>
+    id === stickyColumn
+      ? "sticky-col"
+      : foldSubtitle && id === subtitleColumn
+      ? "d-none d-sm-table-cell"
+      : wrapColumns.includes(id)
+      ? "cell-wrap"
+      : undefined;
+
+  const rows = table.getRowModel().rows;
+  const renderCell = (cell: Cell<T, unknown>) =>
+    flexRender(cell.column.columnDef.cell, cell.getContext());
+
+  const openDetail = (row: T) => {
+    setDetail(row);
+    setDetailOpen(true);
+  };
+  // The panel's row, found again on each render: sorting moves it, and a
+  // filter can remove it (which closes the panel).
+  const detailIndex = detail === null ? -1 : rows.findIndex((row) => row.original === detail);
+  const detailCells = detailIndex >= 0 ? rows[detailIndex].getAllCells() : [];
+  const detailCell = (id: string | undefined) =>
+    detailCells.find((cell) => cell.column.id === id);
+  const detailTitle = detailCell(stickyColumn);
+  const detailSubtitle = detailCell(subtitleColumn);
+  const detailSections: DetailSection<T>[] = pickerSections
+    .map((section) => ({
+      name: section.name,
+      cells: section.columns.flatMap((column) =>
+        column.id === stickyColumn || column.id === subtitleColumn
+          ? []
+          : detailCell(column.id) ?? []
+      ),
+    }))
+    .filter((section) => section.cells.length > 0);
 
   return (
     <div>
@@ -203,6 +367,12 @@ export default function DataTable<T>({
         )}
       </div>
 
+      {detailNoun && data.length > 0 && (
+        <p className="text-secondary small mb-2">
+          Select a {detailNoun} to see the full list of stats.
+        </p>
+      )}
+
       <div className="table-responsive">
         <table className="table table-bordered table-striped table-sm align-middle">
           <thead>
@@ -210,11 +380,13 @@ export default function DataTable<T>({
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const sorted = header.column.getIsSorted();
+                  const label = String(header.column.columnDef.header);
+                  const short = shortHeaders[header.column.id];
                   return (
                     <th
                       key={header.id}
                       scope="col"
-                      className={header.column.id === stickyColumn ? "sticky-col" : undefined}
+                      className={cellClass(header.column.id)}
                       data-sortable="true"
                       onClick={header.column.getToggleSortingHandler()}
                       aria-sort={
@@ -225,13 +397,17 @@ export default function DataTable<T>({
                           : undefined
                       }
                     >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {short ? (
+                        <Narrow short={<abbr title={label}>{short}</abbr>}>{label}</Narrow>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
                       {sorted === "asc" ? " ▲" : sorted === "desc" ? " ▼" : null}
                       {/* The pinned name column needs no explanation. */}
                       {header.column.id !== stickyColumn && descriptions[header.column.id] && (
                         <HeaderInfo
                           id={header.column.id}
-                          label={String(header.column.columnDef.header)}
+                          label={label}
                           text={descriptions[header.column.id]}
                         />
                       )}
@@ -252,21 +428,85 @@ export default function DataTable<T>({
                 </td>
               </tr>
             )}
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className={highlightRow?.(row.original) ? "my-team" : undefined}>
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={cell.column.id === stickyColumn ? "sticky-col" : undefined}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const cells = row.getVisibleCells();
+              const subtitle = foldSubtitle
+                ? cells.find((cell) => cell.column.id === subtitleColumn)
+                : undefined;
+              const rowClass = [
+                highlightRow?.(row.original) ? "my-team" : "",
+                detailNoun ? "row-clickable" : "",
+              ]
+                .join(" ")
+                .trim();
+              return (
+                <tr
+                  key={row.id}
+                  className={rowClass || undefined}
+                  onClick={
+                    detailNoun
+                      ? () => {
+                          // Dragging to select text is not a request to open the row.
+                          if (!window.getSelection()?.toString()) openDetail(row.original);
+                        }
+                      : undefined
+                  }
+                >
+                  {cells.map((cell) =>
+                    cell.column.id !== stickyColumn ? (
+                      <td key={cell.id} className={cellClass(cell.column.id)}>
+                        {renderCell(cell)}
+                      </td>
+                    ) : (
+                      <td key={cell.id} className="sticky-col">
+                        {detailNoun ? (
+                          // A real button, so the row can be opened from the keyboard.
+                          <button
+                            type="button"
+                            className="row-open"
+                            aria-label={`All stats for ${String(cell.getValue())}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDetail(row.original);
+                            }}
+                          >
+                            <span className="sticky-name">{renderCell(cell)}</span>
+                            <span className="text-secondary" aria-hidden="true">
+                              ›
+                            </span>
+                          </button>
+                        ) : (
+                          <div className="sticky-name">{renderCell(cell)}</div>
+                        )}
+                        {subtitle && (
+                          <div className="sticky-sub d-sm-none">{renderCell(subtitle)}</div>
+                        )}
+                      </td>
+                    )
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {detailNoun && (
+        <RowDetail
+          show={detailOpen && detailIndex >= 0}
+          title={detailTitle ? renderCell(detailTitle) : null}
+          subtitle={detailSubtitle ? renderCell(detailSubtitle) : null}
+          sections={detailSections}
+          descriptions={descriptions}
+          position={detailIndex}
+          total={rows.length}
+          onStep={(by) => {
+            const next = rows[detailIndex + by];
+            if (next) setDetail(next.original);
+          }}
+          onClose={() => setDetailOpen(false)}
+        />
+      )}
     </div>
   );
 }
