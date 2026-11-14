@@ -73,6 +73,26 @@ const columns = [
     cell: ({ row }) => row.original.chip ?? "–",
   }),
   columnHelper.accessor("transfers", { id: "transfers", header: "Transfers" }),
+  columnHelper.accessor((row) => row.teamValue ?? undefined, {
+    id: "teamValue",
+    header: "Team Value",
+    cell: ({ getValue }) => {
+      const value = getValue();
+      return value === undefined ? "–" : `£${value.toFixed(1)}m`;
+    },
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.valueChange ?? undefined, {
+    id: "valueChange",
+    header: "Value Change",
+    cell: ({ getValue }) => {
+      const value = getValue();
+      if (value === undefined) return "–";
+      if (value === 0) return "No change";
+      return `${value > 0 ? "+" : "-"}£${Math.abs(value).toFixed(1)}m`;
+    },
+    sortUndefined: "last",
+  }),
   columnHelper.accessor((row) => row.playersIn.length, {
     id: "playersIn",
     header: "Players In",
@@ -114,6 +134,8 @@ const descriptions: Record<string, string> = {
   captaincyPointsLost: "Points lost by not giving the armband to the highest-scoring starter.",
   chip: "The chip played this gameweek, if any.",
   transfers: "Transfers made for this gameweek.",
+  teamValue: "Squad value including money in the bank.",
+  valueChange: "How much the squad value (including the bank) went up or down since the previous gameweek.",
   playersIn: "Players in the squad now who were not in it last gameweek. After a Free Hit, the comparison is with the squad before it.",
   playersOut: "Players who were in the squad last gameweek and are not now.",
   benchPoints: "Points left on the bench this gameweek.",
@@ -130,7 +152,7 @@ const groups: ColumnGroup[] = [
     name: "Captaincy",
     columns: ["captain", "viceCaptain", "captainPoints", "bestCaptain", "captaincyPointsLost"],
   },
-  { name: "Transfers and chips", columns: ["chip", "transfers", "playersIn", "playersOut"] },
+  { name: "Transfers, chips and value", columns: ["chip", "transfers", "playersIn", "playersOut", "teamValue", "valueChange"] },
   { name: "Bench and best player", columns: ["benchPoints", "topBenched", "bestPlayer"] },
 ];
 

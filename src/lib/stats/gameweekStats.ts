@@ -34,6 +34,10 @@ export interface GameweekStats {
   /** Points lost by not captaining the best starter. */
   captaincyPointsLost: number;
   chip: string | null;
+  /** Squad value including the bank, in millions. */
+  teamValue: number | null;
+  /** Change in squad value since the previous gameweek, in millions. */
+  valueChange: number | null;
   transfers: number;
   playersIn: string[];
   playersOut: string[];
@@ -60,9 +64,9 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
 
   const rows = snapshot.league.managers.map((manager): GameweekStats => {
     const team = snapshot.picks[gw]?.[manager.entryId] ?? null;
-    const week = snapshot.histories[manager.entryId]?.gameweeks.find(
-      (w) => w.gw === gw
-    );
+    const weeks = snapshot.histories[manager.entryId]?.gameweeks ?? [];
+    const week = weeks.find((w) => w.gw === gw);
+    const previousWeek = [...weeks].reverse().find((w) => w.gw < gw);
     const score = week?.points ?? manager.eventTotal;
     const hit = week?.transfersCost ?? 0;
 
@@ -115,6 +119,8 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
           : null,
       captaincyPointsLost: review?.pointsLost ?? 0,
       chip: team?.chip ? chipLabel(team.chip) : null,
+      teamValue: week ? week.value / 10 : null,
+      valueChange: week && previousWeek ? (week.value - previousWeek.value) / 10 : null,
       transfers: week?.transfers ?? 0,
       playersIn: playersIn.map((id) => name(id) || "Unknown"),
       playersOut: playersOut.map((id) => name(id) || "Unknown"),

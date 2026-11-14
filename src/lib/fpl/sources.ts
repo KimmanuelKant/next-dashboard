@@ -50,6 +50,7 @@ async function fetchBootstrap(): Promise<Bootstrap> {
       position: el.element_type as PositionId,
       clubId: el.team,
       cost: el.now_cost,
+      startCost: el.now_cost - el.cost_change_start,
       selectedByPercent: Number.parseFloat(el.selected_by_percent) || 0,
       totalPoints: el.total_points,
       form: Number.parseFloat(el.form) || 0,
@@ -68,7 +69,7 @@ async function fetchBootstrap(): Promise<Bootstrap> {
   };
 }
 
-export const getBootstrap = unstable_cache(fetchBootstrap, ["fpl-bootstrap-v1"], {
+export const getBootstrap = unstable_cache(fetchBootstrap, ["fpl-bootstrap-v2"], {
   revalidate: 5 * MINUTE,
 });
 
@@ -255,11 +256,15 @@ async function fetchLeagueHistories(
           benchPoints: g.points_on_bench,
         })),
         chips: (raw?.chips ?? []).map((c) => ({ name: c.name, gw: c.event })),
-        transfers: (transfers ?? []).map((t) => ({
-          gw: t.event,
-          playerIn: t.element_in,
-          playerOut: t.element_out,
-        })),
+        transfers: [...(transfers ?? [])]
+          .sort((a, b) => a.time.localeCompare(b.time))
+          .map((t) => ({
+            gw: t.event,
+            playerIn: t.element_in,
+            playerOut: t.element_out,
+            inCost: t.element_in_cost,
+            outCost: t.element_out_cost,
+          })),
       };
     })
   );
@@ -273,7 +278,7 @@ export function getLeagueHistories(
 ): Promise<Record<number, ManagerHistory>> {
   return unstable_cache(
     () => fetchLeagueHistories(entryIds),
-    ["fpl-histories-v2", season, leagueId, membersKey(entryIds)],
+    ["fpl-histories-v3", season, leagueId, membersKey(entryIds)],
     { revalidate: 5 * MINUTE }
   )();
 }

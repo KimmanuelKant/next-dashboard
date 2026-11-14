@@ -12,6 +12,8 @@ export interface Player {
   clubId: number;
   /** Price in tenths of a million (e.g. 105 = £10.5m). */
   cost: number;
+  /** Price at the start of the season, in tenths of a million. */
+  startCost: number;
   /** Global ownership, percent. */
   selectedByPercent: number;
   totalPoints: number;
@@ -127,8 +129,17 @@ export interface ManagerHistoryGameweek {
 export interface ManagerHistory {
   gameweeks: ManagerHistoryGameweek[];
   chips: { name: string; gw: number }[];
-  /** Every transfer made: the gameweek it took effect, player bought, player sold. */
-  transfers: { gw: number; playerIn: number; playerOut: number }[];
+  /**
+   * Every transfer made, oldest first: the gameweek it took effect, the player
+   * bought and sold, and what was paid and received (tenths of a million).
+   */
+  transfers: {
+    gw: number;
+    playerIn: number;
+    playerOut: number;
+    inCost: number;
+    outCost: number;
+  }[];
 }
 
 export interface LeagueSnapshot {

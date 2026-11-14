@@ -9,7 +9,7 @@ import {
   PICK_VICE,
   Player,
 } from "@/lib/fpl/types";
-import { computeStreaks, computeTeamStats, effectiveCaptain } from "./teamStats";
+import { computeSales, computeStreaks, computeTeamStats, effectiveCaptain } from "./teamStats";
 import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
 import { computeGameweekStats } from "./gameweekStats";
@@ -25,6 +25,7 @@ const players: Player[] = Array.from({ length: 16 }, (_, i) => {
     position: (id === 16 ? 4 : positionOf(id)) as Player["position"],
     clubId: 1,
     cost: 50,
+    startCost: 48,
     selectedByPercent: id === 13 ? 60 : 10,
     totalPoints: 0,
     form: 0,
@@ -139,7 +140,7 @@ function snapshot(): LeagueSnapshot {
         gameweeks: [
           week(1, 70, { totalPoints: 70 }),
           week(2, 60, { transfersCost: 4, totalPoints: 126 }),
-          week(3, 74, { totalPoints: 200 }),
+          week(3, 74, { totalPoints: 200, value: 1004 }),
         ],
         chips: [
           { name: "3xc", gw: 1 },
@@ -155,7 +156,7 @@ function snapshot(): LeagueSnapshot {
           { name: "freehit", gw: 3 },
         ],
         // Bo sold P13 for P16 ahead of GW3.
-        transfers: [{ gw: 3, playerIn: 16, playerOut: 13 }],
+        transfers: [{ gw: 3, playerIn: 16, playerOut: 13, inCost: 50, outCost: 51 }],
       },
       300: { gameweeks: [], chips: [], transfers: [] },
     },
@@ -233,7 +234,7 @@ describe("computeTeamStats", () => {
   it("sums hits and bench points from history", () => {
     expect(ann.totalTransferPointsDeducted).toBe(4);
     expect(ann.pointsOnBench).toBe(9);
-    expect(ann.teamValue).toBe(100);
+    expect(ann.teamValue).toBe(100.4);
     expect(ann.bank).toBe(0.5);
   });
 });
@@ -334,6 +335,34 @@ describe("decisions", () => {
     expect(ann.bestTransfer).toBeNull();
   });
 
+  it("finds the most profitable sale", () => {
+    // P13 was in Bo's squad from the start (start price 4.8) and sold for 5.1.
+    expect(bo.biggestProfitSale).toEqual({ label: "P13, GW3", value: 0.3 });
+    expect(bo.totalSaleProfit).toBe(0.3);
+    expect(ann.biggestProfitSale).toBeNull();
+    expect(ann.totalSaleProfit).toBe(0);
+  });
+
+  it("uses the price paid when the player was bought during the season", () => {
+    const startCost = () => 40;
+    const sales = computeSales(
+      [
+        { gw: 2, playerIn: 7, playerOut: 1, inCost: 60, outCost: 39 },
+        { gw: 5, playerIn: 9, playerOut: 7, inCost: 55, outCost: 64 },
+        // Free Hit week: ignored entirely.
+        { gw: 6, playerIn: 3, playerOut: 9, inCost: 70, outCost: 80 },
+        { gw: 8, playerIn: 4, playerOut: 9, inCost: 50, outCost: 53 },
+      ],
+      startCost,
+      new Set([6])
+    );
+    expect(sales).toEqual([
+      { gw: 2, playerId: 1, profit: -1 }, // original squad: start price 4.0, sold 3.9
+      { gw: 5, playerId: 7, profit: 4 }, // bought 6.0, sold 6.4
+      { gw: 8, playerId: 9, profit: -2 }, // bought 5.5, sold 5.3
+    ]);
+  });
+
   it("leaves Free Hit transfers out of transfer outcomes", () => {
     const withFreeHit = snapshot();
     withFreeHit.picks[3][200] = { ...withFreeHit.picks[3][200]!, chip: "freehit" };
@@ -362,6 +391,14 @@ describe("computeGameweekStats", () => {
     expect(ann.playersIn).toEqual([]);
     expect(bo.bestCaptain).toEqual({ name: "P16", count: 16 });
     expect(bo.captaincyPointsLost).toBe(2);
+  });
+
+  it("reports squad value and its change since the previous gameweek", () => {
+    expect(ann.teamValue).toBe(100.4);
+    expect(ann.valueChange).toBe(0.4);
+    expect(bo.valueChange).toBe(0);
+    expect(cy.teamValue).toBeNull();
+    expect(cy.valueChange).toBeNull();
   });
 
   it("ranks the gameweek within the league and tracks position change", () => {
@@ -477,7 +514,7 @@ describe("computePlayerStats", () => {
   it("includes players nobody in the league owns", () => {
     const unowned = snapshot();
     unowned.bootstrap.players.push({
-      id: 99, name: "Nobody", position: 3, clubId: 1, cost: 45,
+      id: 99, name: "Nobody", position: 3, clubId: 1, cost: 45, startCost: 45,
       selectedByPercent: 30, totalPoints: 50, form: 7,
     });
     const player = computePlayerStats(unowned).find((p) => p.name === "Nobody")!;

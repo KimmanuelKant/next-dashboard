@@ -5,6 +5,7 @@
 import {
   LeagueSnapshot,
   ManagerGameweek,
+  ManagerHistory,
   Pick,
   PICK_CAPTAIN,
   Player,
@@ -95,6 +96,10 @@ export interface TeamStats {
   transferGainAfterHits: number;
   bestTransfer: LabelledValue | null;
   worstTransfer: LabelledValue | null;
+  /** The sale that made the most money: selling price minus buying price, in millions. */
+  biggestProfitSale: LabelledValue | null;
+  /** Profit and loss on every sale this season added up, in millions. */
+  totalSaleProfit: number;
 }
 
 export interface LabelledValue {
@@ -185,6 +190,45 @@ export function computeStreaks(teams: ManagerGameweek[]): Streaks {
     }
   }
   return { longestSquad, currentStarter };
+}
+
+export interface Sale {
+  gw: number;
+  playerId: number;
+  /** Selling price minus buying price, in tenths of a million. */
+  profit: number;
+}
+
+/**
+ * Profit on every player sold. `transfers` must be oldest first.
+ *
+ * The buying price is what was paid in the transfer that brought the player
+ * in. A player who was in the squad from the start has no such transfer, so
+ * his start-of-season price is used; for a manager who entered the game late
+ * that is an approximation. Free Hit weeks are skipped: those transfers are
+ * undone a week later and no money changes hands for good.
+ */
+export function computeSales(
+  transfers: ManagerHistory["transfers"],
+  startCost: (playerId: number) => number | undefined,
+  freeHitWeeks: Set<number>
+): Sale[] {
+  const paid = new Map<number, number>();
+  const sales: Sale[] = [];
+  for (const transfer of transfers) {
+    if (freeHitWeeks.has(transfer.gw)) continue;
+    const bought = paid.get(transfer.playerOut) ?? startCost(transfer.playerOut);
+    if (bought !== undefined) {
+      sales.push({
+        gw: transfer.gw,
+        playerId: transfer.playerOut,
+        profit: transfer.outCost - bought,
+      });
+    }
+    paid.delete(transfer.playerOut);
+    paid.set(transfer.playerIn, transfer.inCost);
+  }
+  return sales;
 }
 
 function minOrNull(values: (number | null)[]): number | null {
@@ -329,6 +373,21 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       if (!worstTransfer || gain < worstTransfer.value) worstTransfer = { label, value: gain };
     }
 
+    const sales = computeSales(
+      history.transfers,
+      (id) => players.get(id)?.startCost,
+      freeHitWeeks
+    );
+    let biggestProfitSale: LabelledValue | null = null;
+    for (const sale of sales) {
+      if (sale.profit > 0 && (!biggestProfitSale || sale.profit / 10 > biggestProfitSale.value)) {
+        biggestProfitSale = {
+          label: `${playerName(sale.playerId) || "Unknown"}, GW${sale.gw}`,
+          value: sale.profit / 10,
+        };
+      }
+    }
+
     const topClub = topOf(clubSlots);
     const topPlayer = topOf(weeksOwned);
     const streaks = computeStreaks(teamsInOrder);
@@ -400,6 +459,8 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       transferGainAfterHits: transferGain - hits,
       bestTransfer,
       worstTransfer,
+      biggestProfitSale,
+      totalSaleProfit: sales.reduce((sum, sale) => sum + sale.profit, 0) / 10,
     };
   });
 }

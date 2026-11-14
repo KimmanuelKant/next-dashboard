@@ -69,6 +69,22 @@ const columns = [
     header: "Worst Transfer",
     cell: ({ row }) => formatLabelled(row.original.worstTransfer, true),
   }),
+  columnHelper.accessor((row) => row.biggestProfitSale?.value ?? 0, {
+    id: "biggestProfitSale",
+    header: "Biggest Profit Sale",
+    cell: ({ row }) => {
+      const sale = row.original.biggestProfitSale;
+      return sale ? `+£${sale.value.toFixed(1)}m (${sale.label})` : "–";
+    },
+  }),
+  columnHelper.accessor("totalSaleProfit", {
+    id: "totalSaleProfit",
+    header: "Profit on Sales",
+    cell: ({ getValue }) => {
+      const value = getValue();
+      return `${value > 0 ? "+" : value < 0 ? "-" : ""}£${Math.abs(value).toFixed(1)}m`;
+    },
+  }),
   columnHelper.accessor("teamValue", {
     id: "teamValue",
     header: "Team Value",
@@ -212,6 +228,8 @@ const descriptions: Record<string, string> = {
   transferGainAfterHits: "Transfer gain minus the points paid in hits.",
   bestTransfer: "The single transfer with the biggest first-week gain.",
   worstTransfer: "The single transfer with the biggest first-week loss.",
+  biggestProfitSale: "The sale that made the most money: selling price minus buying price, with the player and the gameweek he was sold. For a player in the squad from the start, the buying price is his start-of-season price.",
+  totalSaleProfit: "Profit and loss on every player sold this season, added up. Free Hit weeks are left out.",
   teamValue: "Squad value including money in the bank.",
   bank: "Money in the bank.",
   wildcardsUsed: "Number of Wildcards played.",
@@ -256,7 +274,7 @@ const groups: ColumnGroup[] = [
   },
   {
     name: "Transfers and value",
-    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "bestTransfer", "worstTransfer", "teamValue", "bank"],
+    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "bestTransfer", "worstTransfer", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
   },
   {
     name: "Chips",
