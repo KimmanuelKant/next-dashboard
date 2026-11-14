@@ -1,7 +1,5 @@
 // src/types/derived/LeagueDerivedTypes.ts
 
-import { FplPick } from '@/types/fpl/FplEntryEventPicks'; // Use the raw pick type as a building block
-
 /**
  * Represents chip usage data derived from league/team performance.
  * Not a direct API type, but computed/aggregated information.
@@ -68,13 +66,4 @@ export interface LeaguePlayer {
   leagueOwnershipPercentage: number;
   leagueCaptainCount: number;
   leagueViceCaptainCount: number;
-}
-
-/**
- * Represents a derived structure that groups picks by gameweek,
- * aggregating FplPick data into a format convenient for the application's logic.
- */
-export interface PicksData {
-  gw: number;
-  picks: FplPick[];
 }

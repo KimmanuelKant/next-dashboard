@@ -4,16 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
 import { Accordion } from 'react-bootstrap';
+import { parseLeagueId } from "@/lib/leagueId";
 
 export default function HomePage() {
   const [leagueId, setLeagueId] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (leagueId) {
-      router.push(`/dashboard/${leagueId}/team`);
+    const parsed = parseLeagueId(leagueId);
+    if (!parsed) {
+      setError("Enter the league number, or paste the league URL from the FPL site.");
+      return;
     }
+    setError("");
+    router.push(`/dashboard/${parsed}/team`);
   };
 
   return (
@@ -46,8 +52,9 @@ export default function HomePage() {
                   <input
                     id="leagueId"
                     type="text"
-                    className="form-control"
-                    placeholder="Enter League ID"
+                    className={`form-control${error ? " is-invalid" : ""}`}
+                    placeholder="League ID or league URL"
+                    aria-describedby={error ? "leagueIdError" : undefined}
                     value={leagueId}
                     onChange={(e) => setLeagueId(e.target.value)}
                   />
@@ -55,6 +62,11 @@ export default function HomePage() {
                     Go to Dashboard
                   </button>
                 </div>
+                {error && (
+                  <div id="leagueIdError" className="text-danger small mt-2">
+                    {error}
+                  </div>
+                )}
               </form>
 
               <Accordion defaultActiveKey="0" flush>
@@ -90,7 +102,7 @@ export default function HomePage() {
               </Accordion>
             </div>
             <div className="card-footer text-center">
-              <p className="mb-0">© 2025 - MyFPL.net</p>
+              <p className="mb-0">© {new Date().getFullYear()} - MyFPL.net</p>
             </div>
           </div>
         </div>

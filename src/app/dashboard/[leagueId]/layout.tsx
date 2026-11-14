@@ -1,67 +1,57 @@
 // src/app/dashboard/[leagueId]/layout.tsx
-import Link from "next/link";
+import { notFound } from "next/navigation";
+import DashboardNav from "@/components/DashboardNav";
+import { isValidLeagueId } from "@/lib/leagueId";
+
+type LeagueLookup =
+  | { status: "ok"; name: string }
+  | { status: "missing" }
+  | { status: "unavailable" };
+
+async function lookupLeague(leagueId: string): Promise<LeagueLookup> {
+  try {
+    const res = await fetch(
+      `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
+      { next: { revalidate: 3600 } }
+    );
+    if (res.status === 404) {
+      return { status: "missing" };
+    }
+    if (!res.ok) {
+      return { status: "unavailable" };
+    }
+    const data = await res.json();
+    const name = data?.league?.name;
+    return name ? { status: "ok", name } : { status: "unavailable" };
+  } catch (error) {
+    console.error("Failed to fetch league name:", error);
+    return { status: "unavailable" };
+  }
+}
 
 export default async function DashboardLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { leagueId: string };
+  params: Promise<{ leagueId: string }>;
 }) {
-  const { leagueId } = params;
+  const { leagueId } = await params;
 
-  // Fetch league data to get the league name
-  const res = await fetch(
-    `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`
-  );
-
-  if (!res.ok) {
-    // Handle the error as needed; you might want to display an error message or fallback
-    console.error('Failed to fetch league data');
-    // For now, we'll set a default league name
-    const defaultLeagueName = `League ${leagueId}`;
-    return (
-      <div>
-        <h1>FPL Dashboard for {defaultLeagueName}</h1>
-        {/* ... rest of your code */}
-      </div>
-    );
+  if (!isValidLeagueId(leagueId)) {
+    notFound();
   }
-  
-  const data = await res.json();
-  const leagueName = data.league.name;
 
-  if (!data) {
-    return <div>Loading...</div>;
+  const league = await lookupLeague(leagueId);
+  if (league.status === "missing") {
+    notFound();
   }
+  const leagueName = league.status === "ok" ? league.name : `League ${leagueId}`;
 
   return (
-    <div>
-      <h1>FPL Dashboard for {leagueName}</h1>
-      <nav>
-        <ul className="nav nav-tabs">
-          <li className="nav-item">
-            <Link className="nav-link" href={`/dashboard/${leagueId}/team`}>
-              Team Statistics
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" href={`/dashboard/${leagueId}/player`}>
-              Player Statistics
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" href={`/dashboard/${leagueId}/awards`}>
-              Awards
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" href={`/dashboard/${leagueId}/chat`}>
-              Chat
-            </Link>
-          </li>
-        </ul>
-      </nav>
+    <div className="container-fluid py-3">
+      <h1 className="h3 mb-3">{leagueName}</h1>
+      <DashboardNav leagueId={leagueId} />
       <div>{children}</div>
     </div>
   );

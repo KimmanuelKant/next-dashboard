@@ -484,7 +484,8 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
       </div>
 
       {/* Table */}
-      <table className="table table-bordered table-striped">
+      <div className="table-responsive">
+      <table className="table table-bordered table-striped table-sm">
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
@@ -492,7 +493,7 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
                 <th
                   key={header.id}
                   onClick={header.column.getToggleSortingHandler()}
-                  style={{ cursor: 'pointer' }}
+                  data-sortable="true"
                 >
                   {header.isPlaceholder ? null : (
                     <div>
@@ -524,6 +525,7 @@ export default function TeamStatisticsTable({ stats }: { stats: Team[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
