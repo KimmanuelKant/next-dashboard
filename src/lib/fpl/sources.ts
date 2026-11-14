@@ -16,6 +16,7 @@ import type { FplEventLive } from "@/types/fpl/FplEventLive";
 import type { FplEntryHistory } from "@/types/fpl/FplEntryHistory";
 import type { FplEntryTransfers } from "@/types/fpl/FplEntryTransfers";
 import type { FplEntryEventPicks } from "@/types/fpl/FplEntryEventPicks";
+import type { FplEntry } from "@/types/fpl/FplEntry";
 import { fplGet, FplError } from "./http";
 import { MAX_MANAGERS } from "@/lib/leagueId";
 import {
@@ -29,6 +30,7 @@ import {
   PICK_NONE,
   PICK_VICE,
   PositionId,
+  TeamLeagues,
 } from "./types";
 
 const MINUTE = 60;
@@ -113,6 +115,29 @@ async function fetchLeague(leagueId: string): Promise<League | null> {
 /** League name and standings. Null when the league does not exist. */
 export const getLeague = unstable_cache(fetchLeague, ["fpl-league-v1"], {
   revalidate: 2 * MINUTE,
+});
+
+async function fetchTeamLeagues(teamId: string): Promise<TeamLeagues | null> {
+  const raw = await fplGet<FplEntry>(`/entry/${teamId}/`);
+  if (!raw) {
+    return null;
+  }
+  return {
+    teamName: raw.name,
+    managerName: `${raw.player_first_name} ${raw.player_last_name}`.trim(),
+    leagues: (raw.leagues?.classic ?? []).map((l) => ({
+      id: l.id,
+      name: l.name,
+      general: l.league_type === "s",
+      rank: l.entry_rank || null,
+      size: l.rank_count ?? null,
+    })),
+  };
+}
+
+/** A team's classic leagues. Null when the team does not exist. */
+export const getTeamLeagues = unstable_cache(fetchTeamLeagues, ["fpl-team-leagues-v1"], {
+  revalidate: 5 * MINUTE,
 });
 
 async function fetchGameweekData(gw: number): Promise<GameweekData> {

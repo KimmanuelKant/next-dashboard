@@ -60,6 +60,25 @@ export interface League {
   hasMoreManagers: boolean;
 }
 
+/** One classic league a team belongs to. */
+export interface TeamLeague {
+  id: number;
+  name: string;
+  /** True for the leagues FPL sets up itself (overall, country, club). */
+  general: boolean;
+  /** The team's rank in the league; null before the league has started. */
+  rank: number | null;
+  /** Number of teams in the league, when FPL reports it. */
+  size: number | null;
+}
+
+/** A team and the classic leagues it plays in. */
+export interface TeamLeagues {
+  teamName: string;
+  managerName: string;
+  leagues: TeamLeague[];
+}
+
 export const PICK_NONE = 0;
 export const PICK_CAPTAIN = 1;
 export const PICK_VICE = 2;

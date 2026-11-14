@@ -4,6 +4,14 @@ Stats are organised by what the row is (manager, player, gameweek, pair of
 managers) and by the question they answer. "This gameweek" and "season" stats
 live on separate tabs. New stats go into the tables as columns and views.
 
+## Getting into a league (first priority)
+Most visitors land on the front page and never reach a league. Some type a
+team name where the league ID goes.
+- Instructions for finding the ID in the FPL phone app, where there is no
+  URL to read it from. A large share of visitors are on Android.
+- Remember the last league in the browser and offer it on the front page.
+- Check the front page and the tables on a narrow phone screen.
+
 ## Season: stats still to add, by group
 - Standings: gap to leader, form over the last 5 gameweeks.
 - League race: biggest climb and fall, consistency.
@@ -27,8 +35,7 @@ live on separate tabs. New stats go into the tables as columns and views.
 - All-play-all record, as if the league were head-to-head.
 
 ## Usability
-- Enter a team ID and choose from that manager's leagues.
-- Remember the last league and column choices in the browser.
+- Remember column choices in the browser.
 - Table state in the URL for sharing; CSV export.
 - Head-to-head leagues (only classic leagues are supported).
 

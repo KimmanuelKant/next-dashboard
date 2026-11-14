@@ -4,22 +4,50 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
 import { Accordion } from 'react-bootstrap';
-import { parseLeagueId, MAX_MANAGERS } from "@/lib/leagueId";
+import { parseLeagueId, parseLeagueUrl, MAX_MANAGERS } from "@/lib/leagueId";
+import { parseTeamId, parseTeamUrl } from "@/lib/teamId";
 
 export default function HomePage() {
   const [leagueId, setLeagueId] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
 
+  const [teamId, setTeamId] = useState("");
+  const [teamError, setTeamError] = useState("");
+
+  // A URL pasted into the wrong box still goes to the right place.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = parseLeagueId(leagueId);
-    if (!parsed) {
-      setError("Enter the league number, or paste the league URL from the FPL site.");
+    if (parsed) {
+      setError("");
+      router.push(`/dashboard/${parsed}/gameweek`);
       return;
     }
-    setError("");
-    router.push(`/dashboard/${parsed}/gameweek`);
+    const team = parseTeamUrl(leagueId);
+    if (team) {
+      setError("");
+      router.push(`/team/${team}`);
+      return;
+    }
+    setError("Enter the league number, or paste the league URL from the FPL site.");
+  };
+
+  const handleTeamSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseTeamId(teamId);
+    if (parsed) {
+      setTeamError("");
+      router.push(`/team/${parsed}`);
+      return;
+    }
+    const league = parseLeagueUrl(teamId);
+    if (league) {
+      setTeamError("");
+      router.push(`/dashboard/${league}/gameweek`);
+      return;
+    }
+    setTeamError("Enter the team number, or paste your team URL from the FPL site.");
   };
 
   return (
@@ -45,13 +73,17 @@ export default function HomePage() {
             </div>
             <div className="card-body">
               <p className="card-text text-center">
-                Enter your Fantasy Premier League (FPL) league ID to access your personalized dashboard.
+                Enter your Fantasy Premier League (FPL) league ID to go straight to your league, or your team ID to choose from your leagues.
               </p>
               <form onSubmit={handleSubmit} className="mb-3">
+                <label htmlFor="leagueId" className="form-label small mb-1">
+                  League ID
+                </label>
                 <div className="input-group">
                   <input
                     id="leagueId"
                     type="text"
+                    inputMode="numeric"
                     className={`form-control${error ? " is-invalid" : ""}`}
                     placeholder="League ID or league URL"
                     aria-describedby={error ? "leagueIdError" : undefined}
@@ -65,6 +97,32 @@ export default function HomePage() {
                 {error && (
                   <div id="leagueIdError" className="text-danger small mt-2">
                     {error}
+                  </div>
+                )}
+              </form>
+
+              <form onSubmit={handleTeamSubmit} className="mb-3">
+                <label htmlFor="teamId" className="form-label small mb-1">
+                  Or your team ID
+                </label>
+                <div className="input-group">
+                  <input
+                    id="teamId"
+                    type="text"
+                    inputMode="numeric"
+                    className={`form-control${teamError ? " is-invalid" : ""}`}
+                    placeholder="Team ID or team URL"
+                    aria-describedby={teamError ? "teamIdError" : undefined}
+                    value={teamId}
+                    onChange={(e) => setTeamId(e.target.value)}
+                  />
+                  <button type="submit" className="btn btn-outline-primary">
+                    Find my leagues
+                  </button>
+                </div>
+                {teamError && (
+                  <div id="teamIdError" className="text-danger small mt-2">
+                    {teamError}
                   </div>
                 )}
               </form>
@@ -85,6 +143,16 @@ export default function HomePage() {
                       height={40}
                       className="img-fluid mt-3"
                     />
+                  </Accordion.Body>
+                </Accordion.Item>
+                <Accordion.Item eventKey="2">
+                  <Accordion.Header>How to find your Team ID</Accordion.Header>
+                  <Accordion.Body>
+                    <p>
+                      On the <a href="https://fantasy.premierleague.com" target="_blank" rel="noreferrer">FPL site</a>, open the <strong>Points</strong> page. The Team ID is the number after <code>entry</code> in the URL.
+                      <br />
+                      For example, in <code>fantasy.premierleague.com/entry/123456/event/12</code> the Team ID is <strong>123456</strong>. You can also paste the whole URL.
+                    </p>
                   </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey="1">

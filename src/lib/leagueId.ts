@@ -14,7 +14,12 @@ export function parseLeagueId(input: string): string | null {
   if (/^\d{1,10}$/.test(trimmed)) {
     return trimmed;
   }
-  const match = trimmed.match(/\/leagues\/(\d{1,10})(?:\/|$)/);
+  return parseLeagueUrl(trimmed);
+}
+
+/** The league ID in a pasted FPL league URL, or null when it is not one. */
+export function parseLeagueUrl(input: string): string | null {
+  const match = input.match(/\/leagues\/(\d{1,10})(?:\/|$)/);
   return match ? match[1] : null;
 }
 
