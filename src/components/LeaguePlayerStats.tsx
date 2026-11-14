@@ -1,28 +1,27 @@
 // src/components/LeaguePlayerStats.tsx
 
-import { getLeagueStandings, getBootstrapData } from '@/lib/fplApiClient';
-import { computeLeaguePlayerStats } from '@/lib/leaguePlayerService';
-import PlayerStatisticsTable from '@/components/PlayerStatisticsTable';
+import { notFound } from "next/navigation";
+import PlayerStatisticsTable from "@/components/PlayerStatisticsTable";
+import LeagueNotices from "@/components/LeagueNotices";
+import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
+import { computePlayerStats } from "@/lib/stats/playerStats";
 
-export default async function NewPlayerStats({ leagueId }: { leagueId: string }) {
-  const [standings, bootstrapData] = await Promise.all([
-    getLeagueStandings(leagueId),
-    getBootstrapData(),
-  ]);
-
-  const events = bootstrapData.events;
-  const latestFinishedEvent = events.filter(e => e.finished).sort((a, b) => b.id - a.id)[0];
-  if (!latestFinishedEvent) {
-    return <div>No finished gameweeks found</div>;
+// Errors thrown here are caught by the ErrorBoundary in the page.
+export default async function LeaguePlayerStats({ leagueId }: { leagueId: string }) {
+  const snapshot = await getLeagueSnapshot(leagueId);
+  if (!snapshot) {
+    notFound();
   }
 
-  const players = await computeLeaguePlayerStats(
-    standings,
-    bootstrapData.elements,
-    bootstrapData.teams,
-    bootstrapData.total_players,
-    latestFinishedEvent.id
+  return (
+    <>
+      <LeagueNotices snapshot={snapshot} />
+      {snapshot.currentGw !== null && (
+        <p className="text-secondary small">
+          Squads and ownership for gameweek {snapshot.currentGw}.
+        </p>
+      )}
+      <PlayerStatisticsTable players={computePlayerStats(snapshot)} />
+    </>
   );
-
-  return <PlayerStatisticsTable players={players} />;
 }

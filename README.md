@@ -1,58 +1,54 @@
-# Fantasy Premier League Dashboard
+# MyFPL.net
 
-## Overview
+A dashboard for Fantasy Premier League mini-leagues. Enter a classic league ID
+and get sortable, customisable tables the official site does not offer:
 
-The **FPL-Dashboard** is a web application built using modern web development technologies, including **Next.js** with **App Router**, **Server-Side Rendering (SSR)**, and **TanStack Table**. The application is designed to help users track their Fantasy Premier League mini-leagues, providing rich statistics and insights on team performances.
+- **Player Statistics**: every player owned in the league, with league vs
+  global ownership, effective ownership, captaincy counts and who owns whom.
+  Built for finding differentials.
+- **Team Statistics**: per-manager transfers, hits, chips, captaincy, ranks and
+  points by position.
 
-## Features
+Leagues of up to 100 teams are loaded in full; larger leagues show the top 100.
 
-- **Team Statistics**: Display customizable comprehensive statistics for teams in a given league. The table currently allows you choose which columns to hide and show. 
-- **Player Statistics**: Not Yet Started: Display customizable comprehensive statistics for players selected in a given league.
-- **Awards**: Not Yet Started: Weekly updated awards based on team preformance 
-- **Chat**: Not Yet Started: The plan is to have a messaging board for the league.
+## Stack
 
+Next.js (App Router) on Vercel, React, TanStack Table, Bootstrap. Data comes
+from the public Fantasy Premier League API. There is no database and no login.
 
-## Technologies Used
+## Running locally
 
-- **Next.js**: A React-based framework for server-side rendering and static site generation.
-- **TanStack Table**: A table component library for managing and displaying large datasets.
-- **Bootstrap**: Provides a clean, responsive design for the user interface.
-- **Fantasy Premier League API**: Data is fetched from the official FPL Website to ensure accuracy.
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm test         # unit tests for the statistics
+npm run lint
+npm run build
+```
 
-## Installation
+Requires Node 20.9 or newer.
 
-To run the application locally:
+## How it works
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/kimmanuelkant/fpl-dashboard.git
-    ```
-2. Navigate to the project directory:
-    ```bash
-    cd fpl-dashboard
-    ```
-3. Install dependencies:
-    ```bash
-    npm install
-    ```
-4. Start the development server:
-    ```bash
-    npm run dev
-    ```
+```
+src/lib/fpl/http.ts       FPL API access: concurrency limit and retries
+src/lib/fpl/sources.ts    Fetch, trim and cache each kind of FPL data
+src/lib/fpl/snapshot.ts   getLeagueSnapshot(): everything known about a league
+src/lib/stats/            Pure functions that turn a snapshot into table rows
+src/components/           DataTable (shared) and the two table definitions
+src/app/dashboard/[leagueId]/   Routes: team, player
+```
 
-Visit `http://localhost:3000` in your browser to view the app.
+Every table is computed from one **league snapshot** (standings, each manager's
+history, each manager's squad per gameweek, player points per gameweek). To add
+a statistic, write a pure function over the snapshot in `src/lib/stats/` and a
+column for it; no new fetching is needed.
 
-## Usage
+### Caching
 
-1. Enter your Fantasy Premier League **League ID** on the homepage to view the league's dashboard.
-2. Use the navigation tabs to toggle between **Team Statistics**, **Player Statistics**, **Awards** and **Chat**.
-3. Tables are interactive, allowing you to filter data based on your preferences.
+Finished gameweeks never change, so their squads and points are cached without
+expiry, one small entry per league per gameweek. Standings, histories and the
+gameweek in progress are cached for a few minutes. Raw FPL responses are never
+cached, only the trimmed data. A failed FPL request is never cached.
 
-## Future Plans
-
-Adding new features, such as:
-
-- **Awards and Badges**: Showcase achievements and awards for top-performing managers last week.
-- **Chat**: A place to communicate with others in your mini-league.
-- **Caching Implementation**: Introduce a caching layer to optimize API calls and performance.
-- **Log In**: Make an account and log in, to get a dropdown menu so you can toggle between all your leagues, and save custom presets.
+League IDs are reused by FPL each season, so cache keys include the season.

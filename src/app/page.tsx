@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
 import { Accordion } from 'react-bootstrap';
-import { parseLeagueId } from "@/lib/leagueId";
+import { parseLeagueId, MAX_MANAGERS } from "@/lib/leagueId";
 
 export default function HomePage() {
   const [leagueId, setLeagueId] = useState("");
@@ -76,7 +76,7 @@ export default function HomePage() {
                     <p>
                       Head to the <a href="https://fantasy.premierleague.com/leagues" target="_blank" rel="noreferrer">Fantasy Premier Leagues</a> page and click on your league. The League ID is the number at the end of the URL.
                       <br />
-                      For example, the League ID for <a href="https://fantasy.premierleague.com/leagues/2355363/standings/c" target="_blank" rel="noreferrer">MyFPL.net&apos;s league</a> is <strong>2355363</strong>.
+                      For example, in <code>fantasy.premierleague.com/leagues/123456/standings/c</code> the League ID is <strong>123456</strong>. You can also paste the whole URL.
                     </p>
                     <Image
                       src="/findleagueid.PNG"
@@ -91,11 +91,9 @@ export default function HomePage() {
                   <Accordion.Header>About MyFPL.net</Accordion.Header>
                   <Accordion.Body>
                     <p>
-                      MyFPL.net is still under development. The current version is a prototype with very limited functionality.
+                      <strong>MyFPL.net</strong> shows what the official site does not: which players are differentials in your mini-league, who owns whom, and detailed statistics for every manager, in sortable tables you can customise.
                       <br />
-                      <strong>MyFPL.net</strong> aims to be a comprehensive dashboard that offers enhanced tables and detailed statistics for your Fantasy Premier League (FPL) mini-leagues.
-                      <br />
-                      Discover new insights for your league, presented in user-friendly, customizable tables.
+                      Leagues are classic leagues of up to {MAX_MANAGERS} teams; bigger leagues show the top {MAX_MANAGERS}.
                     </p>
                   </Accordion.Body>
                 </Accordion.Item>

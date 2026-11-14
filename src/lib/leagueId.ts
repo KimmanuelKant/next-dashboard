@@ -1,9 +1,12 @@
 // src/lib/leagueId.ts
 
+/** Largest league we load. FPL standings come in pages of 50. */
+export const MAX_MANAGERS = 100;
+
 /**
  * Extracts a numeric FPL league ID from user input.
- * Accepts a bare ID ("2355363") or a pasted league URL
- * ("https://fantasy.premierleague.com/leagues/2355363/standings/c").
+ * Accepts a bare ID ("123456") or a pasted league URL
+ * ("https://fantasy.premierleague.com/leagues/123456/standings/c").
  * Returns null when no valid ID is found.
  */
 export function parseLeagueId(input: string): string | null {

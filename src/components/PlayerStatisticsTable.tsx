@@ -1,302 +1,116 @@
 // src/components/PlayerStatisticsTable.tsx
 "use client";
+import { createColumnHelper } from "@tanstack/react-table";
+import DataTable, { Preset } from "@/components/DataTable";
+import type { PlayerStats } from "@/lib/stats/playerStats";
 
-import React, { useState } from 'react';
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  flexRender,
-  createColumnHelper,
-  SortingState,
-  VisibilityState,
-} from '@tanstack/react-table';
-import { LeaguePlayer } from '@/types/derived/LeagueDerivedTypes';
-import { Dropdown, DropdownButton, Form, OverlayTrigger, Popover } from 'react-bootstrap';
-import { InfoCircleFill } from 'react-bootstrap-icons';
+const columnHelper = createColumnHelper<PlayerStats>();
 
+const percent = (value: number) => `${value.toFixed(1)}%`;
+const signedPercent = (value: number) =>
+  `${value > 0 ? "+" : ""}${value.toFixed(1)}`;
 
-export default function PlayerStatisticsTable({ players }: { players: LeaguePlayer[] }) {
-  const columnHelper = createColumnHelper<LeaguePlayer>();
+const columns = [
+  columnHelper.accessor("name", { id: "name", header: "Player" }),
+  columnHelper.accessor("position", { id: "position", header: "Position" }),
+  columnHelper.accessor("club", { id: "club", header: "Club" }),
+  columnHelper.accessor("value", {
+    id: "value",
+    header: "Price",
+    cell: ({ getValue }) => `£${getValue().toFixed(1)}m`,
+  }),
+  columnHelper.accessor("totalPoints", { id: "totalPoints", header: "Total Points" }),
+  columnHelper.accessor("gameweekPoints", { id: "gameweekPoints", header: "GW Points" }),
+  columnHelper.accessor("form", {
+    id: "form",
+    header: "Form",
+    cell: ({ getValue }) => getValue().toFixed(1),
+  }),
+  columnHelper.accessor("leagueOwnershipCount", { id: "leagueOwnershipCount", header: "League Owners" }),
+  columnHelper.accessor("leagueOwnershipPercentage", {
+    id: "leagueOwnershipPercentage",
+    header: "League Ownership %",
+    cell: ({ getValue }) => percent(getValue()),
+  }),
+  columnHelper.accessor("globalOwnershipPercentage", {
+    id: "globalOwnershipPercentage",
+    header: "Global Ownership %",
+    cell: ({ getValue }) => percent(getValue()),
+  }),
+  columnHelper.accessor("ownershipDifference", {
+    id: "ownershipDifference",
+    header: "League vs Global",
+    cell: ({ getValue }) => signedPercent(getValue()),
+  }),
+  columnHelper.accessor("globalOwnershipCount", {
+    id: "globalOwnershipCount",
+    header: "Global Owners",
+    cell: ({ getValue }) => `~${getValue().toLocaleString("en-GB")}`,
+  }),
+  columnHelper.accessor("leagueStartingCount", { id: "leagueStartingCount", header: "Starting" }),
+  columnHelper.accessor("effectiveOwnership", {
+    id: "effectiveOwnership",
+    header: "Effective Ownership %",
+    cell: ({ getValue }) => percent(getValue()),
+  }),
+  columnHelper.accessor("leagueCaptainCount", { id: "leagueCaptainCount", header: "Captained" }),
+  columnHelper.accessor("leagueViceCaptainCount", { id: "leagueViceCaptainCount", header: "Vice Captained" }),
+  columnHelper.accessor((row) => row.owners.length, {
+    id: "owners",
+    header: "Owned By",
+    cell: ({ row }) => row.original.owners.join(", "),
+  }),
+];
 
-  const defaultColumns = [
-    columnHelper.accessor('name', {
-      id: 'name',
-      header: 'Player Name',
-      enableSorting: true,
-    }),
-    columnHelper.accessor('position', {
-      id: 'position',
-      header: 'Position',
-      enableSorting: true,
-    }),
-    columnHelper.accessor('team', {
-      id: 'team',
-      header: 'Team',
-      enableSorting: true,
-    }),
-    columnHelper.accessor('value', {
-      id: 'value',
-      header: 'Value',
-      cell: ({ getValue }) => `£${getValue().toFixed(1)}m`,
-      enableSorting: true,
-    }),
-    columnHelper.accessor('globalOwnershipCount', {
-      id: 'globalOwnershipCount',
-      header: 'Global Ownership',
-      cell: ({ getValue, row }) => {
-        const count = getValue();
-        const percentage = row.original.globalOwnershipPercentage;
-  
-        if (percentage === 0 || count === 0) {
-          return 'Very low';
-        } else {
-          return `~${count.toLocaleString()}`;
-        }
-      },
-      enableSorting: true,
-    }),
-    columnHelper.accessor('globalOwnershipPercentage', {
-      id: 'globalOwnershipPercentage',
-      header: 'Global Ownership %',
-      cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
-      enableSorting: true,
-    }),
-    columnHelper.accessor('leagueOwnershipCount', {
-      id: 'leagueOwnershipCount',
-      header: 'League Ownership',
-      cell: ({ getValue, row }) => {
-        const count = getValue();
-        const percentage = row.original.leagueOwnershipPercentage;
-  
-        if (percentage === 0 || count === 0) {
-          return 'Very low';
-        } else {
-          return count.toString();
-        }
-      },
-      enableSorting: true,
-    }),
-    columnHelper.accessor('leagueOwnershipPercentage', {
-      id: 'leagueOwnershipPercentage',
-      header: 'League Ownership %',
-      cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
-      enableSorting: true,
-    }),
-    columnHelper.accessor('leagueCaptainCount', {
-      id: 'leagueCaptainCount',
-      header: 'Captain Count',
-      enableSorting: true,
-    }),
-    columnHelper.accessor('leagueViceCaptainCount', {
-      id: 'leagueViceCaptainCount',
-      header: 'Vice Captain Count',
-      enableSorting: true,
-    }),
-  ]; 
+const descriptions: Record<string, string> = {
+  name: "The player's name.",
+  position: "The player's position.",
+  club: "The Premier League club the player belongs to.",
+  value: "The player's current price.",
+  totalPoints: "Points the player has scored this season.",
+  gameweekPoints: "Points the player has scored in the current gameweek.",
+  form: "Average points per match over the last 30 days.",
+  leagueOwnershipCount: "Number of managers in this league who own the player.",
+  leagueOwnershipPercentage: "Share of managers in this league who own the player.",
+  globalOwnershipPercentage: "Share of all FPL managers who own the player.",
+  ownershipDifference: "League ownership minus global ownership, in percentage points. Negative means the player is rarer here than in the game overall.",
+  globalOwnershipCount: "Approximate number of FPL managers worldwide who own the player.",
+  leagueStartingCount: "Number of managers in this league with the player in their starting eleven.",
+  effectiveOwnership: "Ownership weighted by points multiplier: a captain counts twice, a benched player not at all.",
+  leagueCaptainCount: "Number of managers in this league who captained the player.",
+  leagueViceCaptainCount: "Number of managers in this league who vice-captained the player.",
+  owners: "The teams in this league that own the player.",
+};
 
+const presets: Preset[] = [
+  {
+    name: "Differentials",
+    columns: ["name", "club", "value", "gameweekPoints", "leagueOwnershipCount", "leagueOwnershipPercentage", "globalOwnershipPercentage", "ownershipDifference", "owners"],
+  },
+  {
+    name: "Ownership Overview",
+    columns: ["name", "leagueOwnershipCount", "leagueOwnershipPercentage", "leagueStartingCount", "effectiveOwnership", "globalOwnershipPercentage", "globalOwnershipCount"],
+  },
+  {
+    name: "Captaincy Overview",
+    columns: ["name", "leagueCaptainCount", "leagueViceCaptainCount", "effectiveOwnership", "gameweekPoints"],
+  },
+  {
+    name: "Player Details",
+    columns: ["name", "position", "club", "value", "totalPoints", "form"],
+  },
+  { name: "All Columns" },
+];
 
-  // Define presets
-  interface Preset {
-    name: string;
-    columns: string[];
-  }
-
-  // I'll come up with more presets when theres more columns. Just a placeholder for now
-  const presets: Preset[] = [
-    {
-      name: 'All Columns',
-      columns: defaultColumns.map((col) => col.id as string),
-    },
-    {
-      name: 'Ownership Overview',
-      columns: [
-        'name',
-        'globalOwnershipPercentage',
-        'globalOwnershipCount',
-        'leagueOwnershipPercentage',
-        'leagueOwnershipCount',
-      ],
-    },
-    {
-      name: 'Player Details',
-      columns: [
-        'name',
-        'position',
-        'team',
-        'value',
-      ],
-    },
-    {
-    name: 'Captaincy Overview',
-    columns: [
-      'name',
-      'leagueCaptainCount',
-      'leagueViceCaptainCount',
-      'leagueOwnershipPercentage',
-      'value',
-    ],
-  }
-  ];
-
-  // Tooltip descriptions for each column
-  const columnDescriptions: { [key: string]: string } = {
-    name: "The player's full name.",
-    position: "The player's position on the field (e.g., Goalkeeper, Defender, Midfielder, Forward).",
-    team: "The Premier League team the player belongs to.",
-    value: "The player's current market value in millions of pounds.",
-    globalOwnershipCount: "Approximate number of FPL managers worldwide who own this player.",
-    globalOwnershipPercentage: "Percentage of FPL managers worldwide who own this player.",
-    leagueOwnershipCount: "Number of managers in your league who own this player.",
-    leagueOwnershipPercentage: "Percentage of managers in your league who own this player.",
-    leagueCaptainCount: "Number of teams in the league that have this player as captain.",
-    leagueViceCaptainCount: "Number of teams in the league that have this player as vice captain.",
-  };
-
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedPresetName, setSelectedPresetName] = useState<string>('');
-
-  // Initialize the table using React Table library
-  const table = useReactTable({
-    data: players,
-    columns: defaultColumns,
-    state: {
-      columnVisibility,
-      sorting,
-    },
-    onColumnVisibilityChange: setColumnVisibility,
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
+export default function PlayerStatisticsTable({ players }: { players: PlayerStats[] }) {
   return (
-    <div className="p-2">
-      {/* Controls Container */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        {/* Preset Dropdown */}
-        <DropdownButton
-          id="presetDropdown"
-          title={selectedPresetName || "Preset Views"}
-          size="sm"
-          variant="secondary"
-        >
-          {presets.map((preset) => (
-            <Dropdown.Item
-              key={preset.name}
-              onClick={() => {
-                setSelectedPresetName(preset.name);
-                const selectedPreset = presets.find((p) => p.name === preset.name);
-                if (selectedPreset) {
-                  // Create a visibility map
-                  const visibilityMap: VisibilityState = {};
-                  defaultColumns.forEach((col) => {
-                    const key = col.id as string;
-                    visibilityMap[key] = selectedPreset.columns.includes(key);
-                  });
-                  setColumnVisibility(visibilityMap);
-                }
-              }}
-              
-            >
-              {preset.name}
-            </Dropdown.Item>
-          ))}
-        </DropdownButton>
-
-        {/* Column Visibility Dropdown */}
-        <DropdownButton
-          id="columnVisibilityDropdown"
-          title="Columns"
-          size="sm"
-          variant="secondary"
-          autoClose="outside"
-        >
-        {table.getAllLeafColumns().map((column) => (
-          <Dropdown.Item key={column.id} as="div">
-            <div
-              className="d-flex align-items-center"
-              onClick={(e) => e.stopPropagation()} // Prevents the dropdown from closing when clicking inside
-            >
-              <Form.Check
-                type="checkbox"
-                id={`column-${column.id}`}
-                label={String(column.columnDef.header)}
-                checked={column.getIsVisible()}
-                onChange={column.getToggleVisibilityHandler()}
-              />
-              {columnDescriptions[column.id as string] && (
-                <OverlayTrigger
-                  trigger="click"
-                  placement="left"
-                  overlay={
-                    <Popover id={`popover-${column.id}`}>
-                      <Popover.Body>
-                        {columnDescriptions[column.id as string]}
-                      </Popover.Body>
-                    </Popover>
-                  }
-                >
-                  <InfoCircleFill
-                    className="ms-2"
-                    style={{ cursor: 'pointer' }}
-                    size={16}
-                    aria-label={`Info about ${column.columnDef.header}`}
-                  />
-                </OverlayTrigger>
-              )}
-            </div>
-          </Dropdown.Item>
-        ))}
-
-
-        
-        </DropdownButton>
-      </div>
-
-      {/* Table */}
-      <div className="table-responsive">
-      <table className="table table-bordered table-striped table-sm">
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  onClick={header.column.getToggleSortingHandler()}
-                  data-sortable="true"
-                >
-                  {header.isPlaceholder ? null : (
-                    <div>
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {{
-                        asc: ' 🔼',
-                        desc: ' 🔽',
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </div>
-                  )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-    </div>
+    <DataTable
+      data={players}
+      columns={columns}
+      presets={presets}
+      descriptions={descriptions}
+      initialPreset="Differentials"
+      initialSorting={[{ id: "leagueOwnershipCount", desc: false }]}
+    />
   );
 }

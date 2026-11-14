@@ -2,30 +2,16 @@
 import { notFound } from "next/navigation";
 import DashboardNav from "@/components/DashboardNav";
 import { isValidLeagueId } from "@/lib/leagueId";
+import { getLeague } from "@/lib/fpl/sources";
 
-type LeagueLookup =
-  | { status: "ok"; name: string }
-  | { status: "missing" }
-  | { status: "unavailable" };
-
-async function lookupLeague(leagueId: string): Promise<LeagueLookup> {
+async function leagueTitle(leagueId: string): Promise<string | null> {
   try {
-    const res = await fetch(
-      `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
-      { next: { revalidate: 3600 } }
-    );
-    if (res.status === 404) {
-      return { status: "missing" };
-    }
-    if (!res.ok) {
-      return { status: "unavailable" };
-    }
-    const data = await res.json();
-    const name = data?.league?.name;
-    return name ? { status: "ok", name } : { status: "unavailable" };
+    const league = await getLeague(leagueId);
+    return league ? league.name : null;
   } catch (error) {
-    console.error("Failed to fetch league name:", error);
-    return { status: "unavailable" };
+    // FPL is unreachable: still render the page shell with a generic title.
+    console.error("Failed to load league name:", error);
+    return `League ${leagueId}`;
   }
 }
 
@@ -42,15 +28,14 @@ export default async function DashboardLayout({
     notFound();
   }
 
-  const league = await lookupLeague(leagueId);
-  if (league.status === "missing") {
+  const title = await leagueTitle(leagueId);
+  if (title === null) {
     notFound();
   }
-  const leagueName = league.status === "ok" ? league.name : `League ${leagueId}`;
 
   return (
     <div className="container-fluid py-3">
-      <h1 className="h3 mb-3">{leagueName}</h1>
+      <h1 className="h3 mb-3">{title}</h1>
       <DashboardNav leagueId={leagueId} />
       <div>{children}</div>
     </div>

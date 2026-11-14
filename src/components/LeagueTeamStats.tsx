@@ -1,21 +1,22 @@
 // src/components/LeagueTeamStats.tsx
 
+import { notFound } from "next/navigation";
 import TeamStatisticsTable from "@/components/TeamStatisticsTable";
-import { computeLeagueTeamStats } from "@/lib/leagueTeamService";
-import { getLeagueStandings, getBootstrapData } from "@/lib/fplApiClient";
+import LeagueNotices from "@/components/LeagueNotices";
+import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
+import { computeTeamStats } from "@/lib/stats/teamStats";
 
 // Errors thrown here are caught by the ErrorBoundary in the page.
 export default async function LeagueTeamStats({ leagueId }: { leagueId: string }) {
-  const [standings, bootstrapData] = await Promise.all([
-    getLeagueStandings(leagueId),
-    getBootstrapData(),
-  ]);
+  const snapshot = await getLeagueSnapshot(leagueId);
+  if (!snapshot) {
+    notFound();
+  }
 
-  const teams = await computeLeagueTeamStats(
-    standings,
-    bootstrapData.elements,
-    bootstrapData.events
+  return (
+    <>
+      <LeagueNotices snapshot={snapshot} />
+      <TeamStatisticsTable stats={computeTeamStats(snapshot)} />
+    </>
   );
-
-  return <TeamStatisticsTable stats={teams} />;
 }
