@@ -10,6 +10,7 @@ import {
   PICK_VICE,
   Player,
 } from "@/lib/fpl/types";
+import { computeLeagueHistory } from "./leagueHistory";
 
 export interface ChipUse {
   gw: number;
@@ -62,6 +63,23 @@ export interface TeamStats {
   totalDEFPoints: number;
   totalMIDPoints: number;
   totalFWDPoints: number;
+  /** Gameweeks spent in first place in this league. */
+  weeksAtTop: number;
+  /** Gameweeks spent in last place in this league. */
+  weeksAtBottom: number;
+  /** Gameweeks with the league's highest score (after hits). */
+  gameweekWins: number;
+  bestLeaguePosition: number | null;
+  worstLeaguePosition: number | null;
+  /** Club that has filled the most squad places over the season; count is the percent of all squad places. */
+  favouriteClub: NamedCount | null;
+  /** Player who has been in the squad for the most gameweeks. */
+  longestHeld: NamedCount | null;
+  /** Cards, own goals and missed penalties by players who were in the starting eleven. */
+  yellowCards: number;
+  redCards: number;
+  ownGoals: number;
+  penaltiesMissed: number;
 }
 
 const CHIP_NAMES: Record<string, string> = {
@@ -106,6 +124,17 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
   );
   const playerName = (id: number | undefined) =>
     (id !== undefined && players.get(id)?.name) || "";
+  const clubNames = new Map(snapshot.bootstrap.clubs.map((c) => [c.id, c.name]));
+  const leagueHistory = new Map(
+    computeLeagueHistory(snapshot).rows.map((row) => [row.teamId, row])
+  );
+  const topOf = (counts: Map<number, number>): [number, number] | null => {
+    let top: [number, number] | null = null;
+    counts.forEach((count, id) => {
+      if (!top || count > top[1]) top = [id, count];
+    });
+    return top;
+  };
 
   return snapshot.league.managers.map((manager) => {
     const history = snapshot.histories[manager.entryId] ?? {
@@ -120,16 +149,28 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     const captainCounts = new Map<number, number>();
     const tripleCaptain: ChipUse[] = [];
     const benchBoost: ChipUse[] = [];
+    const clubSlots = new Map<number, number>();
+    const weeksOwned = new Map<number, number>();
+    let squadSlots = 0;
+    const incidentTotals = [0, 0, 0, 0];
 
     for (const gw of snapshot.gameweekIds) {
       const team = snapshot.picks[gw]?.[manager.entryId];
       const points = snapshot.points[gw];
       if (!team || !points) continue;
 
+      const incidents = snapshot.incidents[gw] ?? {};
       for (const [playerId, multiplier] of team.picks) {
         const player = players.get(playerId);
         if (player) {
           positionPoints[player.position] += (points[playerId] ?? 0) * multiplier;
+          clubSlots.set(player.clubId, (clubSlots.get(player.clubId) ?? 0) + 1);
+        }
+        squadSlots++;
+        weeksOwned.set(playerId, (weeksOwned.get(playerId) ?? 0) + 1);
+        const playerIncidents = incidents[playerId];
+        if (playerIncidents && multiplier > 0) {
+          playerIncidents.forEach((n, i) => (incidentTotals[i] += n));
         }
       }
 
@@ -176,6 +217,10 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     const captainId = currentTeam?.picks.find((p) => p[2] === PICK_CAPTAIN)?.[0];
     const viceId = currentTeam?.picks.find((p) => p[2] === PICK_VICE)?.[0];
 
+    const topClub = topOf(clubSlots);
+    const topPlayer = topOf(weeksOwned);
+    const leagueRow = leagueHistory.get(manager.entryId);
+
     const hits = weeks.reduce((sum, w) => sum + w.transfersCost, 0);
     const grossPoints = manager.total + hits;
 
@@ -219,6 +264,24 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       totalDEFPoints: positionPoints[2],
       totalMIDPoints: positionPoints[3],
       totalFWDPoints: positionPoints[4],
+      weeksAtTop: leagueRow?.weeksAtTop ?? 0,
+      weeksAtBottom: leagueRow?.weeksAtBottom ?? 0,
+      gameweekWins: leagueRow?.gameweekWins ?? 0,
+      bestLeaguePosition: leagueRow?.bestPosition ?? null,
+      worstLeaguePosition: leagueRow?.worstPosition ?? null,
+      favouriteClub: topClub
+        ? {
+            name: clubNames.get(topClub[0]) ?? "Unknown",
+            count: Math.round((topClub[1] / squadSlots) * 100),
+          }
+        : null,
+      longestHeld: topPlayer
+        ? { name: playerName(topPlayer[0]) || "Unknown", count: topPlayer[1] }
+        : null,
+      yellowCards: incidentTotals[0],
+      redCards: incidentTotals[1],
+      ownGoals: incidentTotals[2],
+      penaltiesMissed: incidentTotals[3],
     };
   });
 }

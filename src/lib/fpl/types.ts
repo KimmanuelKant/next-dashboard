@@ -81,6 +81,15 @@ export type LeagueGameweekPicks = Record<number, ManagerGameweek | null>;
 /** playerId -> points scored in one gameweek. */
 export type GameweekPoints = Record<number, number>;
 
+/** [yellow cards, red cards, own goals, penalties missed] in one gameweek. */
+export type Incidents = [yellow: number, red: number, ownGoals: number, penaltiesMissed: number];
+
+export interface GameweekData {
+  points: GameweekPoints;
+  /** playerId -> incidents. Only players with at least one incident are listed. */
+  incidents: Record<number, Incidents>;
+}
+
 export interface ManagerHistoryGameweek {
   gw: number;
   points: number;
@@ -109,6 +118,7 @@ export interface LeagueSnapshot {
   /** Every gameweek whose deadline has passed, ascending. */
   gameweekIds: number[];
   points: Record<number, GameweekPoints>;
+  incidents: Record<number, Record<number, Incidents>>;
   picks: Record<number, LeagueGameweekPicks>;
   histories: Record<number, ManagerHistory>;
 }

@@ -29,6 +29,10 @@ interface DataTableProps<T> {
   /** Name of the preset applied on first render. */
   initialPreset: string;
   initialSorting?: SortingState;
+  /** Hide the per-column picker (for tables whose presets cover every useful view). */
+  hideColumnPicker?: boolean;
+  /** Shown instead of rows when there is no data. */
+  emptyMessage?: string;
 }
 
 function visibilityFor<T>(
@@ -51,6 +55,8 @@ export default function DataTable<T>({
   descriptions,
   initialPreset,
   initialSorting = [],
+  hideColumnPicker = false,
+  emptyMessage = "Nothing to show.",
 }: DataTableProps<T>) {
   const [presetName, setPresetName] = useState(initialPreset);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
@@ -91,6 +97,7 @@ export default function DataTable<T>({
           ))}
         </DropdownButton>
 
+        {!hideColumnPicker && (
         <DropdownButton
           id="columnVisibilityDropdown"
           title="Columns"
@@ -135,6 +142,7 @@ export default function DataTable<T>({
             </Dropdown.Item>
           ))}
         </DropdownButton>
+        )}
       </div>
 
       <div className="table-responsive">
@@ -167,6 +175,16 @@ export default function DataTable<T>({
             ))}
           </thead>
           <tbody>
+            {data.length === 0 && (
+              <tr>
+                <td
+                  colSpan={table.getVisibleLeafColumns().length}
+                  className="text-center text-secondary py-4"
+                >
+                  {emptyMessage}
+                </td>
+              </tr>
+            )}
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id}>
                 {row.getVisibleCells().map((cell) => (

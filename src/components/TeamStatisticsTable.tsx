@@ -108,6 +108,39 @@ const columns = [
   columnHelper.accessor("totalDEFPoints", { id: "totalDEFPoints", header: "DEF Points" }),
   columnHelper.accessor("totalMIDPoints", { id: "totalMIDPoints", header: "MID Points" }),
   columnHelper.accessor("totalFWDPoints", { id: "totalFWDPoints", header: "FWD Points" }),
+  columnHelper.accessor("weeksAtTop", { id: "weeksAtTop", header: "Weeks at Top" }),
+  columnHelper.accessor("weeksAtBottom", { id: "weeksAtBottom", header: "Weeks at Bottom" }),
+  columnHelper.accessor("gameweekWins", { id: "gameweekWins", header: "GW Wins" }),
+  columnHelper.accessor("bestLeaguePosition", {
+    id: "bestLeaguePosition",
+    header: "Best League Position",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+  columnHelper.accessor("worstLeaguePosition", {
+    id: "worstLeaguePosition",
+    header: "Worst League Position",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+  columnHelper.accessor((row) => row.favouriteClub?.count ?? 0, {
+    id: "favouriteClub",
+    header: "Favourite Club",
+    cell: ({ row }) => {
+      const club = row.original.favouriteClub;
+      return club ? `${club.name} (${club.count}%)` : "–";
+    },
+  }),
+  columnHelper.accessor((row) => row.longestHeld?.count ?? 0, {
+    id: "longestHeld",
+    header: "Longest-Held Player",
+    cell: ({ row }) => {
+      const held = row.original.longestHeld;
+      return held ? `${held.name} (${held.count} GW)` : "–";
+    },
+  }),
+  columnHelper.accessor("yellowCards", { id: "yellowCards", header: "Yellow Cards" }),
+  columnHelper.accessor("redCards", { id: "redCards", header: "Red Cards" }),
+  columnHelper.accessor("ownGoals", { id: "ownGoals", header: "Own Goals" }),
+  columnHelper.accessor("penaltiesMissed", { id: "penaltiesMissed", header: "Penalties Missed" }),
 ];
 
 const descriptions: Record<string, string> = {
@@ -145,6 +178,17 @@ const descriptions: Record<string, string> = {
   totalDEFPoints: "Points from defenders, including captaincy.",
   totalMIDPoints: "Points from midfielders, including captaincy.",
   totalFWDPoints: "Points from forwards, including captaincy.",
+  weeksAtTop: "Gameweeks spent in first place in this league.",
+  weeksAtBottom: "Gameweeks spent in last place in this league.",
+  gameweekWins: "Gameweeks with the highest score in this league, after hits. Ties count for everyone tied.",
+  bestLeaguePosition: "The highest position reached in this league.",
+  worstLeaguePosition: "The lowest position in this league.",
+  favouriteClub: "The club whose players have filled the most squad places over the season, with its share of all squad places.",
+  longestHeld: "The player who has been in the squad for the most gameweeks.",
+  yellowCards: "Yellow cards received by players in the starting eleven.",
+  redCards: "Red cards received by players in the starting eleven.",
+  ownGoals: "Own goals scored by players in the starting eleven.",
+  penaltiesMissed: "Penalties missed by players in the starting eleven.",
 };
 
 const presets: Preset[] = [
@@ -171,6 +215,18 @@ const presets: Preset[] = [
   {
     name: "Points Distribution",
     columns: ["managerName", "totalGKPoints", "totalDEFPoints", "totalMIDPoints", "totalFWDPoints", "pointsOnBench", "totalPoints"],
+  },
+  {
+    name: "League History",
+    columns: ["managerName", "rank", "weeksAtTop", "weeksAtBottom", "gameweekWins", "bestLeaguePosition", "worstLeaguePosition", "highestGameweekScore"],
+  },
+  {
+    name: "Squad Habits",
+    columns: ["managerName", "favouriteClub", "longestHeld", "mostCaptained", "captainDiversity", "totalTransfers"],
+  },
+  {
+    name: "Cards and Mishaps",
+    columns: ["managerName", "yellowCards", "redCards", "ownGoals", "penaltiesMissed", "pointsOnBench", "totalTransferPointsDeducted"],
   },
   { name: "All Columns" },
 ];

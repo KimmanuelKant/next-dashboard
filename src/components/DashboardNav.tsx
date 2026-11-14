@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { segment: "team", label: "Team Statistics" },
   { segment: "player", label: "Player Statistics" },
+  { segment: "history", label: "League History" },
 ];
 
 export default function DashboardNav({ leagueId }: { leagueId: string }) {

@@ -6,8 +6,12 @@ and get sortable, customisable tables the official site does not offer:
 - **Player Statistics**: every player owned in the league, with league vs
   global ownership, effective ownership, captaincy counts and who owns whom.
   Built for finding differentials.
-- **Team Statistics**: per-manager transfers, hits, chips, captaincy, ranks and
-  points by position.
+  Filter by name, position, club, owner, price and number of owners.
+- **Team Statistics**: per-manager transfers, hits, chips, captaincy, ranks,
+  points by position, weeks at the top and bottom, favourite club,
+  longest-held player, cards and own goals.
+- **League History**: a chart and table of every team's league position and
+  score, gameweek by gameweek.
 
 Leagues of up to 100 teams are loaded in full; larger leagues show the top 100.
 
@@ -36,7 +40,7 @@ src/lib/fpl/sources.ts    Fetch, trim and cache each kind of FPL data
 src/lib/fpl/snapshot.ts   getLeagueSnapshot(): everything known about a league
 src/lib/stats/            Pure functions that turn a snapshot into table rows
 src/components/           DataTable (shared) and the two table definitions
-src/app/dashboard/[leagueId]/   Routes: team, player
+src/app/dashboard/[leagueId]/   Routes: team, player, history
 ```
 
 Every table is computed from one **league snapshot** (standings, each manager's

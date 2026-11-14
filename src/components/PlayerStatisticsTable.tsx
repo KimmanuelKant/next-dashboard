@@ -1,6 +1,8 @@
 // src/components/PlayerStatisticsTable.tsx
 "use client";
+import { useMemo, useState } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
+import { Form } from "react-bootstrap";
 import DataTable, { Preset } from "@/components/DataTable";
 import type { PlayerStats } from "@/lib/stats/playerStats";
 
@@ -102,15 +104,176 @@ const presets: Preset[] = [
   { name: "All Columns" },
 ];
 
+const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+
+const uniqueSorted = (values: string[]) =>
+  Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+
 export default function PlayerStatisticsTable({ players }: { players: PlayerStats[] }) {
+  const [search, setSearch] = useState("");
+  const [position, setPosition] = useState("");
+  const [club, setClub] = useState("");
+  const [owner, setOwner] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [maxOwners, setMaxOwners] = useState("");
+
+  const clubs = useMemo(() => uniqueSorted(players.map((p) => p.club)), [players]);
+  const owners = useMemo(
+    () => uniqueSorted(players.flatMap((p) => p.owners)),
+    [players]
+  );
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const priceLimit = Number.parseFloat(maxPrice);
+    const ownersLimit = Number.parseInt(maxOwners, 10);
+    return players.filter(
+      (p) =>
+        (!term || p.name.toLowerCase().includes(term)) &&
+        (!position || p.position === position) &&
+        (!club || p.club === club) &&
+        (!owner || p.owners.includes(owner)) &&
+        (Number.isNaN(priceLimit) || p.value <= priceLimit) &&
+        (Number.isNaN(ownersLimit) || p.leagueOwnershipCount <= ownersLimit)
+    );
+  }, [players, search, position, club, owner, maxPrice, maxOwners]);
+
+  const isFiltered = Boolean(search || position || club || owner || maxPrice || maxOwners);
+  const clearFilters = () => {
+    setSearch("");
+    setPosition("");
+    setClub("");
+    setOwner("");
+    setMaxPrice("");
+    setMaxOwners("");
+  };
+
   return (
-    <DataTable
-      data={players}
-      columns={columns}
-      presets={presets}
-      descriptions={descriptions}
-      initialPreset="Differentials"
-      initialSorting={[{ id: "leagueOwnershipCount", desc: false }]}
-    />
+    <>
+      <div className="row g-2 align-items-end mb-3">
+        <div className="col-12 col-sm-6 col-lg-3">
+          <Form.Label htmlFor="playerSearch" className="small mb-1">
+            Search player
+          </Form.Label>
+          <Form.Control
+            id="playerSearch"
+            size="sm"
+            type="search"
+            placeholder="Name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="col-6 col-sm-3 col-lg-2">
+          <Form.Label htmlFor="positionFilter" className="small mb-1">
+            Position
+          </Form.Label>
+          <Form.Select
+            id="positionFilter"
+            size="sm"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+          >
+            <option value="">All</option>
+            {POSITIONS.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Form.Select>
+        </div>
+        <div className="col-6 col-sm-3 col-lg-2">
+          <Form.Label htmlFor="clubFilter" className="small mb-1">
+            Club
+          </Form.Label>
+          <Form.Select
+            id="clubFilter"
+            size="sm"
+            value={club}
+            onChange={(e) => setClub(e.target.value)}
+          >
+            <option value="">All</option>
+            {clubs.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Form.Select>
+        </div>
+        <div className="col-12 col-sm-6 col-lg-2">
+          <Form.Label htmlFor="ownerFilter" className="small mb-1">
+            Owned by
+          </Form.Label>
+          <Form.Select
+            id="ownerFilter"
+            size="sm"
+            value={owner}
+            onChange={(e) => setOwner(e.target.value)}
+          >
+            <option value="">Any team</option>
+            {owners.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Form.Select>
+        </div>
+        <div className="col-6 col-sm-3 col-lg-1">
+          <Form.Label htmlFor="maxPriceFilter" className="small mb-1">
+            Max price
+          </Form.Label>
+          <Form.Control
+            id="maxPriceFilter"
+            size="sm"
+            type="number"
+            min={0}
+            step={0.5}
+            placeholder="£m"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+          />
+        </div>
+        <div className="col-6 col-sm-3 col-lg-1">
+          <Form.Label htmlFor="maxOwnersFilter" className="small mb-1">
+            Max owners
+          </Form.Label>
+          <Form.Control
+            id="maxOwnersFilter"
+            size="sm"
+            type="number"
+            min={1}
+            step={1}
+            placeholder="Any"
+            value={maxOwners}
+            onChange={(e) => setMaxOwners(e.target.value)}
+          />
+        </div>
+        <div className="col-12 col-lg-1">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary w-100"
+            onClick={clearFilters}
+            disabled={!isFiltered}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+      <p className="text-secondary small mb-2" aria-live="polite">
+        {isFiltered
+          ? `${filtered.length} of ${players.length} players`
+          : `${players.length} players`}
+      </p>
+
+      <DataTable
+        data={filtered}
+        columns={columns}
+        presets={presets}
+        descriptions={descriptions}
+        initialPreset="Differentials"
+        initialSorting={[{ id: "leagueOwnershipCount", desc: false }]}
+        emptyMessage="No players match these filters."
+      />
+    </>
   );
 }

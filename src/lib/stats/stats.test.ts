@@ -11,6 +11,7 @@ import {
 } from "@/lib/fpl/types";
 import { computeTeamStats, effectiveCaptain } from "./teamStats";
 import { computePlayerStats } from "./playerStats";
+import { computeLeagueHistory } from "./leagueHistory";
 
 // Players 1-15: 1-2 goalkeepers, 3-7 defenders, 8-12 midfielders, 13-15 forwards.
 const positionOf = (id: number) => (id <= 2 ? 1 : id <= 7 ? 2 : id <= 12 ? 3 : 4);
@@ -110,6 +111,8 @@ function snapshot(): LeagueSnapshot {
     currentGw: 3,
     gameweekIds: [1, 2, 3],
     points: { 1: points, 2: points, 3: points },
+    // P13 is booked in GW1; P2 (always benched) is sent off in GW1; P14 has a bad GW3.
+    incidents: { 1: { 13: [1, 0, 0, 0], 2: [0, 1, 0, 0] }, 2: {}, 3: { 14: [0, 0, 1, 1] } },
     picks: {
       // Ann: triple captain in GW1, captain did not play in GW2 (vice gets x2),
       // second triple captain in GW3 with bench boost-free normal team.
@@ -131,7 +134,11 @@ function snapshot(): LeagueSnapshot {
     },
     histories: {
       100: {
-        gameweeks: [week(1, 70), week(2, 60, { transfersCost: 4 }), week(3, 74)],
+        gameweeks: [
+          week(1, 70, { totalPoints: 70 }),
+          week(2, 60, { transfersCost: 4, totalPoints: 126 }),
+          week(3, 74, { totalPoints: 200 }),
+        ],
         chips: [
           { name: "3xc", gw: 1 },
           { name: "3xc", gw: 3 },
@@ -139,7 +146,7 @@ function snapshot(): LeagueSnapshot {
         ],
       },
       200: {
-        gameweeks: [week(2, 50), week(3, 50)],
+        gameweeks: [week(2, 80, { totalPoints: 130 }), week(3, 50, { totalPoints: 180 })],
         chips: [
           { name: "bboost", gw: 2 },
           { name: "freehit", gw: 3 },
@@ -208,7 +215,7 @@ describe("computeTeamStats", () => {
     expect(bo.bestOverallRank).toBe(4997);
     expect(bo.worstOverallRank).toBe(4998);
     expect(bo.totalTransfers).toBe(2);
-    expect(bo.highestGameweekScore).toBe(50);
+    expect(bo.highestGameweekScore).toBe(80);
   });
 
   it("handles a manager with no history without throwing", () => {
@@ -226,6 +233,54 @@ describe("computeTeamStats", () => {
     expect(ann.pointsOnBench).toBe(9);
     expect(ann.teamValue).toBe(100);
     expect(ann.bank).toBe(0.5);
+  });
+});
+
+describe("league history and squad habits", () => {
+  const history = computeLeagueHistory(snapshot());
+  const [ann, bo, cy] = computeTeamStats(snapshot());
+
+  it("ranks managers week by week, skipping weeks before they joined", () => {
+    const [annRow, boRow, cyRow] = history.rows;
+    expect(history.gameweeks).toEqual([1, 2, 3]);
+    // GW2: Bo (130) overtakes Ann (126). GW3: Ann (200) retakes the lead.
+    expect(annRow.positions).toEqual([1, 2, 1]);
+    expect(boRow.positions).toEqual([null, 1, 2]);
+    expect(cyRow.positions).toEqual([null, null, null]);
+    // Ann's GW2 score is 60 minus a 4-point hit.
+    expect(annRow.scores).toEqual([70, 56, 74]);
+  });
+
+  it("counts weeks at top, weeks at bottom and gameweek wins", () => {
+    expect(ann.weeksAtTop).toBe(2);
+    // GW1 had one ranked team, so nobody was "bottom" that week.
+    expect(ann.weeksAtBottom).toBe(1);
+    expect(ann.gameweekWins).toBe(2);
+    expect(bo.weeksAtTop).toBe(1);
+    expect(bo.weeksAtBottom).toBe(1);
+    expect(bo.gameweekWins).toBe(1);
+    expect(bo.bestLeaguePosition).toBe(1);
+    expect(bo.worstLeaguePosition).toBe(2);
+    expect(cy.bestLeaguePosition).toBeNull();
+  });
+
+  it("finds the longest-held player and favourite club", () => {
+    expect(ann.longestHeld?.count).toBe(3);
+    expect(bo.longestHeld?.count).toBe(2);
+    expect(ann.favouriteClub).toEqual({ name: "Club", count: 100 });
+    expect(cy.longestHeld).toBeNull();
+  });
+
+  it("counts incidents only for players in the starting eleven", () => {
+    // Ann: P13 booked in GW1 (started); P2 sent off on the bench does not count;
+    // P14 own goal and missed penalty in GW3 (started).
+    expect(ann.yellowCards).toBe(1);
+    expect(ann.redCards).toBe(0);
+    expect(ann.ownGoals).toBe(1);
+    expect(ann.penaltiesMissed).toBe(1);
+    // Bo had no team in GW1; P14 started for Bo in GW3.
+    expect(bo.yellowCards).toBe(0);
+    expect(bo.ownGoals).toBe(1);
   });
 });
 

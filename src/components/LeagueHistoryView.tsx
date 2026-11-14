@@ -1,0 +1,26 @@
+// src/components/LeagueHistoryView.tsx
+
+import { notFound } from "next/navigation";
+import LeagueNotices from "@/components/LeagueNotices";
+import LeaguePositionChart from "@/components/LeaguePositionChart";
+import LeagueHistoryTable from "@/components/LeagueHistoryTable";
+import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
+import { computeLeagueHistory } from "@/lib/stats/leagueHistory";
+
+// Errors thrown here are caught by the ErrorBoundary in the page.
+export default async function LeagueHistoryView({ leagueId }: { leagueId: string }) {
+  const snapshot = await getLeagueSnapshot(leagueId);
+  if (!snapshot) {
+    notFound();
+  }
+  const history = computeLeagueHistory(snapshot);
+
+  return (
+    <>
+      <LeagueNotices snapshot={snapshot} />
+      <LeaguePositionChart history={history} />
+      <h2 className="h5">Week by week</h2>
+      <LeagueHistoryTable history={history} />
+    </>
+  );
+}

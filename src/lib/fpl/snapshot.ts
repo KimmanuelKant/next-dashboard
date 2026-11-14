@@ -5,7 +5,7 @@
 import { cache } from "react";
 import {
   getBootstrap,
-  getGameweekPoints,
+  getGameweekData,
   getLeague,
   getLeagueHistories,
   getLeaguePicks,
@@ -33,8 +33,8 @@ export const getLeagueSnapshot = cache(
     );
     const entryIds = league.managers.map((m) => m.entryId);
 
-    const [pointsList, picksList, histories] = await Promise.all([
-      Promise.all(played.map((g) => getGameweekPoints(season, g.id, g.finished))),
+    const [dataList, picksList, histories] = await Promise.all([
+      Promise.all(played.map((g) => getGameweekData(season, g.id, g.finished))),
       Promise.all(
         played.map((g) =>
           getLeaguePicks(season, leagueId, entryIds, g.id, g.finished)
@@ -49,11 +49,13 @@ export const getLeagueSnapshot = cache(
       currentGw,
       gameweekIds: played.map((g) => g.id),
       points: {},
+      incidents: {},
       picks: {},
       histories,
     };
     played.forEach((g, i) => {
-      snapshot.points[g.id] = pointsList[i];
+      snapshot.points[g.id] = dataList[i].points;
+      snapshot.incidents[g.id] = dataList[i].incidents;
       snapshot.picks[g.id] = picksList[i];
     });
     return snapshot;

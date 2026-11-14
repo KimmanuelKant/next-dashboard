@@ -19,7 +19,7 @@ import { fplGet, FplError } from "./http";
 import { MAX_MANAGERS } from "@/lib/leagueId";
 import {
   Bootstrap,
-  GameweekPoints,
+  GameweekData,
   League,
   LeagueGameweekPicks,
   ManagerHistory,
@@ -114,26 +114,35 @@ export const getLeague = unstable_cache(fetchLeague, ["fpl-league-v1"], {
   revalidate: 2 * MINUTE,
 });
 
-async function fetchGameweekPoints(gw: number): Promise<GameweekPoints> {
+async function fetchGameweekData(gw: number): Promise<GameweekData> {
   const raw = await fplGet<FplEventLive>(`/event/${gw}/live/`);
   if (!raw) {
     throw new FplError(`/event/${gw}/live/`, 404);
   }
-  const points: GameweekPoints = {};
+  const data: GameweekData = { points: {}, incidents: {} };
   for (const el of raw.elements) {
-    points[el.id] = el.stats.total_points;
+    const s = el.stats;
+    data.points[el.id] = s.total_points;
+    if (s.yellow_cards || s.red_cards || s.own_goals || s.penalties_missed) {
+      data.incidents[el.id] = [
+        s.yellow_cards,
+        s.red_cards,
+        s.own_goals,
+        s.penalties_missed,
+      ];
+    }
   }
-  return points;
+  return data;
 }
 
-export function getGameweekPoints(
+export function getGameweekData(
   season: string,
   gw: number,
   finished: boolean
-): Promise<GameweekPoints> {
+): Promise<GameweekData> {
   return unstable_cache(
-    () => fetchGameweekPoints(gw),
-    ["fpl-points-v1", season, String(gw), finished ? "final" : "live"],
+    () => fetchGameweekData(gw),
+    ["fpl-gameweek-v2", season, String(gw), finished ? "final" : "live"],
     { revalidate: finished ? false : MINUTE }
   )();
 }
