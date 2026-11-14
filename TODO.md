@@ -9,7 +9,10 @@ Most visitors land on the front page and never reach a league. Some type a
 team name where the league ID goes.
 - Instructions for finding the ID in the FPL phone app, where there is no
   URL to read it from. A large share of visitors are on Android.
-- Check the front page and the tables on a narrow phone screen.
+- Scout on a phone: collapse the filters behind a button, so the table is on
+  the first screen.
+- League History chart on a phone: its own height and text size (it is drawn
+  at a fixed size and scaled down), highlighting your team and the leader.
 - Highlights above each table (gameweek winner, most points on the bench,
   best captain pick): easier to read on a phone than a wide table.
 

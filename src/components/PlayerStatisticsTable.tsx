@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
 import { Form } from "react-bootstrap";
 import DataTable, { Preset } from "@/components/DataTable";
+import Narrow from "@/components/Narrow";
 import type { PlayerStats } from "@/lib/stats/playerStats";
 
 const columnHelper = createColumnHelper<PlayerStats>();
@@ -60,7 +61,17 @@ const columns = [
   columnHelper.accessor((row) => row.owners.length, {
     id: "owners",
     header: "Owned By",
-    cell: ({ row }) => row.original.owners.join(", "),
+    cell: ({ row }) => {
+      const owners = row.original.owners;
+      if (owners.length <= 2) return owners.join(", ");
+      // Phones list two teams, so a popular player's row stays short. The
+      // player's panel has the full list.
+      return (
+        <Narrow short={`${owners.slice(0, 2).join(", ")} +${owners.length - 2} more`}>
+          {owners.join(", ")}
+        </Narrow>
+      );
+    },
   }),
 ];
 
@@ -321,6 +332,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
         shortHeaders={shortHeaders}
         stickyColumn="name"
         subtitleColumn="club"
+        wrapColumns={["owners"]}
         detailNoun="player"
       />
     </>

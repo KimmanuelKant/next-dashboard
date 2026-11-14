@@ -16,7 +16,7 @@ export default function RememberLeague({
   const isRemembered = remembered?.id === leagueId;
 
   return (
-    <div className="form-check small mb-0">
+    <div className="form-check mb-0">
       <input
         id="rememberLeague"
         type="checkbox"

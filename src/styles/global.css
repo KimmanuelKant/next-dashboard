@@ -26,6 +26,21 @@
   background: var(--bs-border-color);
 }
 
+/* <Narrow>: the short version on phone-width screens, the full one elsewhere. */
+.narrow-short {
+  display: none;
+}
+
+@media (max-width: 575.98px) {
+  .narrow-short {
+    display: inline;
+  }
+
+  .narrow-full {
+    display: none;
+  }
+}
+
 /* Phone-width tables: smaller type, and a long name must not take the whole
    screen width. */
 @media (max-width: 575.98px) {
@@ -35,6 +50,18 @@
 
   .table-responsive td.sticky-col {
     max-width: 42vw;
+  }
+
+  /* One line per row, so rows are the same height and easy to scan. A table
+     wider than the screen would otherwise wrap every cell at each space. */
+  .table-responsive td {
+    white-space: nowrap;
+  }
+
+  /* Lists and long text wrap, but not down to one word per line. */
+  .table-responsive td.cell-wrap {
+    min-width: 9rem;
+    white-space: normal;
   }
 
   .sticky-name,
@@ -103,6 +130,15 @@ summary.detail-stat::-webkit-details-marker {
   max-width: 60%;
   font-weight: 600;
   text-align: right;
+}
+
+/* The panel has room for the full text at any width. */
+.detail-value .narrow-short {
+  display: none;
+}
+
+.detail-value .narrow-full {
+  display: inline;
 }
 
 .detail-heading {

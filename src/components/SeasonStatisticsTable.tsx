@@ -378,6 +378,7 @@ export default function SeasonStatisticsTable({ stats }: { stats: TeamStats[] })
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
+      wrapColumns={["bestTransfer", "worstTransfer", "biggestProfitSale", "chipsUsed"]}
       detailNoun="team"
       highlightRow={(row) => row.teamId === myTeam}
     />
