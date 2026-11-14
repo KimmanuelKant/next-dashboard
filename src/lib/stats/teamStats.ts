@@ -7,10 +7,10 @@ import {
   ManagerGameweek,
   Pick,
   PICK_CAPTAIN,
-  PICK_VICE,
   Player,
 } from "@/lib/fpl/types";
 import { computeLeagueHistory } from "./leagueHistory";
+import { reviewCaptaincy, topBenched } from "./decisions";
 
 export interface ChipUse {
   gw: number;
@@ -28,10 +28,8 @@ export interface TeamStats {
   teamName: string;
   teamId: number;
   totalPoints: number;
-  eventTotal: number;
   overallRank: number | null;
   totalTransfers: number;
-  transfersThisWeek: number;
   /** Millions. */
   teamValue: number | null;
   /** Millions. */
@@ -52,8 +50,6 @@ export interface TeamStats {
   captainDiversity: number;
   pointsOnBench: number;
   totalTransferPointsDeducted: number;
-  captain: string;
-  viceCaptain: string;
   highestGameweekScore: number;
   bestOverallRank: number | null;
   worstOverallRank: number | null;
@@ -84,6 +80,26 @@ export interface TeamStats {
   redCards: number;
   ownGoals: number;
   penaltiesMissed: number;
+  /** Points lost over the season by not captaining the best starter each week. */
+  captaincyPointsLost: number;
+  /** Gameweeks where the armband was on the highest-scoring starter. */
+  perfectCaptainWeeks: number;
+  /** The biggest score left on the bench in one gameweek. */
+  biggestBenchedHaul: LabelledValue | null;
+  /**
+   * Points the players bought scored in their first gameweek, minus what the
+   * players sold scored that same gameweek. Free Hit weeks are left out.
+   */
+  transferGain: number;
+  /** Transfer gain minus the points paid in hits. */
+  transferGainAfterHits: number;
+  bestTransfer: LabelledValue | null;
+  worstTransfer: LabelledValue | null;
+}
+
+export interface LabelledValue {
+  label: string;
+  value: number;
 }
 
 const CHIP_NAMES: Record<string, string> = {
@@ -203,6 +219,7 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     const history = snapshot.histories[manager.entryId] ?? {
       gameweeks: [],
       chips: [],
+      transfers: [],
     };
     const weeks = history.gameweeks;
     const latest = weeks.length ? weeks[weeks.length - 1] : null;
@@ -217,6 +234,10 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     const teamsInOrder: ManagerGameweek[] = [];
     let squadSlots = 0;
     const incidentTotals = [0, 0, 0, 0];
+    let captaincyPointsLost = 0;
+    let perfectCaptainWeeks = 0;
+    let biggestBenchedHaul: LabelledValue | null = null;
+    const freeHitWeeks = new Set<number>();
 
     for (const gw of snapshot.gameweekIds) {
       const team = snapshot.picks[gw]?.[manager.entryId];
@@ -249,6 +270,20 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
         totalCaptainPoints += (points[armband[0]] ?? 0) * armband[1];
       }
 
+      const review = reviewCaptaincy(team, points);
+      captaincyPointsLost += review.pointsLost;
+      if (review.armbandId !== null && review.pointsLost === 0) {
+        perfectCaptainWeeks++;
+      }
+      const benched = topBenched(team, points);
+      if (benched && (!biggestBenchedHaul || benched[1] > biggestBenchedHaul.value)) {
+        biggestBenchedHaul = {
+          label: `${playerName(benched[0]) || "Unknown"}, GW${gw}`,
+          value: benched[1],
+        };
+      }
+      if (team.chip === "freehit") freeHitWeeks.add(gw);
+
       if (team.chip === "3xc") {
         tripleCaptain.push({ gw, points: armband ? points[armband[0]] ?? 0 : 0 });
       }
@@ -275,12 +310,24 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       }
     });
 
-    const currentTeam =
-      snapshot.currentGw !== null
-        ? snapshot.picks[snapshot.currentGw]?.[manager.entryId]
-        : null;
-    const captainId = currentTeam?.picks.find((p) => p[2] === PICK_CAPTAIN)?.[0];
-    const viceId = currentTeam?.picks.find((p) => p[2] === PICK_VICE)?.[0];
+    // Transfer outcomes: what the player bought scored in his first gameweek,
+    // against what the player sold scored that week. Free Hit transfers are
+    // undone a week later, so they are left out.
+    let transferGain = 0;
+    let bestTransfer: LabelledValue | null = null;
+    let worstTransfer: LabelledValue | null = null;
+    for (const transfer of history.transfers) {
+      const weekPoints = snapshot.points[transfer.gw];
+      if (!weekPoints || freeHitWeeks.has(transfer.gw)) continue;
+      const gain =
+        (weekPoints[transfer.playerIn] ?? 0) - (weekPoints[transfer.playerOut] ?? 0);
+      transferGain += gain;
+      const label = `${playerName(transfer.playerIn) || "Unknown"} for ${
+        playerName(transfer.playerOut) || "Unknown"
+      }, GW${transfer.gw}`;
+      if (!bestTransfer || gain > bestTransfer.value) bestTransfer = { label, value: gain };
+      if (!worstTransfer || gain < worstTransfer.value) worstTransfer = { label, value: gain };
+    }
 
     const topClub = topOf(clubSlots);
     const topPlayer = topOf(weeksOwned);
@@ -298,10 +345,8 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       teamName: manager.teamName,
       teamId: manager.entryId,
       totalPoints: manager.total,
-      eventTotal: manager.eventTotal,
       overallRank: latest?.overallRank ?? null,
       totalTransfers: weeks.reduce((sum, w) => sum + w.transfers, 0),
-      transfersThisWeek: latest?.transfers ?? 0,
       teamValue: latest ? latest.value / 10 : null,
       bank: latest ? latest.bank / 10 : null,
       wildcardsUsed: history.chips.filter((c) => c.name === "wildcard").length,
@@ -321,8 +366,6 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       captainDiversity: captainCounts.size,
       pointsOnBench: weeks.reduce((sum, w) => sum + w.benchPoints, 0),
       totalTransferPointsDeducted: hits,
-      captain: playerName(captainId),
-      viceCaptain: playerName(viceId),
       highestGameweekScore: weeks.reduce((max, w) => Math.max(max, w.points), 0),
       bestOverallRank: minOrNull(weeks.map((w) => w.overallRank)),
       worstOverallRank: maxOrNull(weeks.map((w) => w.overallRank)),
@@ -350,6 +393,13 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       redCards: incidentTotals[1],
       ownGoals: incidentTotals[2],
       penaltiesMissed: incidentTotals[3],
+      captaincyPointsLost,
+      perfectCaptainWeeks,
+      biggestBenchedHaul,
+      transferGain,
+      transferGainAfterHits: transferGain - hits,
+      bestTransfer,
+      worstTransfer,
     };
   });
 }

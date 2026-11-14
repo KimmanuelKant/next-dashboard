@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { segment: "team", label: "Team Statistics" },
-  { segment: "player", label: "Player Statistics" },
+  { segment: "gameweek", label: "This Gameweek" },
+  { segment: "season", label: "Season" },
+  { segment: "scout", label: "Scout" },
   { segment: "history", label: "League History" },
 ];
 

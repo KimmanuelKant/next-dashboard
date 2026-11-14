@@ -19,7 +19,7 @@ export default function HomePage() {
       return;
     }
     setError("");
-    router.push(`/dashboard/${parsed}/team`);
+    router.push(`/dashboard/${parsed}/gameweek`);
   };
 
   return (

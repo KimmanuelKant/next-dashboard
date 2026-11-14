@@ -14,6 +14,7 @@ import type { FplBootstrapStatic } from "@/types/fpl/FplBootstrapStatic";
 import type { FplLeagueStandings } from "@/types/fpl/FplLeagueStandings";
 import type { FplEventLive } from "@/types/fpl/FplEventLive";
 import type { FplEntryHistory } from "@/types/fpl/FplEntryHistory";
+import type { FplEntryTransfers } from "@/types/fpl/FplEntryTransfers";
 import type { FplEntryEventPicks } from "@/types/fpl/FplEntryEventPicks";
 import { fplGet, FplError } from "./http";
 import { MAX_MANAGERS } from "@/lib/leagueId";
@@ -211,7 +212,10 @@ async function fetchLeagueHistories(
   const result: Record<number, ManagerHistory> = {};
   await Promise.all(
     entryIds.map(async (entryId) => {
-      const raw = await fplGet<FplEntryHistory>(`/entry/${entryId}/history/`);
+      const [raw, transfers] = await Promise.all([
+        fplGet<FplEntryHistory>(`/entry/${entryId}/history/`),
+        fplGet<FplEntryTransfers>(`/entry/${entryId}/transfers/`),
+      ]);
       result[entryId] = {
         gameweeks: (raw?.current ?? []).map((g) => ({
           gw: g.event,
@@ -226,6 +230,11 @@ async function fetchLeagueHistories(
           benchPoints: g.points_on_bench,
         })),
         chips: (raw?.chips ?? []).map((c) => ({ name: c.name, gw: c.event })),
+        transfers: (transfers ?? []).map((t) => ({
+          gw: t.event,
+          playerIn: t.element_in,
+          playerOut: t.element_out,
+        })),
       };
     })
   );
@@ -239,7 +248,7 @@ export function getLeagueHistories(
 ): Promise<Record<number, ManagerHistory>> {
   return unstable_cache(
     () => fetchLeagueHistories(entryIds),
-    ["fpl-histories-v1", season, leagueId, membersKey(entryIds)],
+    ["fpl-histories-v2", season, leagueId, membersKey(entryIds)],
     { revalidate: 5 * MINUTE }
   )();
 }

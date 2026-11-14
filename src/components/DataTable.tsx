@@ -13,6 +13,11 @@ import {
 import { Dropdown, DropdownButton, Form, OverlayTrigger, Popover } from "react-bootstrap";
 import { InfoCircleFill } from "react-bootstrap-icons";
 
+export interface ColumnGroup {
+  name: string;
+  columns: string[];
+}
+
 export interface Preset {
   name: string;
   /** Column ids to show. Omit to show every column. */
@@ -29,6 +34,8 @@ interface DataTableProps<T> {
   /** Name of the preset applied on first render. */
   initialPreset: string;
   initialSorting?: SortingState;
+  /** Headings for the column picker. Columns in no group are listed first. */
+  groups?: ColumnGroup[];
   /** Hide the per-column picker (for tables whose presets cover every useful view). */
   hideColumnPicker?: boolean;
   /** Shown instead of rows when there is no data. */
@@ -55,6 +62,7 @@ export default function DataTable<T>({
   descriptions,
   initialPreset,
   initialSorting = [],
+  groups,
   hideColumnPicker = false,
   emptyMessage = "Nothing to show.",
 }: DataTableProps<T>) {
@@ -73,6 +81,19 @@ export default function DataTable<T>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
+
+  // Column picker sections: ungrouped columns first, then each group in order.
+  const leafColumns = table.getAllLeafColumns();
+  const groupedIds = new Set((groups ?? []).flatMap((group) => group.columns));
+  const pickerSections = [
+    { name: "", columns: leafColumns.filter((column) => !groupedIds.has(column.id)) },
+    ...(groups ?? []).map((group) => ({
+      name: group.name,
+      columns: group.columns.flatMap(
+        (id) => leafColumns.find((column) => column.id === id) ?? []
+      ),
+    })),
+  ].filter((section) => section.columns.length > 0);
 
   return (
     <div>
@@ -106,7 +127,10 @@ export default function DataTable<T>({
           autoClose="outside"
           align="end"
         >
-          {table.getAllLeafColumns().map((column) => (
+          {pickerSections.map((section) => (
+            <React.Fragment key={section.name || "ungrouped"}>
+              {section.name && <Dropdown.Header>{section.name}</Dropdown.Header>}
+              {section.columns.map((column) => (
             <Dropdown.Item key={column.id} as="div">
               <div className="d-flex align-items-center">
                 <Form.Check
@@ -140,6 +164,8 @@ export default function DataTable<T>({
                 )}
               </div>
             </Dropdown.Item>
+              ))}
+            </React.Fragment>
           ))}
         </DropdownButton>
         )}

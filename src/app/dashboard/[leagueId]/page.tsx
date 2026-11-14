@@ -7,5 +7,5 @@ export default async function DashboardPage({
   params: Promise<{ leagueId: string }>;
 }) {
   const { leagueId } = await params;
-  redirect(`/dashboard/${encodeURIComponent(leagueId)}/team`);
+  redirect(`/dashboard/${encodeURIComponent(leagueId)}/gameweek`);
 }

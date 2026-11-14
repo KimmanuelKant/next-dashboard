@@ -1,7 +1,6 @@
 // src/app/dashboard/[leagueId]/player/page.tsx
-import LeaguePlayerStats from "@/components/LeaguePlayerStats";
-import { Suspense } from "react";
-import ErrorBoundary from "@/components/ErrorBoundary";
+// Old address of the Scout table; kept so existing links and bookmarks work.
+import { redirect } from "next/navigation";
 
 export default async function PlayerPage({
   params,
@@ -9,12 +8,5 @@ export default async function PlayerPage({
   params: Promise<{ leagueId: string }>;
 }) {
   const { leagueId } = await params;
-
-  return (
-    <ErrorBoundary what="player statistics">
-      <Suspense fallback={<div>Loading player statistics...</div>}>
-        <LeaguePlayerStats leagueId={leagueId} />
-      </Suspense>
-    </ErrorBoundary>
-  );
+  redirect(`/dashboard/${encodeURIComponent(leagueId)}/scout`);
 }

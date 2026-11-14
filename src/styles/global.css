@@ -2,6 +2,12 @@
    Bootstrap's dark theme (data-bs-theme="dark" on <html>) handles colours,
    tables and buttons. Keep only site-specific tweaks here. */
 
+/* Long column pickers scroll inside the menu instead of running off the page. */
+#columnVisibilityDropdown + .dropdown-menu {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
 th[data-sortable="true"] {
   cursor: pointer;
   user-select: none;

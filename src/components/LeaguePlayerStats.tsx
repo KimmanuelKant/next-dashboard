@@ -18,7 +18,9 @@ export default async function LeaguePlayerStats({ leagueId }: { leagueId: string
       <LeagueNotices snapshot={snapshot} />
       {snapshot.currentGw !== null && (
         <p className="text-secondary small">
-          Squads and ownership for gameweek {snapshot.currentGw}.
+          Scout players for informed transfers: who is rare in this league, who
+          everyone has, and who nobody owns yet. Squads and ownership are for
+          gameweek {snapshot.currentGw}.
         </p>
       )}
       <PlayerStatisticsTable players={computePlayerStats(snapshot)} />

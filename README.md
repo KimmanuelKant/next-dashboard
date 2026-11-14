@@ -3,11 +3,13 @@
 A dashboard for Fantasy Premier League mini-leagues. Enter a classic league ID
 and get sortable, customisable tables the official site does not offer:
 
-- **Player Statistics**: every player owned in the league, with league vs
+- **Scout**: every player, owned in the league or not, with league vs
   global ownership, effective ownership, captaincy counts and who owns whom.
-  Built for finding differentials.
+  Built for finding differentials and making informed transfers.
   Filter by name, position, club, owner, price and number of owners.
-- **Team Statistics**: per-manager transfers, hits, chips, captaincy, ranks,
+- **This Gameweek**: each manager's score, captain, chip, transfers in and
+  out, bench, and points lost to the captaincy choice.
+- **Season**: per-manager transfers, hits, chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.
 - **League History**: a chart and table of every team's league position and
@@ -40,7 +42,7 @@ src/lib/fpl/sources.ts    Fetch, trim and cache each kind of FPL data
 src/lib/fpl/snapshot.ts   getLeagueSnapshot(): everything known about a league
 src/lib/stats/            Pure functions that turn a snapshot into table rows
 src/components/           DataTable (shared) and the two table definitions
-src/app/dashboard/[leagueId]/   Routes: team, player, history
+src/app/dashboard/[leagueId]/   Routes: gameweek, season, scout, history
 ```
 
 Every table is computed from one **league snapshot** (standings, each manager's

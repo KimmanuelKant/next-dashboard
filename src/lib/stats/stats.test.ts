@@ -12,6 +12,8 @@ import {
 import { computeStreaks, computeTeamStats, effectiveCaptain } from "./teamStats";
 import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
+import { computeGameweekStats } from "./gameweekStats";
+import { reviewCaptaincy } from "./decisions";
 
 // Players 1-15: 1-2 goalkeepers, 3-7 defenders, 8-12 midfielders, 13-15 forwards.
 const positionOf = (id: number) => (id <= 2 ? 1 : id <= 7 ? 2 : id <= 12 ? 3 : 4);
@@ -144,6 +146,7 @@ function snapshot(): LeagueSnapshot {
           { name: "3xc", gw: 3 },
           { name: "wildcard", gw: 2 },
         ],
+        transfers: [],
       },
       200: {
         gameweeks: [week(2, 80, { totalPoints: 130 }), week(3, 50, { totalPoints: 180 })],
@@ -151,8 +154,10 @@ function snapshot(): LeagueSnapshot {
           { name: "bboost", gw: 2 },
           { name: "freehit", gw: 3 },
         ],
+        // Bo sold P13 for P16 ahead of GW3.
+        transfers: [{ gw: 3, playerIn: 16, playerOut: 13 }],
       },
-      300: { gameweeks: [], chips: [] },
+      300: { gameweeks: [], chips: [], transfers: [] },
     },
   };
 }
@@ -200,8 +205,6 @@ describe("computeTeamStats", () => {
   it("tracks who was chosen as captain, regardless of who played", () => {
     expect(ann.mostCaptained).toEqual({ name: "P13", count: 2 });
     expect(ann.captainDiversity).toBe(2);
-    expect(ann.captain).toBe("P14");
-    expect(ann.viceCaptain).toBe("P8");
   });
 
   it("sums points by position including multipliers and excluding the bench", () => {
@@ -223,7 +226,6 @@ describe("computeTeamStats", () => {
     expect(cy.teamValue).toBeNull();
     expect(cy.bestOverallRank).toBeNull();
     expect(cy.mostCaptained).toBeNull();
-    expect(cy.captain).toBe("");
     expect(cy.captainPointsPercentage).toBe(0);
     expect(cy.tripleCaptain).toEqual([]);
   });
@@ -284,6 +286,100 @@ describe("league history and squad habits", () => {
     // Bo had no team in GW1; P14 started for Bo in GW3.
     expect(bo.yellowCards).toBe(0);
     expect(bo.ownGoals).toBe(1);
+  });
+});
+
+describe("decisions", () => {
+  const [ann, bo, cy] = computeTeamStats(snapshot());
+
+  it("measures points lost by not captaining the best starter", () => {
+    // Normal captain: P13 (13) captained, P14 (14) was the best starter.
+    expect(reviewCaptaincy(team({}), points).pointsLost).toBe(1);
+    // Triple Captain doubles what is at stake.
+    expect(reviewCaptaincy(team({ chip: "3xc", captainMultiplier: 3 }), points).pointsLost).toBe(2);
+    // Captain did not play, vice (P8) took the armband: 14 - 8.
+    expect(
+      reviewCaptaincy(team({ captainMultiplier: 0, viceMultiplier: 2 }), points).pointsLost
+    ).toBe(6);
+    // Captaining the best starter loses nothing.
+    expect(reviewCaptaincy(team({ captain: 14 }), points).pointsLost).toBe(0);
+  });
+
+  it("adds captaincy regret up over the season", () => {
+    // Ann: GW1 2 (triple captain on P13), GW2 6 (vice took over), GW3 0.
+    expect(ann.captaincyPointsLost).toBe(8);
+    expect(ann.perfectCaptainWeeks).toBe(1);
+    // Bo: GW2 1 (Bench Boost makes P15 a starter), GW3 2 (P16 outscored P14).
+    expect(bo.captaincyPointsLost).toBe(3);
+    expect(bo.perfectCaptainWeeks).toBe(0);
+    expect(cy.captaincyPointsLost).toBe(0);
+  });
+
+  it("finds the biggest benched haul", () => {
+    expect(ann.biggestBenchedHaul).toEqual({ label: "P15, GW1", value: 15 });
+    // Bo's GW2 was a Bench Boost, so only GW3 has a bench.
+    expect(bo.biggestBenchedHaul).toEqual({ label: "P15, GW3", value: 15 });
+    expect(cy.biggestBenchedHaul).toBeNull();
+  });
+
+  it("scores transfers by the first gameweek", () => {
+    // P16 (16) in for P13 (13).
+    expect(bo.transferGain).toBe(3);
+    expect(bo.transferGainAfterHits).toBe(3);
+    expect(bo.bestTransfer).toEqual({ label: "P16 for P13, GW3", value: 3 });
+    expect(bo.worstTransfer).toEqual({ label: "P16 for P13, GW3", value: 3 });
+    // Ann made no transfers but paid a 4-point hit.
+    expect(ann.transferGain).toBe(0);
+    expect(ann.transferGainAfterHits).toBe(-4);
+    expect(ann.bestTransfer).toBeNull();
+  });
+
+  it("leaves Free Hit transfers out of transfer outcomes", () => {
+    const withFreeHit = snapshot();
+    withFreeHit.picks[3][200] = { ...withFreeHit.picks[3][200]!, chip: "freehit" };
+    expect(computeTeamStats(withFreeHit)[1].transferGain).toBe(0);
+  });
+});
+
+describe("computeGameweekStats", () => {
+  const [ann, bo, cy] = computeGameweekStats(snapshot());
+
+  it("reports this gameweek's score, captain and chip", () => {
+    expect(ann.score).toBe(74);
+    expect(ann.netScore).toBe(74);
+    expect(ann.captain).toBe("P14");
+    expect(ann.viceCaptain).toBe("P8");
+    expect(ann.captainPoints).toBe(42);
+    expect(ann.chip).toBe("Triple Captain");
+    expect(ann.captaincyPointsLost).toBe(0);
+    expect(ann.bestPlayer).toEqual({ name: "P14", count: 42 });
+    expect(ann.topBenched).toEqual({ name: "P15", count: 15 });
+  });
+
+  it("shows who came in and went out since the previous squad", () => {
+    expect(bo.playersIn).toEqual(["P16"]);
+    expect(bo.playersOut).toEqual(["P13"]);
+    expect(ann.playersIn).toEqual([]);
+    expect(bo.bestCaptain).toEqual({ name: "P16", count: 16 });
+    expect(bo.captaincyPointsLost).toBe(2);
+  });
+
+  it("ranks the gameweek within the league and tracks position change", () => {
+    expect(ann.leagueGameweekRank).toBe(1);
+    expect(bo.leagueGameweekRank).toBe(2);
+    expect(ann.positionChange).toBe(0);
+  });
+
+  it("handles a manager without a team this gameweek", () => {
+    expect(cy.leagueGameweekRank).toBeNull();
+    expect(cy.captain).toBe("");
+    expect(cy.chip).toBeNull();
+    expect(cy.bestPlayer).toBeNull();
+    expect(cy.playersIn).toEqual([]);
+  });
+
+  it("returns nothing before the season starts", () => {
+    expect(computeGameweekStats({ ...snapshot(), currentGw: null })).toEqual([]);
   });
 });
 
@@ -376,6 +472,18 @@ describe("computePlayerStats", () => {
     // P2 is on both benches.
     expect(byName("P2").effectiveOwnership).toBe(0);
     expect(byName("P2").leagueStartingCount).toBe(0);
+  });
+
+  it("includes players nobody in the league owns", () => {
+    const unowned = snapshot();
+    unowned.bootstrap.players.push({
+      id: 99, name: "Nobody", position: 3, clubId: 1, cost: 45,
+      selectedByPercent: 30, totalPoints: 50, form: 7,
+    });
+    const player = computePlayerStats(unowned).find((p) => p.name === "Nobody")!;
+    expect(player.leagueOwnershipCount).toBe(0);
+    expect(player.owners).toEqual([]);
+    expect(player.ownershipDifference).toBe(-30);
   });
 
   it("returns nothing before the season starts", () => {

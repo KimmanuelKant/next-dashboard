@@ -101,6 +101,10 @@ const presets: Preset[] = [
     name: "Player Details",
     columns: ["name", "position", "club", "value", "totalPoints", "form"],
   },
+  {
+    name: "Form and Points",
+    columns: ["name", "club", "position", "value", "form", "totalPoints", "gameweekPoints", "globalOwnershipPercentage", "leagueOwnershipCount"],
+  },
   { name: "All Columns" },
 ];
 
@@ -116,6 +120,8 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
   const [owner, setOwner] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [maxOwners, setMaxOwners] = useState("");
+  // "owned" | "unowned" | "" (everyone). Owned first: that is the league's picture.
+  const [ownership, setOwnership] = useState("owned");
 
   const clubs = useMemo(() => uniqueSorted(players.map((p) => p.club)), [players]);
   const owners = useMemo(
@@ -133,12 +139,16 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
         (!position || p.position === position) &&
         (!club || p.club === club) &&
         (!owner || p.owners.includes(owner)) &&
+        (ownership !== "owned" || p.leagueOwnershipCount > 0) &&
+        (ownership !== "unowned" || p.leagueOwnershipCount === 0) &&
         (Number.isNaN(priceLimit) || p.value <= priceLimit) &&
         (Number.isNaN(ownersLimit) || p.leagueOwnershipCount <= ownersLimit)
     );
-  }, [players, search, position, club, owner, maxPrice, maxOwners]);
+  }, [players, search, position, club, owner, maxPrice, maxOwners, ownership]);
 
-  const isFiltered = Boolean(search || position || club || owner || maxPrice || maxOwners);
+  const isFiltered = Boolean(
+    search || position || club || owner || maxPrice || maxOwners || ownership !== "owned"
+  );
   const clearFilters = () => {
     setSearch("");
     setPosition("");
@@ -146,12 +156,13 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
     setOwner("");
     setMaxPrice("");
     setMaxOwners("");
+    setOwnership("owned");
   };
 
   return (
     <>
       <div className="row g-2 align-items-end mb-3">
-        <div className="col-12 col-sm-6 col-lg-3">
+        <div className="col-12 col-sm-6 col-lg-2">
           <Form.Label htmlFor="playerSearch" className="small mb-1">
             Search player
           </Form.Label>
@@ -164,7 +175,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="col-6 col-sm-3 col-lg-2">
+        <div className="col-6 col-sm-3 col-lg-1">
           <Form.Label htmlFor="positionFilter" className="small mb-1">
             Position
           </Form.Label>
@@ -200,7 +211,25 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             ))}
           </Form.Select>
         </div>
-        <div className="col-12 col-sm-6 col-lg-2">
+        <div className="col-6 col-sm-6 col-lg-2">
+          <Form.Label htmlFor="ownershipFilter" className="small mb-1">
+            In this league
+          </Form.Label>
+          <Form.Select
+            id="ownershipFilter"
+            size="sm"
+            value={ownership}
+            onChange={(e) => {
+              setOwnership(e.target.value);
+              if (e.target.value === "unowned") setOwner("");
+            }}
+          >
+            <option value="owned">Owned</option>
+            <option value="unowned">Not owned</option>
+            <option value="">All players</option>
+          </Form.Select>
+        </div>
+        <div className="col-6 col-sm-6 col-lg-2">
           <Form.Label htmlFor="ownerFilter" className="small mb-1">
             Owned by
           </Form.Label>
@@ -208,6 +237,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             id="ownerFilter"
             size="sm"
             value={owner}
+            disabled={ownership === "unowned"}
             onChange={(e) => setOwner(e.target.value)}
           >
             <option value="">Any team</option>
@@ -260,9 +290,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
         </div>
       </div>
       <p className="text-secondary small mb-2" aria-live="polite">
-        {isFiltered
-          ? `${filtered.length} of ${players.length} players`
-          : `${players.length} players`}
+{filtered.length} of {players.length} players
       </p>
 
       <DataTable

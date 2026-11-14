@@ -1,7 +1,7 @@
 // src/components/LeagueTeamStats.tsx
 
 import { notFound } from "next/navigation";
-import TeamStatisticsTable from "@/components/TeamStatisticsTable";
+import SeasonStatisticsTable from "@/components/SeasonStatisticsTable";
 import LeagueNotices from "@/components/LeagueNotices";
 import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
 import { computeTeamStats } from "@/lib/stats/teamStats";
@@ -16,7 +16,7 @@ export default async function LeagueTeamStats({ leagueId }: { leagueId: string }
   return (
     <>
       <LeagueNotices snapshot={snapshot} />
-      <TeamStatisticsTable stats={computeTeamStats(snapshot)} />
+      <SeasonStatisticsTable stats={computeTeamStats(snapshot)} />
     </>
   );
 }

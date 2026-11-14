@@ -108,6 +108,8 @@ export interface ManagerHistoryGameweek {
 export interface ManagerHistory {
   gameweeks: ManagerHistoryGameweek[];
   chips: { name: string; gw: number }[];
+  /** Every transfer made: the gameweek it took effect, player bought, player sold. */
+  transfers: { gw: number; playerIn: number; playerOut: number }[];
 }
 
 export interface LeagueSnapshot {

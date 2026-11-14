@@ -1,8 +1,8 @@
-// src/components/TeamStatisticsTable.tsx
+// src/components/SeasonStatisticsTable.tsx
 "use client";
 import { createColumnHelper } from "@tanstack/react-table";
-import DataTable, { Preset } from "@/components/DataTable";
-import type { ChipUse, TeamStats } from "@/lib/stats/teamStats";
+import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
+import type { ChipUse, LabelledValue, NamedCount, TeamStats } from "@/lib/stats/teamStats";
 
 const columnHelper = createColumnHelper<TeamStats>();
 
@@ -10,14 +10,17 @@ const formatNumber = (value: number | null) =>
   value === null ? "–" : value.toLocaleString("en-GB");
 const formatMoney = (value: number | null) =>
   value === null ? "–" : `£${value.toFixed(1)}m`;
+const formatSigned = (value: number) => `${value > 0 ? "+" : ""}${value}`;
 const formatChip = (uses: ChipUse[]) =>
   uses.length
     ? uses.map((use) => `${use.points} (GW${use.gw})`).join(", ")
     : "Not used";
-const formatHeld = (held: { name: string; count: number } | null) =>
-  held ? `${held.name} (${held.count} GW)` : "–";
 const chipTotal = (uses: ChipUse[]) =>
   uses.length ? uses.reduce((sum, use) => sum + use.points, 0) : -1;
+const formatHeld = (held: NamedCount | null) =>
+  held ? `${held.name} (${held.count} GW)` : "–";
+const formatLabelled = (item: LabelledValue | null, signed = false) =>
+  item ? `${signed ? formatSigned(item.value) : item.value} (${item.label})` : "–";
 
 const columns = [
   columnHelper.accessor("rank", { id: "rank", header: "Rank" }),
@@ -25,14 +28,46 @@ const columns = [
   columnHelper.accessor("teamName", { id: "teamName", header: "Team Name" }),
   columnHelper.accessor("teamId", { id: "teamId", header: "Team ID" }),
   columnHelper.accessor("totalPoints", { id: "totalPoints", header: "Total Points" }),
-  columnHelper.accessor("eventTotal", { id: "eventTotal", header: "GW Total" }),
-  columnHelper.accessor("overallRank", {
-    id: "overallRank",
-    header: "Overall Rank",
+  columnHelper.accessor("highestGameweekScore", { id: "highestGameweekScore", header: "Highest GW Score" }),
+
+  // League race
+  columnHelper.accessor("weeksAtTop", { id: "weeksAtTop", header: "Weeks at Top" }),
+  columnHelper.accessor("weeksAtBottom", { id: "weeksAtBottom", header: "Weeks at Bottom" }),
+  columnHelper.accessor("gameweekWins", { id: "gameweekWins", header: "GW Wins" }),
+  columnHelper.accessor("bestLeaguePosition", {
+    id: "bestLeaguePosition",
+    header: "Best League Position",
     cell: ({ getValue }) => formatNumber(getValue()),
   }),
+  columnHelper.accessor("worstLeaguePosition", {
+    id: "worstLeaguePosition",
+    header: "Worst League Position",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+
+  // Transfers and value
   columnHelper.accessor("totalTransfers", { id: "totalTransfers", header: "Total Transfers" }),
-  columnHelper.accessor("transfersThisWeek", { id: "transfersThisWeek", header: "GW Transfers" }),
+  columnHelper.accessor("totalTransferPointsDeducted", { id: "totalTransferPointsDeducted", header: "Total Hits" }),
+  columnHelper.accessor("transferGain", {
+    id: "transferGain",
+    header: "Transfer Gain",
+    cell: ({ getValue }) => formatSigned(getValue()),
+  }),
+  columnHelper.accessor("transferGainAfterHits", {
+    id: "transferGainAfterHits",
+    header: "Transfer Gain After Hits",
+    cell: ({ getValue }) => formatSigned(getValue()),
+  }),
+  columnHelper.accessor((row) => row.bestTransfer?.value ?? -Infinity, {
+    id: "bestTransfer",
+    header: "Best Transfer",
+    cell: ({ row }) => formatLabelled(row.original.bestTransfer, true),
+  }),
+  columnHelper.accessor((row) => row.worstTransfer?.value ?? Infinity, {
+    id: "worstTransfer",
+    header: "Worst Transfer",
+    cell: ({ row }) => formatLabelled(row.original.worstTransfer, true),
+  }),
   columnHelper.accessor("teamValue", {
     id: "teamValue",
     header: "Team Value",
@@ -43,8 +78,9 @@ const columns = [
     header: "Bank",
     cell: ({ getValue }) => formatMoney(getValue()),
   }),
+
+  // Chips. Chip columns sort on total points; "Not used" sorts last.
   columnHelper.accessor("wildcardsUsed", { id: "wildcardsUsed", header: "Wildcards Used" }),
-  // Chip columns sort on total points; "Not used" sorts last.
   columnHelper.accessor((row) => chipTotal(row.tripleCaptain), {
     id: "tripleCaptain",
     header: "Triple Captain",
@@ -66,12 +102,16 @@ const columns = [
     cell: ({ row }) => row.original.chipsUsed.join(", ") || "None",
   }),
   columnHelper.accessor("chipPointsGained", { id: "chipPointsGained", header: "Chip Points Gained" }),
+
+  // Captaincy
   columnHelper.accessor("totalCaptainPoints", { id: "totalCaptainPoints", header: "Total Captain Points" }),
   columnHelper.accessor("captainPointsPercentage", {
     id: "captainPointsPercentage",
     header: "Captain Points %",
     cell: ({ getValue }) => `${getValue().toFixed(1)}%`,
   }),
+  columnHelper.accessor("captaincyPointsLost", { id: "captaincyPointsLost", header: "Captaincy Points Lost" }),
+  columnHelper.accessor("perfectCaptainWeeks", { id: "perfectCaptainWeeks", header: "Perfect Captain Weeks" }),
   columnHelper.accessor((row) => row.mostCaptained?.count ?? 0, {
     id: "mostCaptained",
     header: "Most Captained",
@@ -81,48 +121,20 @@ const columns = [
     },
   }),
   columnHelper.accessor("captainDiversity", { id: "captainDiversity", header: "Different Captains" }),
-  columnHelper.accessor("pointsOnBench", { id: "pointsOnBench", header: "Points on Bench" }),
-  columnHelper.accessor("totalTransferPointsDeducted", { id: "totalTransferPointsDeducted", header: "Total Hits" }),
-  columnHelper.accessor("captain", { id: "captain", header: "Captain" }),
-  columnHelper.accessor("viceCaptain", { id: "viceCaptain", header: "Vice Captain" }),
-  columnHelper.accessor("highestGameweekScore", { id: "highestGameweekScore", header: "Highest GW Score" }),
-  columnHelper.accessor("bestOverallRank", {
-    id: "bestOverallRank",
-    header: "Best Overall Rank",
-    cell: ({ getValue }) => formatNumber(getValue()),
-  }),
-  columnHelper.accessor("worstOverallRank", {
-    id: "worstOverallRank",
-    header: "Worst Overall Rank",
-    cell: ({ getValue }) => formatNumber(getValue()),
-  }),
-  columnHelper.accessor("bestGameweekRank", {
-    id: "bestGameweekRank",
-    header: "Best GW Rank",
-    cell: ({ getValue }) => formatNumber(getValue()),
-  }),
-  columnHelper.accessor("worstGameweekRank", {
-    id: "worstGameweekRank",
-    header: "Worst GW Rank",
-    cell: ({ getValue }) => formatNumber(getValue()),
-  }),
+
+  // Points breakdown
   columnHelper.accessor("totalGKPoints", { id: "totalGKPoints", header: "GK Points" }),
   columnHelper.accessor("totalDEFPoints", { id: "totalDEFPoints", header: "DEF Points" }),
   columnHelper.accessor("totalMIDPoints", { id: "totalMIDPoints", header: "MID Points" }),
   columnHelper.accessor("totalFWDPoints", { id: "totalFWDPoints", header: "FWD Points" }),
-  columnHelper.accessor("weeksAtTop", { id: "weeksAtTop", header: "Weeks at Top" }),
-  columnHelper.accessor("weeksAtBottom", { id: "weeksAtBottom", header: "Weeks at Bottom" }),
-  columnHelper.accessor("gameweekWins", { id: "gameweekWins", header: "GW Wins" }),
-  columnHelper.accessor("bestLeaguePosition", {
-    id: "bestLeaguePosition",
-    header: "Best League Position",
-    cell: ({ getValue }) => formatNumber(getValue()),
+  columnHelper.accessor("pointsOnBench", { id: "pointsOnBench", header: "Points on Bench" }),
+  columnHelper.accessor((row) => row.biggestBenchedHaul?.value ?? -Infinity, {
+    id: "biggestBenchedHaul",
+    header: "Biggest Benched Haul",
+    cell: ({ row }) => formatLabelled(row.original.biggestBenchedHaul),
   }),
-  columnHelper.accessor("worstLeaguePosition", {
-    id: "worstLeaguePosition",
-    header: "Worst League Position",
-    cell: ({ getValue }) => formatNumber(getValue()),
-  }),
+
+  // Squad habits
   columnHelper.accessor((row) => row.favouriteClub?.count ?? 0, {
     id: "favouriteClub",
     header: "Favourite Club",
@@ -146,10 +158,39 @@ const columns = [
     header: "Longest-Serving Starter",
     cell: ({ row }) => formatHeld(row.original.longestServingStarter),
   }),
+
+  // Mishaps
   columnHelper.accessor("yellowCards", { id: "yellowCards", header: "Yellow Cards" }),
   columnHelper.accessor("redCards", { id: "redCards", header: "Red Cards" }),
   columnHelper.accessor("ownGoals", { id: "ownGoals", header: "Own Goals" }),
   columnHelper.accessor("penaltiesMissed", { id: "penaltiesMissed", header: "Penalties Missed" }),
+
+  // Overall ranks
+  columnHelper.accessor("overallRank", {
+    id: "overallRank",
+    header: "Overall Rank",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+  columnHelper.accessor("bestOverallRank", {
+    id: "bestOverallRank",
+    header: "Best Overall Rank",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+  columnHelper.accessor("worstOverallRank", {
+    id: "worstOverallRank",
+    header: "Worst Overall Rank",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+  columnHelper.accessor("bestGameweekRank", {
+    id: "bestGameweekRank",
+    header: "Best GW Rank",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+  columnHelper.accessor("worstGameweekRank", {
+    id: "worstGameweekRank",
+    header: "Worst GW Rank",
+    cell: ({ getValue }) => formatNumber(getValue()),
+  }),
 ];
 
 const descriptions: Record<string, string> = {
@@ -158,10 +199,18 @@ const descriptions: Record<string, string> = {
   teamName: "The name of the team.",
   teamId: "The FPL ID of the team.",
   totalPoints: "Total points this season, after transfer hits.",
-  eventTotal: "Points scored in the current gameweek.",
-  overallRank: "The team's current overall rank among all FPL managers.",
+  highestGameweekScore: "The best single gameweek score.",
+  weeksAtTop: "Gameweeks spent in first place in this league.",
+  weeksAtBottom: "Gameweeks spent in last place in this league.",
+  gameweekWins: "Gameweeks with the highest score in this league, after hits. Ties count for everyone tied.",
+  bestLeaguePosition: "The highest position reached in this league.",
+  worstLeaguePosition: "The lowest position in this league.",
   totalTransfers: "Transfers made this season.",
-  transfersThisWeek: "Transfers made for the current gameweek.",
+  totalTransferPointsDeducted: "Points deducted for extra transfers.",
+  transferGain: "What the players bought scored in their first gameweek, minus what the players sold scored that same week. Counts points whether or not the player was in the starting eleven. Free Hit weeks are left out.",
+  transferGainAfterHits: "Transfer gain minus the points paid in hits.",
+  bestTransfer: "The single transfer with the biggest first-week gain.",
+  worstTransfer: "The single transfer with the biggest first-week loss.",
   teamValue: "Squad value including money in the bank.",
   bank: "Money in the bank.",
   wildcardsUsed: "Number of Wildcards played.",
@@ -172,26 +221,16 @@ const descriptions: Record<string, string> = {
   chipPointsGained: "Extra points from Triple Captain and Bench Boost. Free Hit and Wildcard are not included, since their gain cannot be measured.",
   totalCaptainPoints: "Points from the player who wore the armband each week (the vice captain when the captain did not play), including the multiplier.",
   captainPointsPercentage: "Captain points as a share of all points scored before hits.",
+  captaincyPointsLost: "Points lost over the season by not giving the armband to the highest-scoring player in the starting eleven each week.",
+  perfectCaptainWeeks: "Gameweeks where the armband was on the highest-scoring player in the starting eleven.",
   mostCaptained: "The player most often chosen as captain, with the number of times.",
   captainDiversity: "Number of different players chosen as captain this season.",
-  pointsOnBench: "Points left on the bench this season.",
-  totalTransferPointsDeducted: "Points deducted for extra transfers.",
-  captain: "Captain in the current gameweek.",
-  viceCaptain: "Vice captain in the current gameweek.",
-  highestGameweekScore: "The best single gameweek score.",
-  bestOverallRank: "The best overall rank reached this season.",
-  worstOverallRank: "The worst overall rank this season.",
-  bestGameweekRank: "The best rank for a single gameweek.",
-  worstGameweekRank: "The worst rank for a single gameweek.",
   totalGKPoints: "Points from goalkeepers, including captaincy.",
   totalDEFPoints: "Points from defenders, including captaincy.",
   totalMIDPoints: "Points from midfielders, including captaincy.",
   totalFWDPoints: "Points from forwards, including captaincy.",
-  weeksAtTop: "Gameweeks spent in first place in this league.",
-  weeksAtBottom: "Gameweeks spent in last place in this league.",
-  gameweekWins: "Gameweeks with the highest score in this league, after hits. Ties count for everyone tied.",
-  bestLeaguePosition: "The highest position reached in this league.",
-  worstLeaguePosition: "The lowest position in this league.",
+  pointsOnBench: "Points left on the bench this season.",
+  biggestBenchedHaul: "The highest score by a single player left on the bench, with the player and gameweek.",
   favouriteClub: "The club whose players have filled the most squad places over the season, with its share of all squad places.",
   mostHeld: "The player who has been in the squad for the most gameweeks in total.",
   longestSquadStreak: "The longest unbroken run of gameweeks any player has spent in the squad. Being left out of a Free Hit squad does not break a run.",
@@ -200,56 +239,67 @@ const descriptions: Record<string, string> = {
   redCards: "Red cards received by players in the starting eleven.",
   ownGoals: "Own goals scored by players in the starting eleven.",
   penaltiesMissed: "Penalties missed by players in the starting eleven.",
+  overallRank: "The team's current overall rank among all FPL managers.",
+  bestOverallRank: "The best overall rank reached this season.",
+  worstOverallRank: "The worst overall rank this season.",
+  bestGameweekRank: "The best rank for a single gameweek among all FPL managers.",
+  worstGameweekRank: "The worst rank for a single gameweek among all FPL managers.",
 };
 
-const presets: Preset[] = [
+// Each group is both a heading in the column picker and a preset view.
+const groups: ColumnGroup[] = [
+  { name: "Standings", columns: ["rank", "totalPoints", "highestGameweekScore"] },
   {
-    name: "Default View",
-    columns: ["rank", "managerName", "teamName", "totalPoints", "eventTotal"],
+    name: "League race",
+    columns: ["weeksAtTop", "weeksAtBottom", "gameweekWins", "bestLeaguePosition", "worstLeaguePosition"],
   },
   {
-    name: "Transfers and Value",
-    columns: ["managerName", "totalTransfers", "transfersThisWeek", "totalTransferPointsDeducted", "teamValue", "bank"],
+    name: "Transfers and value",
+    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "bestTransfer", "worstTransfer", "teamValue", "bank"],
   },
   {
-    name: "Chips Usage",
-    columns: ["managerName", "wildcardsUsed", "tripleCaptain", "benchBoost", "freeHit", "chipPointsGained"],
+    name: "Chips",
+    columns: ["wildcardsUsed", "tripleCaptain", "benchBoost", "freeHit", "chipsUsed", "chipPointsGained"],
   },
   {
     name: "Captaincy",
-    columns: ["managerName", "captain", "viceCaptain", "mostCaptained", "captainDiversity", "totalCaptainPoints", "captainPointsPercentage"],
+    columns: ["totalCaptainPoints", "captainPointsPercentage", "captaincyPointsLost", "perfectCaptainWeeks", "mostCaptained", "captainDiversity"],
   },
   {
-    name: "Rankings",
-    columns: ["managerName", "overallRank", "bestOverallRank", "worstOverallRank", "bestGameweekRank", "worstGameweekRank"],
+    name: "Points breakdown",
+    columns: ["totalGKPoints", "totalDEFPoints", "totalMIDPoints", "totalFWDPoints", "pointsOnBench", "biggestBenchedHaul"],
   },
   {
-    name: "Points Distribution",
-    columns: ["managerName", "totalGKPoints", "totalDEFPoints", "totalMIDPoints", "totalFWDPoints", "pointsOnBench", "totalPoints"],
+    name: "Squad habits",
+    columns: ["favouriteClub", "mostHeld", "longestSquadStreak", "longestServingStarter"],
   },
+  { name: "Mishaps", columns: ["yellowCards", "redCards", "ownGoals", "penaltiesMissed"] },
   {
-    name: "League History",
-    columns: ["managerName", "rank", "weeksAtTop", "weeksAtBottom", "gameweekWins", "bestLeaguePosition", "worstLeaguePosition", "highestGameweekScore"],
+    name: "Overall ranks",
+    columns: ["overallRank", "bestOverallRank", "worstOverallRank", "bestGameweekRank", "worstGameweekRank"],
   },
-  {
-    name: "Squad Habits",
-    columns: ["managerName", "favouriteClub", "mostHeld", "longestSquadStreak", "longestServingStarter", "mostCaptained", "captainDiversity", "totalTransfers"],
-  },
-  {
-    name: "Cards and Mishaps",
-    columns: ["managerName", "yellowCards", "redCards", "ownGoals", "penaltiesMissed", "pointsOnBench", "totalTransferPointsDeducted"],
-  },
+];
+
+const presets: Preset[] = [
+  ...groups.map((group) => ({
+    name: group.name,
+    columns:
+      group.name === "Standings"
+        ? ["rank", "managerName", "teamName", "totalPoints", "highestGameweekScore"]
+        : ["teamName", ...group.columns],
+  })),
   { name: "All Columns" },
 ];
 
-export default function TeamStatisticsTable({ stats }: { stats: TeamStats[] }) {
+export default function SeasonStatisticsTable({ stats }: { stats: TeamStats[] }) {
   return (
     <DataTable
       data={stats}
       columns={columns}
       presets={presets}
+      groups={groups}
       descriptions={descriptions}
-      initialPreset="Default View"
+      initialPreset="Standings"
     />
   );
 }

@@ -1,6 +1,6 @@
 // src/lib/stats/playerStats.ts
-// Per-player statistics for the players owned in a league, computed from a
-// league snapshot. Pure functions: no fetching.
+// Per-player statistics in the context of a league (the Scout table),
+// computed from a league snapshot. Pure functions: no fetching.
 
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, PositionId } from "@/lib/fpl/types";
 
@@ -41,8 +41,9 @@ const POSITION_NAMES: Record<PositionId, string> = {
 };
 
 /**
- * Stats for every player owned by at least one manager in the current gameweek.
- * Returns an empty list before the season's first deadline.
+ * Stats for every player in the game, with this league's ownership in the
+ * current gameweek. Players nobody in the league owns are included with zero
+ * owners. Returns an empty list before the season's first deadline.
  */
 export function computePlayerStats(snapshot: LeagueSnapshot): PlayerStats[] {
   const { currentGw, bootstrap, league } = snapshot;
@@ -79,6 +80,12 @@ export function computePlayerStats(snapshot: LeagueSnapshot): PlayerStats[] {
       if (multiplier > 0) tally.starting++;
       if (role === PICK_CAPTAIN) tally.captain++;
       if (role === PICK_VICE) tally.vice++;
+    }
+  }
+
+  for (const player of bootstrap.players) {
+    if (!tallies.has(player.id)) {
+      tallies.set(player.id, { owners: [], starting: 0, multiplierSum: 0, captain: 0, vice: 0 });
     }
   }
 
