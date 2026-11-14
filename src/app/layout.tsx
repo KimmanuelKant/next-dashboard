@@ -20,6 +20,9 @@ export const metadata: Metadata = {
     description,
     images: [PREVIEW_IMAGE],
   },
+  // Shows the preview image large on X. Title, text and image are taken from
+  // the Open Graph values above.
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
