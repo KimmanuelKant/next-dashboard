@@ -405,6 +405,18 @@ describe("computeGameweekStats", () => {
     expect(ann.leagueGameweekRank).toBe(1);
     expect(bo.leagueGameweekRank).toBe(2);
     expect(ann.positionChange).toBe(0);
+    expect(ann.positionTied).toBe(false);
+  });
+
+  it("marks teams level on points, where one moves up and none moves down", () => {
+    // Cy was third and has drawn level with Bo: FPL ranks both second.
+    const level = snapshot();
+    level.league.managers[2] = { ...level.league.managers[2], rank: 2, lastRank: 3 };
+    const [first, second, joint] = computeGameweekStats(level);
+    expect(first.positionTied).toBe(false);
+    expect([second.position, second.positionTied, second.positionChange]).toEqual([2, true, 0]);
+    expect([joint.position, joint.positionTied, joint.positionChange]).toEqual([2, true, 1]);
+    expect(computeTeamStats(level).map((team) => team.rankTied)).toEqual([false, true, true]);
   });
 
   it("handles a manager without a team this gameweek", () => {

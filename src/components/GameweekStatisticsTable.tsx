@@ -14,7 +14,13 @@ const formatNamed = (item: { name: string; count: number } | null) =>
   item ? `${item.name} (${item.count})` : "–";
 
 const columns = [
-  columnHelper.accessor("position", { id: "position", header: "Position" }),
+  columnHelper.accessor("position", {
+    id: "position",
+    header: "Position",
+    // "3=" for teams level on points. Without the mark, a team that draws
+    // level shows "Up 1" while every other row says "No change".
+    cell: ({ row }) => `${row.original.position}${row.original.positionTied ? "=" : ""}`,
+  }),
   columnHelper.accessor((row) => row.positionChange ?? 0, {
     id: "positionChange",
     header: "Change",
@@ -127,8 +133,8 @@ const columns = [
 ];
 
 const descriptions: Record<string, string> = {
-  position: "The team's position in this league now.",
-  positionChange: "Places gained or lost in this league since the previous gameweek.",
+  position: "The team's position in this league now. Teams level on points share a position, marked with =.",
+  positionChange: "Places gained or lost in this league since the previous gameweek. A team that draws level on points with the one above moves up, while the team it joins stays where it was.",
   teamName: "The name of the team.",
   managerName: "The name of the team manager.",
   score: "Points scored this gameweek, before transfer hits.",

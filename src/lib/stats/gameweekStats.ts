@@ -4,7 +4,7 @@
 
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types";
 import { reviewCaptaincy, topBenched } from "./decisions";
-import { chipLabel, NamedCount } from "./teamStats";
+import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
 
 export interface GameweekStats {
   teamId: number;
@@ -12,7 +12,13 @@ export interface GameweekStats {
   managerName: string;
   /** League position now. */
   position: number;
-  /** Places gained since last gameweek (negative = dropped); null if unknown. */
+  /** Another team in the league is level on points and has the same position. */
+  positionTied: boolean;
+  /**
+   * Places gained since last gameweek (negative = dropped); null if unknown.
+   * The changes in a league need not cancel out: a team that draws level with
+   * the one above gains a place, and the team it joins stays where it was.
+   */
   positionChange: number | null;
   /** Gameweek points before transfer hits. */
   score: number;
@@ -61,6 +67,7 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
     (id != null && players.get(id)?.name) || "";
   const points = snapshot.points[gw] ?? {};
   const earlierGws = snapshot.gameweekIds.filter((id) => id < gw).reverse();
+  const tied = sharedRanks(snapshot.league.managers);
 
   const rows = snapshot.league.managers.map((manager): GameweekStats => {
     const team = snapshot.picks[gw]?.[manager.entryId] ?? null;
@@ -103,6 +110,7 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
       teamName: manager.teamName,
       managerName: manager.managerName,
       position: manager.rank,
+      positionTied: tied.has(manager.rank),
       positionChange: manager.lastRank > 0 ? manager.lastRank - manager.rank : null,
       score,
       hit,

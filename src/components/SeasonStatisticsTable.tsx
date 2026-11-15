@@ -24,7 +24,12 @@ const formatLabelled = (item: LabelledValue | null, signed = false) =>
   item ? `${signed ? formatSigned(item.value) : item.value} (${item.label})` : "–";
 
 const columns = [
-  columnHelper.accessor("rank", { id: "rank", header: "Rank" }),
+  columnHelper.accessor("rank", {
+    id: "rank",
+    header: "Rank",
+    // "3=" for teams level on points, as in the gameweek table.
+    cell: ({ row }) => `${row.original.rank}${row.original.rankTied ? "=" : ""}`,
+  }),
   columnHelper.accessor("managerName", { id: "managerName", header: "Manager Name" }),
   columnHelper.accessor("teamName", { id: "teamName", header: "Team Name" }),
   columnHelper.accessor("teamId", { id: "teamId", header: "Team ID" }),
@@ -211,7 +216,7 @@ const columns = [
 ];
 
 const descriptions: Record<string, string> = {
-  rank: "The manager's rank within the league.",
+  rank: "The manager's rank within the league. Teams level on points share a rank, marked with =.",
   managerName: "The name of the team manager.",
   teamName: "The name of the team.",
   teamId: "The FPL ID of the team.",

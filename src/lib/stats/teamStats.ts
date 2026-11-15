@@ -25,6 +25,8 @@ export interface NamedCount {
 
 export interface TeamStats {
   rank: number;
+  /** Another team in the league is level on points and has the same rank. */
+  rankTied: boolean;
   managerName: string;
   teamName: string;
   teamId: number;
@@ -241,7 +243,24 @@ function maxOrNull(values: (number | null)[]): number | null {
   return valid.length ? Math.max(...valid) : null;
 }
 
+/**
+ * The ranks held by more than one manager. FPL gives teams that are level on
+ * points the same rank and skips the next one (1, 2, 3, 3, 5), so the tables
+ * mark these: otherwise a team can be seen to move up a place while no team
+ * moves down.
+ */
+export function sharedRanks(managers: { rank: number }[]): Set<number> {
+  const seen = new Set<number>();
+  const shared = new Set<number>();
+  for (const { rank } of managers) {
+    if (seen.has(rank)) shared.add(rank);
+    seen.add(rank);
+  }
+  return shared;
+}
+
 export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
+  const tied = sharedRanks(snapshot.league.managers);
   const players = new Map<number, Player>(
     snapshot.bootstrap.players.map((p) => [p.id, p])
   );
@@ -400,6 +419,7 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
 
     return {
       rank: manager.rank,
+      rankTied: tied.has(manager.rank),
       managerName: manager.managerName,
       teamName: manager.teamName,
       teamId: manager.entryId,
