@@ -2,8 +2,15 @@
 "use client";
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
+import { HighlightCard, toHighlight } from "@/components/Highlights";
 import { useMyTeamId } from "@/lib/myTeam";
-import type { ChipUse, LabelledValue, NamedCount, TeamStats } from "@/lib/stats/teamStats";
+import type {
+  ChipUse,
+  LabelledValue,
+  NamedCount,
+  SeasonHighlight,
+  TeamStats,
+} from "@/lib/stats/teamStats";
 
 const columnHelper = createColumnHelper<TeamStats>();
 
@@ -325,7 +332,7 @@ const shortHeaders: Record<string, string> = {
   worstGameweekRank: "Worst GW Rk",
 };
 
-// Each group is both a heading in the column picker and a preset view.
+// Each group is both a heading in the column picker and a view.
 const groups: ColumnGroup[] = [
   { name: "Standings", columns: ["rank", "totalPoints", "highestGameweekScore"] },
   {
@@ -359,18 +366,74 @@ const groups: ColumnGroup[] = [
   },
 ];
 
+// The view's button gets a shorter name than the group's heading where
+// needed, so that more views fit across a phone.
+const viewNames: Record<string, string> = {
+  "Transfers and value": "Transfers",
+  "Points breakdown": "Points",
+};
+
 const presets: Preset[] = [
   ...groups.map((group) => ({
-    name: group.name,
+    name: viewNames[group.name] ?? group.name,
     columns:
       group.name === "Standings"
         ? ["rank", "managerName", "teamName", "totalPoints", "highestGameweekScore"]
         : ["teamName", ...group.columns],
   })),
-  { name: "All Columns" },
+  { name: "All columns" },
 ];
 
-export default function SeasonStatisticsTable({ stats }: { stats: TeamStats[] }) {
+const points = (value: number) => `${value} pts`;
+
+// The card for each of the season's records. `view` must be the name of a
+// preset above. Titles are kept short enough for one line on a phone.
+const highlightCards: Record<SeasonHighlight["kind"], HighlightCard> = {
+  gameweekWins: {
+    title: "Most GW wins",
+    value: (value) => `${value} ${value === 1 ? "win" : "wins"}`,
+    view: "League race",
+    column: "gameweekWins",
+    desc: true,
+  },
+  highestScore: {
+    title: "Highest GW score",
+    value: points,
+    view: "Standings",
+    column: "highestGameweekScore",
+    desc: true,
+  },
+  transfers: {
+    title: "Best transfer gain",
+    value: (value) => `+${points(value)}`,
+    view: "Transfers",
+    column: "transferGainAfterHits",
+    desc: true,
+  },
+  captaincy: {
+    title: "Worst captaincy",
+    value: (value) => `${points(value)} lost`,
+    view: "Captaincy",
+    column: "captaincyPointsLost",
+    desc: true,
+  },
+  bench: { title: "Most left on bench", value: points, view: "Points", column: "pointsOnBench", desc: true },
+  yellowCards: {
+    title: "Most yellow cards",
+    value: (value) => `${value} ${value === 1 ? "card" : "cards"}`,
+    view: "Mishaps",
+    column: "yellowCards",
+    desc: true,
+  },
+};
+
+export default function SeasonStatisticsTable({
+  stats,
+  highlights,
+}: {
+  stats: TeamStats[];
+  highlights: SeasonHighlight[];
+}) {
   const myTeam = useMyTeamId();
   return (
     <DataTable
@@ -379,6 +442,7 @@ export default function SeasonStatisticsTable({ stats }: { stats: TeamStats[] })
       presets={presets}
       groups={groups}
       descriptions={descriptions}
+      highlights={highlights.map((record) => toHighlight(record, highlightCards[record.kind]))}
       initialPreset="Standings"
       shortHeaders={shortHeaders}
       stickyColumn="teamName"

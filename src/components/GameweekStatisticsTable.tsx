@@ -2,8 +2,9 @@
 "use client";
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
+import { HighlightCard, toHighlight } from "@/components/Highlights";
 import Narrow from "@/components/Narrow";
-import type { GameweekStats } from "@/lib/stats/gameweekStats";
+import type { GameweekHighlight, GameweekStats } from "@/lib/stats/gameweekStats";
 import { useMyTeamId } from "@/lib/myTeam";
 
 const columnHelper = createColumnHelper<GameweekStats>();
@@ -196,19 +197,57 @@ const groups: ColumnGroup[] = [
   { name: "Bench and best player", columns: ["benchPoints", "topBenched", "bestPlayer"] },
 ];
 
+// Each group is also a view. The view's button gets a shorter name than the
+// group's heading where needed, so that more views fit across a phone.
+const viewNames: Record<string, string> = {
+  "Transfers, chips and value": "Transfers",
+  "Bench and best player": "Bench",
+};
+
 const presets: Preset[] = [
   {
     name: "Overview",
     columns: ["position", "positionChange", "teamName", "netScore", "captain", "chip", "hit", "benchPoints"],
   },
   ...groups.map((group) => ({
-    name: group.name,
+    name: viewNames[group.name] ?? group.name,
     columns: ["teamName", ...group.columns],
   })),
-  { name: "All Columns" },
+  { name: "All columns" },
 ];
 
-export default function GameweekStatisticsTable({ stats }: { stats: GameweekStats[] }) {
+const points = (value: number) => `${value} pts`;
+
+// The card for each of the gameweek's records. `view` must be the name of a
+// preset above.
+const highlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
+  winner: { title: "Gameweek winner", value: points, view: "Scores", column: "netScore", desc: true },
+  climber: {
+    title: "Biggest climber",
+    value: (value) => `▲ Up ${value}`,
+    view: "Scores",
+    column: "positionChange",
+    desc: true,
+  },
+  captaincy: {
+    title: "Worst captain call",
+    value: (value) => `${points(value)} lost`,
+    view: "Captaincy",
+    column: "captaincyPointsLost",
+    desc: true,
+  },
+  bench: { title: "Most left on bench", value: points, view: "Bench", column: "benchPoints", desc: true },
+  hit: { title: "Biggest hit", value: (value) => `−${points(value)}`, view: "Scores", column: "hit", desc: true },
+  lowest: { title: "Lowest score", value: points, view: "Scores", column: "netScore", desc: false },
+};
+
+export default function GameweekStatisticsTable({
+  stats,
+  highlights,
+}: {
+  stats: GameweekStats[];
+  highlights: GameweekHighlight[];
+}) {
   const myTeam = useMyTeamId();
   return (
     <DataTable
@@ -217,6 +256,7 @@ export default function GameweekStatisticsTable({ stats }: { stats: GameweekStat
       presets={presets}
       groups={groups}
       descriptions={descriptions}
+      highlights={highlights.map((record) => toHighlight(record, highlightCards[record.kind]))}
       initialPreset="Overview"
       initialSorting={[{ id: "position", desc: false }]}
       shortHeaders={shortHeaders}

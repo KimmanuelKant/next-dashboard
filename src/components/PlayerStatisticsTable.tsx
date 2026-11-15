@@ -118,22 +118,22 @@ const presets: Preset[] = [
     columns: ["name", "club", "value", "gameweekPoints", "leagueOwnershipCount", "leagueOwnershipPercentage", "globalOwnershipPercentage", "ownershipDifference", "owners"],
   },
   {
-    name: "Ownership Overview",
+    name: "Ownership",
     columns: ["name", "leagueOwnershipCount", "leagueOwnershipPercentage", "leagueStartingCount", "effectiveOwnership", "globalOwnershipPercentage", "globalOwnershipCount"],
   },
   {
-    name: "Captaincy Overview",
+    name: "Captaincy",
     columns: ["name", "leagueCaptainCount", "leagueViceCaptainCount", "effectiveOwnership", "gameweekPoints"],
   },
   {
-    name: "Player Details",
+    name: "Player details",
     columns: ["name", "position", "club", "value", "totalPoints", "form"],
   },
   {
-    name: "Form and Points",
+    name: "Form and points",
     columns: ["name", "club", "position", "value", "form", "totalPoints", "gameweekPoints", "globalOwnershipPercentage", "leagueOwnershipCount"],
   },
-  { name: "All Columns" },
+  { name: "All columns" },
 ];
 
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];

@@ -13,8 +13,6 @@ team name where the league ID goes.
   the first screen.
 - League History chart on a phone: its own height and text size (it is drawn
   at a fixed size and scaled down), highlighting your team and the leader.
-- Highlights above each table (gameweek winner, most points on the bench,
-  best captain pick): easier to read on a phone than a wide table.
 
 ## Season: stats still to add, by group
 - Standings: gap to leader, form over the last 5 gameweeks.
@@ -40,7 +38,7 @@ team name where the league ID goes.
 
 ## Usability
 - Remember column choices in the browser.
-- Table state in the URL for sharing; CSV export.
+- Scout's filters in the URL (the view and sorting already are); CSV export.
 - Head-to-head leagues (only classic leagues are supported).
 
 ## Post-season screen

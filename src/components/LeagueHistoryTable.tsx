@@ -61,7 +61,7 @@ export default function LeagueHistoryTable({ history }: { history: LeagueHistory
 
     const presets: Preset[] = [
       { name: "League position", columns: ["teamName", ...positionIds] },
-      { name: "Gameweek score (after hits)", columns: ["teamName", ...scoreIds] },
+      { name: "Scores after hits", columns: ["teamName", ...scoreIds] },
       { name: "Summary", columns: ["teamName", "managerName", ...SUMMARY] },
     ];
     return { columns, presets };

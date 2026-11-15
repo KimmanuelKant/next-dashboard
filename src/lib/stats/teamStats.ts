@@ -12,6 +12,7 @@ import {
 } from "@/lib/fpl/types";
 import { computeLeagueHistory } from "./leagueHistory";
 import { reviewCaptaincy, topBenched } from "./decisions";
+import { teamRecord, TeamRecord } from "./records";
 
 export interface ChipUse {
   gw: number;
@@ -483,4 +484,22 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       totalSaleProfit: sales.reduce((sum, sale) => sum + sale.profit, 0) / 10,
     };
   });
+}
+
+/** One of the season's records, for the cards above the table. */
+export type SeasonHighlight = TeamRecord<
+  "gameweekWins" | "highestScore" | "transfers" | "captaincy" | "bench" | "yellowCards"
+>;
+
+/** The season's records. A record nobody holds is left out. */
+export function computeSeasonHighlights(rows: TeamStats[]): SeasonHighlight[] {
+  return [
+    teamRecord("gameweekWins", rows, (row) => row.gameweekWins, 1),
+    teamRecord("highestScore", rows, (row) => row.highestGameweekScore, 1),
+    // Only a gain is a record: with every team at a loss, nobody's transfers were "best".
+    teamRecord("transfers", rows, (row) => row.transferGainAfterHits, 1),
+    teamRecord("captaincy", rows, (row) => row.captaincyPointsLost, 1),
+    teamRecord("bench", rows, (row) => row.pointsOnBench, 1),
+    teamRecord("yellowCards", rows, (row) => row.yellowCards, 1),
+  ].filter((record) => record !== null);
 }

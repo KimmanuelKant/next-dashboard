@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import GameweekStatisticsTable from "@/components/GameweekStatisticsTable";
 import LeagueNotices from "@/components/LeagueNotices";
 import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
-import { computeGameweekStats } from "@/lib/stats/gameweekStats";
+import { computeGameweekHighlights, computeGameweekStats } from "@/lib/stats/gameweekStats";
 
 // Errors thrown here are caught by the ErrorBoundary in the page.
 export default async function LeagueGameweekStats({ leagueId }: { leagueId: string }) {
@@ -13,6 +13,7 @@ export default async function LeagueGameweekStats({ leagueId }: { leagueId: stri
     notFound();
   }
   const gameweek = snapshot.bootstrap.gameweeks.find((g) => g.id === snapshot.currentGw);
+  const stats = computeGameweekStats(snapshot);
 
   return (
     <>
@@ -23,7 +24,7 @@ export default async function LeagueGameweekStats({ leagueId }: { leagueId: stri
           {gameweek.finished ? ", final scores." : ", in progress. Scores can still change."}
         </p>
       )}
-      <GameweekStatisticsTable stats={computeGameweekStats(snapshot)} />
+      <GameweekStatisticsTable stats={stats} highlights={computeGameweekHighlights(stats)} />
     </>
   );
 }

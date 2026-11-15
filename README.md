@@ -62,6 +62,13 @@ component (`LeagueTeamStats`), which loads the snapshot, computes the rows
 views. The `awards`, `player` and `team` routes under the dashboard only
 redirect from old addresses.
 
+The Gameweek and Season tabs open with highlight cards (gameweek winner, worst
+captain call, most yellow cards). `src/lib/stats/records.ts` finds who holds
+each record; the table definition says what its card reads and which view it
+opens. Every table keeps its view and sorting in the page address
+(`?view=mishaps&sort=-yellowCards`, see `src/lib/tableUrl.ts`), so a link to a
+particular table can be shared.
+
 Every table is computed from one **league snapshot** (standings, each manager's
 history, each manager's squad per gameweek, player points per gameweek). To add
 a statistic, write a pure function over the snapshot in `src/lib/stats/` and a

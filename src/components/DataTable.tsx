@@ -1,6 +1,6 @@
 // src/components/DataTable.tsx
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Cell,
   ColumnDef,
@@ -11,9 +11,12 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useSearchParams } from "next/navigation";
 import { Dropdown, DropdownButton, Form, Modal, OverlayTrigger, Popover } from "react-bootstrap";
 import { InfoCircle, InfoCircleFill } from "react-bootstrap-icons";
+import Highlights, { Highlight } from "@/components/Highlights";
 import Narrow from "@/components/Narrow";
+import { decodeSorting, encodeSorting, viewSlug, withTableState } from "@/lib/tableUrl";
 
 export interface ColumnGroup {
   name: string;
@@ -21,6 +24,11 @@ export interface ColumnGroup {
 }
 
 export interface Preset {
+  /**
+   * Shown on the view's button, so keep it short. Also the view's name in
+   * the page address ("League race" is ?view=league-race): renaming a view
+   * breaks links to it, which then open the default view.
+   */
   name: string;
   /** Column ids to show. Omit to show every column. */
   columns?: string[];
@@ -35,9 +43,11 @@ interface DataTableProps<T> {
   descriptions: Record<string, string>;
   /** Column id -> header used on phone-width screens, where the full one is too wide. */
   shortHeaders?: Record<string, string>;
-  /** Name of the preset applied on first render. */
+  /** Name of the preset applied on first render, unless the address names another. */
   initialPreset: string;
   initialSorting?: SortingState;
+  /** Cards shown above the table. Selecting one opens its view and sorting. */
+  highlights?: Highlight[];
   /** Headings for the column picker. Columns in no group are listed first. */
   groups?: ColumnGroup[];
   /** Hide the per-column picker (for tables whose presets cover every useful view). */
@@ -209,6 +219,7 @@ export default function DataTable<T>({
   shortHeaders = {},
   initialPreset,
   initialSorting = [],
+  highlights,
   groups,
   hideColumnPicker = false,
   emptyMessage = "Nothing to show.",
@@ -218,22 +229,79 @@ export default function DataTable<T>({
   highlightRow,
   detailNoun,
 }: DataTableProps<T>) {
-  const [presetName, setPresetName] = useState(initialPreset);
+  // The address can name the view and sorting to open with (see tableUrl.ts).
+  // It is read once: after that the state below leads and the address follows.
+  const searchParams = useSearchParams();
+  const [presetName, setPresetName] = useState(() => {
+    const fromUrl = searchParams.get("view");
+    return presets.find((p) => viewSlug(p.name) === fromUrl)?.name ?? initialPreset;
+  });
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
-    visibilityFor(columns, presets.find((p) => p.name === initialPreset))
+    visibilityFor(columns, presets.find((p) => p.name === presetName))
   );
-  const [sorting, setSorting] = useState<SortingState>(initialSorting);
+  const [sorting, setSorting] = useState<SortingState>(
+    () =>
+      decodeSorting(
+        searchParams.get("sort"),
+        new Set(columns.map((column) => column.id as string))
+      ) ?? initialSorting
+  );
   // The row shown in the panel. Kept while the panel closes so it does not
   // empty mid-animation; `detailOpen` says whether it is showing.
   const [detail, setDetail] = useState<T | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Writes the view and sorting into the address. replaceState changes the
+  // address without asking the server for the page again, and without adding
+  // a history entry for every view the visitor looks at.
+  const writeUrl = (view: string, nextSorting: SortingState) => {
+    const query = withTableState(
+      window.location.search,
+      { view: viewSlug(view), sort: encodeSorting(nextSorting) },
+      { view: viewSlug(initialPreset), sort: encodeSorting(initialSorting) }
+    );
+    window.history.replaceState(null, "", window.location.pathname + query + window.location.hash);
+  };
+
+  // On phones the row of view buttons scrolls sideways, and a view opened from
+  // a highlight card or the address can be out of sight. Bring its button to
+  // the middle. Only the row is scrolled: scrollIntoView would move the page
+  // too, which on a page with a chart above the table means a jump on load.
+  const pillRow = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = pillRow.current;
+    const active = row?.querySelector('[aria-pressed="true"]');
+    if (row && active) {
+      const rowBox = row.getBoundingClientRect();
+      const activeBox = active.getBoundingClientRect();
+      row.scrollLeft += activeBox.left - rowBox.left - (rowBox.width - activeBox.width) / 2;
+    }
+  }, [presetName]);
+
+  const showView = (name: string, requestedSorting?: SortingState) => {
+    const preset = presets.find((p) => p.name === name);
+    // Without a requested sorting the current one stays, unless the new view
+    // hides its column: a table sorted by a column not on screen looks shuffled.
+    const stillShown = sorting.every(
+      ({ id }) => !preset?.columns || preset.columns.includes(id)
+    );
+    const nextSorting = requestedSorting ?? (stillShown ? sorting : initialSorting);
+    setPresetName(name);
+    setColumnVisibility(visibilityFor(columns, preset));
+    setSorting(nextSorting);
+    writeUrl(name, nextSorting);
+  };
 
   const table = useReactTable({
     data,
     columns,
     state: { columnVisibility, sorting },
     onColumnVisibilityChange: setColumnVisibility,
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      const nextSorting = typeof updater === "function" ? updater(sorting) : updater;
+      setSorting(nextSorting);
+      writeUrl(presetName, nextSorting);
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -293,26 +361,36 @@ export default function DataTable<T>({
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <DropdownButton
-          id="presetDropdown"
-          title={presetName || "Preset Views"}
-          size="sm"
-          variant="secondary"
+      {highlights && (
+        <Highlights items={highlights} onSelect={(item) => showView(item.preset, item.sorting)} />
+      )}
+
+      <div className="d-flex align-items-start gap-2 mb-3">
+        {/* Every view as a button, so none is hidden behind a menu. On phones
+            the row scrolls sideways; on wider screens it wraps. */}
+        <div
+          ref={pillRow}
+          className="view-pills d-flex flex-nowrap flex-sm-wrap flex-grow-1 gap-2 overflow-x-auto"
+          role="group"
+          aria-label="Views"
         >
-          {presets.map((preset) => (
-            <Dropdown.Item
-              key={preset.name}
-              active={preset.name === presetName}
-              onClick={() => {
-                setPresetName(preset.name);
-                setColumnVisibility(visibilityFor(columns, preset));
-              }}
-            >
-              {preset.name}
-            </Dropdown.Item>
-          ))}
-        </DropdownButton>
+          {presets.map((preset) => {
+            const active = preset.name === presetName;
+            return (
+              <button
+                key={preset.name}
+                type="button"
+                className={`btn btn-sm rounded-pill text-nowrap ${
+                  active ? "btn-primary" : "btn-outline-secondary btn-quiet"
+                }`}
+                aria-pressed={active}
+                onClick={() => showView(preset.name)}
+              >
+                {preset.name}
+              </button>
+            );
+          })}
+        </div>
 
         {!hideColumnPicker && (
         <DropdownButton
@@ -335,7 +413,10 @@ export default function DataTable<T>({
                   label={String(column.columnDef.header)}
                   checked={column.getIsVisible()}
                   onChange={(e) => {
+                    // A hand-picked set of columns is no view: no button is
+                    // lit, and the address names none.
                     setPresetName("");
+                    writeUrl("", sorting);
                     column.toggleVisibility(e.target.checked);
                   }}
                 />

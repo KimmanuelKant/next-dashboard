@@ -9,10 +9,16 @@ import {
   PICK_VICE,
   Player,
 } from "@/lib/fpl/types";
-import { computeSales, computeStreaks, computeTeamStats, effectiveCaptain } from "./teamStats";
+import {
+  computeSales,
+  computeSeasonHighlights,
+  computeStreaks,
+  computeTeamStats,
+  effectiveCaptain,
+} from "./teamStats";
 import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
-import { computeGameweekStats } from "./gameweekStats";
+import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
 import { reviewCaptaincy } from "./decisions";
 
 // Players 1-15: 1-2 goalkeepers, 3-7 defenders, 8-12 midfielders, 13-15 forwards.
@@ -429,6 +435,73 @@ describe("computeGameweekStats", () => {
 
   it("returns nothing before the season starts", () => {
     expect(computeGameweekStats({ ...snapshot(), currentGw: null })).toEqual([]);
+  });
+});
+
+describe("computeGameweekHighlights", () => {
+  const rows = computeGameweekStats(snapshot());
+  const [ann, bo, cy] = rows;
+
+  it("names the holder of each record, and every team that shares one", () => {
+    // Nobody climbed or took a hit, so those two records are left out.
+    expect(computeGameweekHighlights(rows)).toEqual([
+      { kind: "winner", teams: ["Ann FC"], value: 74 },
+      { kind: "captaincy", teams: ["Bo United"], value: 2 },
+      { kind: "bench", teams: ["Ann FC", "Bo United"], value: 3 },
+      { kind: "lowest", teams: ["Bo United"], value: 50 },
+    ]);
+  });
+
+  it("reports the biggest climb and the biggest hit when there is one", () => {
+    const highlights = computeGameweekHighlights([
+      ann,
+      { ...bo, positionChange: 2, hit: 8, netScore: 42 },
+    ]);
+    expect(highlights).toContainEqual({ kind: "climber", teams: ["Bo United"], value: 2 });
+    expect(highlights).toContainEqual({ kind: "hit", teams: ["Bo United"], value: 8 });
+  });
+
+  it("has no lowest score when every team scored the same", () => {
+    const kinds = computeGameweekHighlights([ann, { ...bo, netScore: ann.netScore }]).map(
+      (highlight) => highlight.kind
+    );
+    expect(kinds).toContain("winner");
+    expect(kinds).not.toContain("lowest");
+  });
+
+  it("gives no records to a manager without a team this gameweek", () => {
+    expect(computeGameweekHighlights([cy])).toEqual([]);
+  });
+});
+
+describe("computeSeasonHighlights", () => {
+  const rows = computeTeamStats(snapshot());
+
+  it("names the holder of each season record", () => {
+    expect(computeSeasonHighlights(rows)).toEqual([
+      // Ann had the top score in GW1 (alone in the league) and GW3; Bo in GW2.
+      { kind: "gameweekWins", teams: ["Ann FC"], value: 2 },
+      { kind: "highestScore", teams: ["Bo United"], value: 80 },
+      // Bo's one transfer, P13 out for P16, gained 3. Ann made none and paid a hit.
+      { kind: "transfers", teams: ["Bo United"], value: 3 },
+      // Ann lost 8 to her captain choices over the season, Bo 3.
+      { kind: "captaincy", teams: ["Ann FC"], value: 8 },
+      { kind: "bench", teams: ["Ann FC"], value: 9 },
+      { kind: "yellowCards", teams: ["Ann FC"], value: 1 },
+    ]);
+  });
+
+  it("leaves out a record nobody holds", () => {
+    const kinds = computeSeasonHighlights(
+      rows.map((row) => ({ ...row, transferGainAfterHits: -4, yellowCards: 0 }))
+    ).map((highlight) => highlight.kind);
+    expect(kinds).not.toContain("transfers");
+    expect(kinds).not.toContain("yellowCards");
+    expect(kinds).toContain("gameweekWins");
+  });
+
+  it("returns nothing for a league without teams", () => {
+    expect(computeSeasonHighlights([])).toEqual([]);
   });
 });
 

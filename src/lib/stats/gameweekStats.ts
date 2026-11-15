@@ -4,6 +4,7 @@
 
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types";
 import { reviewCaptaincy, topBenched } from "./decisions";
+import { teamRecord, TeamRecord } from "./records";
 import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
 
 export interface GameweekStats {
@@ -147,4 +148,28 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
       1 + ranked.filter((other) => other.netScore > row.netScore).length;
   }
   return rows;
+}
+
+/** One of the gameweek's records, for the cards above the table. */
+export type GameweekHighlight = TeamRecord<
+  "winner" | "climber" | "captaincy" | "bench" | "hit" | "lowest"
+>;
+
+/** The gameweek's records. A record nobody holds is left out. */
+export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighlight[] {
+  // A manager without a team this gameweek holds no records.
+  const played = rows.filter((row) => row.leagueGameweekRank !== null);
+  const winner = teamRecord("winner", played, (row) => row.netScore);
+  const lowest = teamRecord("lowest", played, (row) => -row.netScore);
+  return [
+    winner,
+    teamRecord("climber", played, (row) => row.positionChange ?? 0, 1),
+    teamRecord("captaincy", played, (row) => row.captaincyPointsLost, 1),
+    teamRecord("bench", played, (row) => row.benchPoints, 1),
+    teamRecord("hit", played, (row) => row.hit, 1),
+    // No lowest score when every team scored the same: they are all winners.
+    winner && lowest && -lowest.value < winner.value
+      ? { ...lowest, value: -lowest.value }
+      : null,
+  ].filter((record) => record !== null);
 }

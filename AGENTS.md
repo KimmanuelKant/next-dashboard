@@ -56,6 +56,16 @@ fetching:
    entry in `shortHeaders` (the header on phones), and its place in `groups`
    or `presets`.
 
+A preset's name is the text on its button and its name in the page address
+(`?view=league-race`). Keep it short, and avoid renaming one: links to the
+old name then open the default view.
+
+The Gameweek and Season tabs show highlight cards above the table. To add
+one, add the record to `computeGameweekHighlights()` or
+`computeSeasonHighlights()` with `teamRecord()`, and its card to
+`highlightCards` in the table file. Six cards fill three rows on a phone;
+replace one before adding a seventh.
+
 ## FPL API and caching
 
 - `fplGet()` in `src/lib/fpl/http.ts` is the only code that calls the FPL
