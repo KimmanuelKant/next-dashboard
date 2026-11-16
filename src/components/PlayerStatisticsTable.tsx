@@ -150,6 +150,10 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
   const [maxOwners, setMaxOwners] = useState("");
   // "owned" | "unowned" | "" (everyone). Owned first: that is the league's picture.
   const [ownership, setOwnership] = useState("owned");
+  // On phones only the search box shows until the visitor asks for the rest:
+  // seven stacked filters would push the table off the first screen.
+  const [showFilters, setShowFilters] = useState(false);
+  const foldable = showFilters ? "" : " d-none d-sm-block";
 
   const clubs = useMemo(() => uniqueSorted(players.map((p) => p.club)), [players]);
   const owners = useMemo(
@@ -177,6 +181,10 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
   const isFiltered = Boolean(
     search || position || club || owner || maxPrice || maxOwners || ownership !== "owned"
   );
+  // Filters in use that a phone hides behind the button, shown on it as a count.
+  const foldedFilterCount = [position, club, owner, maxPrice, maxOwners, ownership !== "owned"].filter(
+    Boolean
+  ).length;
   const clearFilters = () => {
     setSearch("");
     setPosition("");
@@ -189,8 +197,8 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
 
   return (
     <>
-      <div className="row g-2 align-items-end mb-3">
-        <div className="col-12 col-sm-6 col-lg-2">
+      <div id="playerFilters" className="row g-2 align-items-end mb-3">
+        <div className="col col-sm-6 col-lg-2">
           <Form.Label htmlFor="playerSearch" className="small mb-1">
             Search player
           </Form.Label>
@@ -203,7 +211,20 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="col-6 col-sm-3 col-lg-1">
+        <div className="col-auto d-sm-none">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary btn-quiet"
+            aria-expanded={showFilters}
+            aria-controls="playerFilters"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            Filters{foldedFilterCount > 0 && ` (${foldedFilterCount})`}
+          </button>
+        </div>
+        {/* On phones the search box and the button keep a row to themselves. */}
+        <div className="w-100 mt-0 d-sm-none" />
+        <div className={`col-6 col-sm-3 col-lg-1${foldable}`}>
           <Form.Label htmlFor="positionFilter" className="small mb-1">
             Position
           </Form.Label>
@@ -221,7 +242,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             ))}
           </Form.Select>
         </div>
-        <div className="col-6 col-sm-3 col-lg-2">
+        <div className={`col-6 col-sm-3 col-lg-2${foldable}`}>
           <Form.Label htmlFor="clubFilter" className="small mb-1">
             Club
           </Form.Label>
@@ -239,7 +260,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             ))}
           </Form.Select>
         </div>
-        <div className="col-6 col-sm-6 col-lg-2">
+        <div className={`col-6 col-sm-6 col-lg-2${foldable}`}>
           <Form.Label htmlFor="ownershipFilter" className="small mb-1">
             In this league
           </Form.Label>
@@ -257,7 +278,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             <option value="">All players</option>
           </Form.Select>
         </div>
-        <div className="col-6 col-sm-6 col-lg-2">
+        <div className={`col-6 col-sm-6 col-lg-2${foldable}`}>
           <Form.Label htmlFor="ownerFilter" className="small mb-1">
             Owned by
           </Form.Label>
@@ -276,7 +297,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             ))}
           </Form.Select>
         </div>
-        <div className="col-6 col-sm-3 col-lg-1">
+        <div className={`col-6 col-sm-3 col-lg-1${foldable}`}>
           <Form.Label htmlFor="maxPriceFilter" className="small mb-1">
             Max price
           </Form.Label>
@@ -291,7 +312,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             onChange={(e) => setMaxPrice(e.target.value)}
           />
         </div>
-        <div className="col-6 col-sm-3 col-lg-1">
+        <div className={`col-6 col-sm-3 col-lg-1${foldable}`}>
           <Form.Label htmlFor="maxOwnersFilter" className="small mb-1">
             Max owners
           </Form.Label>
@@ -306,7 +327,7 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
             onChange={(e) => setMaxOwners(e.target.value)}
           />
         </div>
-        <div className="col-12 col-lg-1">
+        <div className={`col-12 col-lg-1${foldable}`}>
           <button
             type="button"
             className="btn btn-sm btn-outline-secondary w-100"
@@ -318,7 +339,9 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
         </div>
       </div>
       <p className="text-secondary small mb-2" aria-live="polite">
-{filtered.length} of {players.length} players
+        {filtered.length} of {players.length} players
+        {ownership === "owned" && " (owned in this league)"}
+        {ownership === "unowned" && " (not owned in this league)"}
       </p>
 
       <DataTable

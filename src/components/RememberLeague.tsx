@@ -1,5 +1,6 @@
 // src/components/RememberLeague.tsx
 "use client";
+import Narrow from "@/components/Narrow";
 import { forgetLeague, rememberLeague, useRememberedLeague } from "@/lib/rememberedLeague";
 import { useTeamParam } from "@/lib/myTeam";
 
@@ -31,7 +32,8 @@ export default function RememberLeague({
         }}
       />
       <label htmlFor="rememberLeague" className="form-check-label">
-        Remember this league on this device
+        {/* Short on phones, so the tick box and the links beside it fit one line. */}
+        <Narrow short="Remember league">Remember this league on this device</Narrow>
       </label>
     </div>
   );
