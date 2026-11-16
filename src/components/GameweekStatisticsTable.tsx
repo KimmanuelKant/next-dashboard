@@ -3,6 +3,7 @@
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
 import { HighlightCard, toHighlight } from "@/components/Highlights";
+import MyTeamButton from "@/components/MyTeamButton";
 import Narrow from "@/components/Narrow";
 import type { GameweekHighlight, GameweekStats } from "@/lib/stats/gameweekStats";
 import { useMyTeamId } from "@/lib/myTeam";
@@ -134,7 +135,7 @@ const columns = [
 ];
 
 const descriptions: Record<string, string> = {
-  position: "The team's position in this league now. Teams level on points share a position, marked with =.",
+  position: "The team's position in this league after this gameweek. Teams level on points share a position, marked with =.",
   positionChange: "Places gained or lost in this league since the previous gameweek. A team that draws level on points with the one above moves up, while the team it joins stays where it was.",
   teamName: "The name of the team.",
   managerName: "The name of the team manager.",
@@ -143,7 +144,7 @@ const descriptions: Record<string, string> = {
   netScore: "Points scored this gameweek after transfer hits.",
   leagueGameweekRank: "Where this gameweek's score (after hits) ranks within the league.",
   gameweekRank: "Where this gameweek's score ranks among all FPL managers.",
-  overallRank: "The team's overall rank among all FPL managers.",
+  overallRank: "The team's overall rank among all FPL managers after this gameweek.",
   captain: "The player chosen as captain.",
   viceCaptain: "The player chosen as vice captain.",
   captainPoints: "Points from the armband this gameweek, including the multiplier. The vice captain's if the captain did not play.",
@@ -153,8 +154,8 @@ const descriptions: Record<string, string> = {
   transfers: "Transfers made for this gameweek.",
   teamValue: "Squad value including money in the bank.",
   valueChange: "How much the squad value (including the bank) went up or down since the previous gameweek.",
-  playersIn: "Players in the squad now who were not in it last gameweek. After a Free Hit, the comparison is with the squad before it.",
-  playersOut: "Players who were in the squad last gameweek and are not now.",
+  playersIn: "Players in the squad this gameweek who were not in it the gameweek before. After a Free Hit, the comparison is with the squad before it.",
+  playersOut: "Players who were in the squad the gameweek before and are not in it this gameweek.",
   benchPoints: "Points left on the bench this gameweek.",
   topBenched: "The highest-scoring player left on the bench, with their points.",
   bestPlayer: "The player who contributed the most points, including any captaincy multiplier.",
@@ -244,9 +245,11 @@ const highlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
 export default function GameweekStatisticsTable({
   stats,
   highlights,
+  leagueName,
 }: {
   stats: GameweekStats[];
   highlights: GameweekHighlight[];
+  leagueName: string;
 }) {
   const myTeam = useMyTeamId();
   return (
@@ -264,6 +267,10 @@ export default function GameweekStatisticsTable({
       subtitleColumn="managerName"
       wrapColumns={["playersIn", "playersOut"]}
       detailNoun="team"
+      detailHint={
+        myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined
+      }
+      detailAction={(row) => <MyTeamButton teamId={row.teamId} leagueName={leagueName} />}
       highlightRow={(row) => row.teamId === myTeam}
     />
   );

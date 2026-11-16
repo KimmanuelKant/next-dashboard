@@ -1,7 +1,7 @@
 // src/components/HomePage.tsx
 // The front page: the league and team ID boxes and how to find the IDs.
 "use client";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from 'next/image';
 import Link from "next/link";
@@ -14,6 +14,10 @@ export default function HomePage() {
   const [leagueId, setLeagueId] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+  // Opening a league or a team waits for FPL before any of the new page can
+  // be drawn. Until then the pressed button shows that it is working.
+  const [openingLeague, startOpeningLeague] = useTransition();
+  const [openingTeam, startOpeningTeam] = useTransition();
 
   const remembered = useRememberedLeague();
   const [teamId, setTeamId] = useState("");
@@ -25,13 +29,13 @@ export default function HomePage() {
     const parsed = parseLeagueId(leagueId);
     if (parsed) {
       setError("");
-      router.push(`/dashboard/${parsed}/gameweek`);
+      startOpeningLeague(() => router.push(`/dashboard/${parsed}/gameweek`));
       return;
     }
     const team = parseTeamUrl(leagueId);
     if (team) {
       setError("");
-      router.push(`/team/${team}`);
+      startOpeningLeague(() => router.push(`/team/${team}`));
       return;
     }
     setError("Enter the league number, or paste the league URL from the FPL site.");
@@ -42,13 +46,13 @@ export default function HomePage() {
     const parsed = parseTeamId(teamId);
     if (parsed) {
       setTeamError("");
-      router.push(`/team/${parsed}`);
+      startOpeningTeam(() => router.push(`/team/${parsed}`));
       return;
     }
     const league = parseLeagueUrl(teamId);
     if (league) {
       setTeamError("");
-      router.push(`/dashboard/${league}/gameweek`);
+      startOpeningTeam(() => router.push(`/dashboard/${league}/gameweek`));
       return;
     }
     setTeamError("Enter the team number, or paste your team URL from the FPL site.");
@@ -114,7 +118,10 @@ export default function HomePage() {
                     value={leagueId}
                     onChange={(e) => setLeagueId(e.target.value)}
                   />
-                  <button type="submit" className="btn btn-primary">
+                  <button type="submit" className="btn btn-primary" disabled={openingLeague}>
+                    {openingLeague && (
+                      <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />
+                    )}
                     Go to Dashboard
                   </button>
                 </div>
@@ -140,7 +147,10 @@ export default function HomePage() {
                     value={teamId}
                     onChange={(e) => setTeamId(e.target.value)}
                   />
-                  <button type="submit" className="btn btn-outline-primary">
+                  <button type="submit" className="btn btn-outline-primary" disabled={openingTeam}>
+                    {openingTeam && (
+                      <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />
+                    )}
                     Find my leagues
                   </button>
                 </div>

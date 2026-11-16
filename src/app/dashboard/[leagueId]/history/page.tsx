@@ -2,6 +2,7 @@
 import LeagueHistoryView from "@/components/LeagueHistoryView";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import Loading from "@/components/Loading";
 
 export const metadata = { title: "League History" };
 
@@ -14,7 +15,7 @@ export default async function HistoryPage({
 
   return (
     <ErrorBoundary what="league history">
-      <Suspense fallback={<div>Loading league history...</div>}>
+      <Suspense fallback={<Loading what="league history" />}>
         <LeagueHistoryView leagueId={leagueId} />
       </Suspense>
     </ErrorBoundary>

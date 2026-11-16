@@ -1,9 +1,10 @@
 // src/lib/stats/gameweekStats.ts
-// Per-manager statistics for the current gameweek only. Season-long stats
-// live in teamStats.ts.
+// Per-manager statistics for one gameweek: the current one, or an earlier
+// one the visitor has gone back to. Season-long stats live in teamStats.ts.
 
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types";
 import { reviewCaptaincy, topBenched } from "./decisions";
+import { computeLeagueHistory } from "./leagueHistory";
 import { teamRecord, TeamRecord } from "./records";
 import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
 
@@ -11,7 +12,7 @@ export interface GameweekStats {
   teamId: number;
   teamName: string;
   managerName: string;
-  /** League position now. */
+  /** League position after this gameweek. */
   position: number;
   /** Another team in the league is level on points and has the same position. */
   positionTied: boolean;
@@ -55,12 +56,70 @@ export interface GameweekStats {
   bestPlayer: NamedCount | null;
 }
 
-/** One row per manager for the current gameweek; empty before the season starts. */
-export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] {
-  const gw = snapshot.currentGw;
-  if (gw === null) {
+interface Standing {
+  position: number;
+  tied: boolean;
+  /** Places gained since the gameweek before; null if unknown. */
+  change: number | null;
+}
+
+/**
+ * Each manager's league position after a gameweek, by team ID. For the
+ * current gameweek these are FPL's own standings. FPL does not keep the
+ * standings of earlier gameweeks, so those are worked out from the managers'
+ * running totals, as on the League History tab. A manager who had not joined
+ * the game by then has no standing.
+ */
+function standingsAfter(snapshot: LeagueSnapshot, gw: number): Map<number, Standing> {
+  const standings = new Map<number, Standing>();
+  if (gw === snapshot.currentGw) {
+    const tied = sharedRanks(snapshot.league.managers);
+    for (const manager of snapshot.league.managers) {
+      standings.set(manager.entryId, {
+        position: manager.rank,
+        tied: tied.has(manager.rank),
+        change: manager.lastRank > 0 ? manager.lastRank - manager.rank : null,
+      });
+    }
+    return standings;
+  }
+
+  const history = computeLeagueHistory(snapshot);
+  const index = history.gameweeks.indexOf(gw);
+  const tied = sharedRanks(
+    history.rows.flatMap((row) => {
+      const rank = row.positions[index];
+      return rank == null ? [] : [{ rank }];
+    })
+  );
+  for (const row of history.rows) {
+    const position = row.positions[index];
+    if (position == null) continue;
+    const before = index > 0 ? row.positions[index - 1] : null;
+    standings.set(row.teamId, {
+      position,
+      tied: tied.has(position),
+      change: before == null ? null : before - position,
+    });
+  }
+  return standings;
+}
+
+/**
+ * One row per manager for a gameweek: the current one unless another is
+ * asked for. Empty before the season starts, and for a gameweek that has not
+ * been played.
+ */
+export function computeGameweekStats(
+  snapshot: LeagueSnapshot,
+  gameweek: number | null = snapshot.currentGw
+): GameweekStats[] {
+  if (gameweek === null || !snapshot.gameweekIds.includes(gameweek)) {
     return [];
   }
+  const gw = gameweek;
+  const isCurrent = gw === snapshot.currentGw;
+  const standings = standingsAfter(snapshot, gw);
   const players = new Map<number, Player>(
     snapshot.bootstrap.players.map((p) => [p.id, p])
   );
@@ -68,14 +127,18 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
     (id != null && players.get(id)?.name) || "";
   const points = snapshot.points[gw] ?? {};
   const earlierGws = snapshot.gameweekIds.filter((id) => id < gw).reverse();
-  const tied = sharedRanks(snapshot.league.managers);
 
-  const rows = snapshot.league.managers.map((manager): GameweekStats => {
+  const rows = snapshot.league.managers.flatMap((manager): GameweekStats[] => {
+    const standing = standings.get(manager.entryId);
+    if (!standing) {
+      return [];
+    }
     const team = snapshot.picks[gw]?.[manager.entryId] ?? null;
     const weeks = snapshot.histories[manager.entryId]?.gameweeks ?? [];
     const week = weeks.find((w) => w.gw === gw);
     const previousWeek = [...weeks].reverse().find((w) => w.gw < gw);
-    const score = week?.points ?? manager.eventTotal;
+    // The standings carry the score of the current gameweek only.
+    const score = week?.points ?? (isCurrent ? manager.eventTotal : 0);
     const hit = week?.transfersCost ?? 0;
 
     // Squad changes: compare with the last earlier squad that was not a
@@ -106,13 +169,13 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
     const armbandMultiplier =
       team?.picks.find((p) => p[0] === review?.armbandId)?.[1] ?? 0;
 
-    return {
+    return [{
       teamId: manager.entryId,
       teamName: manager.teamName,
       managerName: manager.managerName,
-      position: manager.rank,
-      positionTied: tied.has(manager.rank),
-      positionChange: manager.lastRank > 0 ? manager.lastRank - manager.rank : null,
+      position: standing.position,
+      positionTied: standing.tied,
+      positionChange: standing.change,
       score,
       hit,
       netScore: score - hit,
@@ -138,7 +201,7 @@ export function computeGameweekStats(snapshot: LeagueSnapshot): GameweekStats[] 
         ? { name: name(benched[0]) || "Unknown", count: benched[1] }
         : null,
       bestPlayer,
-    };
+    }];
   });
 
   // Only managers who had a team this gameweek are ranked.

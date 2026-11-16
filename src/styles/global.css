@@ -177,6 +177,20 @@ summary.detail-stat::-webkit-details-marker {
   opacity: 0.75;
 }
 
+/* The second line of a loading message. It fades in after four seconds, so
+   it is seen only when loading is slow: on a quick load it would only
+   flicker. It takes up its space from the start, so nothing moves. */
+.loading-slow {
+  opacity: 0;
+  animation: loading-slow-in 0.3s 4s forwards;
+}
+
+@keyframes loading-slow-in {
+  to {
+    opacity: 1;
+  }
+}
+
 /* Stacked layout (phones, tablets): keep the logo small so the ID boxes are
    on the first screen. */
 @media (max-width: 991.98px) {

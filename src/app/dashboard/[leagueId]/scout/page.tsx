@@ -2,6 +2,7 @@
 import LeaguePlayerStats from "@/components/LeaguePlayerStats";
 import { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import Loading from "@/components/Loading";
 
 export const metadata = { title: "Scout" };
 
@@ -14,7 +15,7 @@ export default async function ScoutPage({
 
   return (
     <ErrorBoundary what="the scout table">
-      <Suspense fallback={<div>Loading scout table...</div>}>
+      <Suspense fallback={<Loading what="the scout table" />}>
         <LeaguePlayerStats leagueId={leagueId} />
       </Suspense>
     </ErrorBoundary>

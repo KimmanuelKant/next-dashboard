@@ -438,6 +438,38 @@ describe("computeGameweekStats", () => {
   });
 });
 
+describe("computeGameweekStats for an earlier gameweek", () => {
+  it("reports that gameweek's scores, teams and chips", () => {
+    const [ann, bo] = computeGameweekStats(snapshot(), 2);
+    expect([ann.score, ann.hit, ann.netScore]).toEqual([60, 4, 56]);
+    expect([ann.captain, ann.chip]).toEqual(["P13", null]);
+    expect([bo.netScore, bo.captain, bo.chip]).toEqual([80, "P14", "Bench Boost"]);
+    expect([bo.leagueGameweekRank, ann.leagueGameweekRank]).toEqual([1, 2]);
+  });
+
+  it("works out the league positions from the running totals", () => {
+    // After GW2 Bo led with 130 to Ann's 126. Ann had been first after GW1,
+    // when she was alone in the league; Bo has no earlier position to compare.
+    const [ann, bo] = computeGameweekStats(snapshot(), 2);
+    expect([bo.position, bo.positionChange]).toEqual([1, null]);
+    expect([ann.position, ann.positionChange, ann.positionTied]).toEqual([2, -1, false]);
+  });
+
+  it("leaves out managers who had not joined yet", () => {
+    const rows = computeGameweekStats(snapshot(), 1);
+    expect(rows.map((row) => row.teamName)).toEqual(["Ann FC"]);
+    expect([rows[0].position, rows[0].positionChange, rows[0].chip]).toEqual([
+      1,
+      null,
+      "Triple Captain",
+    ]);
+  });
+
+  it("returns nothing for a gameweek that has not been played", () => {
+    expect(computeGameweekStats(snapshot(), 9)).toEqual([]);
+  });
+});
+
 describe("computeGameweekHighlights", () => {
   const rows = computeGameweekStats(snapshot());
   const [ann, bo, cy] = rows;

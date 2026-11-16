@@ -8,7 +8,8 @@ and get sortable, customisable tables the official site does not offer:
   Built for finding differentials and making informed transfers.
   Filter by name, position, club, owner, price and number of owners.
 - **This Gameweek**: each manager's score, captain, chip, transfers in and
-  out, bench, and points lost to the captaincy choice.
+  out, bench, and points lost to the captaincy choice. Earlier gameweeks can
+  be opened as well.
 - **Season**: per-manager transfers, hits, chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.
@@ -67,7 +68,13 @@ captain call, most yellow cards). `src/lib/stats/records.ts` finds who holds
 each record; the table definition says what its card reads and which view it
 opens. Every table keeps its view and sorting in the page address
 (`?view=mishaps&sort=-yellowCards`, see `src/lib/tableUrl.ts`), so a link to a
-particular table can be shared.
+particular table can be shared; the Share link at the top of a league does
+that. The Gameweek tab also takes `?gw=7` for an earlier gameweek.
+
+A visitor's own team is highlighted on every tab. It is known from the
+address (`?team=`) when they came in with a team ID, or from the "This is my
+team" button in a team's panel, which also remembers the league in the
+browser.
 
 Every table is computed from one **league snapshot** (standings, each manager's
 history, each manager's squad per gameweek, player points per gameweek). To add

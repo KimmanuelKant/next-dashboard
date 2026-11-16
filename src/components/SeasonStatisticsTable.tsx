@@ -3,6 +3,7 @@
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
 import { HighlightCard, toHighlight } from "@/components/Highlights";
+import MyTeamButton from "@/components/MyTeamButton";
 import { useMyTeamId } from "@/lib/myTeam";
 import type {
   ChipUse,
@@ -430,9 +431,11 @@ const highlightCards: Record<SeasonHighlight["kind"], HighlightCard> = {
 export default function SeasonStatisticsTable({
   stats,
   highlights,
+  leagueName,
 }: {
   stats: TeamStats[];
   highlights: SeasonHighlight[];
+  leagueName: string;
 }) {
   const myTeam = useMyTeamId();
   return (
@@ -449,6 +452,10 @@ export default function SeasonStatisticsTable({
       subtitleColumn="managerName"
       wrapColumns={["bestTransfer", "worstTransfer", "biggestProfitSale", "chipsUsed"]}
       detailNoun="team"
+      detailHint={
+        myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined
+      }
+      detailAction={(row) => <MyTeamButton teamId={row.teamId} leagueName={leagueName} />}
       highlightRow={(row) => row.teamId === myTeam}
     />
   );

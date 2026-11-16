@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import DashboardNav from "@/components/DashboardNav";
 import RememberLeague from "@/components/RememberLeague";
+import ShareButton from "@/components/ShareButton";
 import { isValidLeagueId } from "@/lib/leagueId";
 import { getLeague } from "@/lib/fpl/sources";
 import { PREVIEW_IMAGE, SITE_NAME } from "@/lib/site";
@@ -72,7 +73,11 @@ export default async function DashboardLayout({
           <Suspense>
             <RememberLeague leagueId={leagueId} leagueName={title} />
           </Suspense>
-          <Link href="/">Change league</Link>
+          {/* Kept together, so that on a phone they share one line. */}
+          <div className="d-flex align-items-center column-gap-3 text-nowrap">
+            <ShareButton />
+            <Link href="/">Change league</Link>
+          </div>
         </div>
       </div>
       <Suspense>

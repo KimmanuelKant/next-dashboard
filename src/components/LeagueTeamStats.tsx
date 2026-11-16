@@ -17,7 +17,11 @@ export default async function LeagueTeamStats({ leagueId }: { leagueId: string }
   return (
     <>
       <LeagueNotices snapshot={snapshot} />
-      <SeasonStatisticsTable stats={stats} highlights={computeSeasonHighlights(stats)} />
+      <SeasonStatisticsTable
+        stats={stats}
+        highlights={computeSeasonHighlights(stats)}
+        leagueName={snapshot.league.name}
+      />
     </>
   );
 }

@@ -73,6 +73,10 @@ interface DataTableProps<T> {
    * panel listing every column for it, top to bottom.
    */
   detailNoun?: string;
+  /** The line above the table saying rows can be selected, when the default wording will not do. */
+  detailHint?: string;
+  /** A control shown at the top of a row's panel, such as "This is my team". */
+  detailAction?: (row: T) => React.ReactNode;
 }
 
 /**
@@ -115,6 +119,7 @@ function RowDetail<T>({
   show,
   title,
   subtitle,
+  action,
   sections,
   descriptions,
   position,
@@ -125,6 +130,7 @@ function RowDetail<T>({
   show: boolean;
   title: React.ReactNode;
   subtitle: React.ReactNode;
+  action: React.ReactNode;
   sections: DetailSection<T>[];
   descriptions: Record<string, string>;
   /** Index of the row in the table's current order. */
@@ -142,6 +148,7 @@ function RowDetail<T>({
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        {action && <div className="mb-3">{action}</div>}
         {sections.map((section) => (
           <section key={section.name || "ungrouped"} className="mb-3">
             {section.name && <h3 className="detail-heading">{section.name}</h3>}
@@ -228,6 +235,8 @@ export default function DataTable<T>({
   wrapColumns = [],
   highlightRow,
   detailNoun,
+  detailHint,
+  detailAction,
 }: DataTableProps<T>) {
   // The address can name the view and sorting to open with (see tableUrl.ts).
   // It is read once: after that the state below leads and the address follows.
@@ -450,7 +459,7 @@ export default function DataTable<T>({
 
       {detailNoun && data.length > 0 && (
         <p className="text-secondary small mb-2">
-          Select a {detailNoun} to see the full list of stats.
+          {detailHint ?? `Select a ${detailNoun} to see the full list of stats.`}
         </p>
       )}
 
@@ -577,6 +586,7 @@ export default function DataTable<T>({
           show={detailOpen && detailIndex >= 0}
           title={detailTitle ? renderCell(detailTitle) : null}
           subtitle={detailSubtitle ? renderCell(detailSubtitle) : null}
+          action={detailAction && detailIndex >= 0 ? detailAction(rows[detailIndex].original) : null}
           sections={detailSections}
           descriptions={descriptions}
           position={detailIndex}

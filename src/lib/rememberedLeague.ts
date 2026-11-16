@@ -1,7 +1,8 @@
 // src/lib/rememberedLeague.ts
 // The league a visitor asked the site to remember, kept in the browser's
 // localStorage. It is written only when the visitor ticks "Remember this
-// league", and it is never sent to the server.
+// league" or marks a team in the league as their own, and it is never sent
+// to the server.
 import { useSyncExternalStore } from "react";
 
 const KEY = "myfpl.league";
