@@ -37,7 +37,8 @@ npm run build
 Requires Node 20.9 or newer.
 
 `AGENTS.md` holds the project's rules for AI coding agents, and `.mcp.json`
-connects them to the running dev server.
+connects them to the running dev server and to Vercel (deployments, logs and
+Web Analytics; sign in once with `/mcp` in Claude Code).
 
 ## How it works
 

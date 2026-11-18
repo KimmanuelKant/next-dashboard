@@ -1,8 +1,18 @@
 // src/lib/site.ts
-// Shared values for page titles and link previews.
+// Shared values for page titles, link previews and search engines.
 
 export const SITE_NAME = "MyFPL.net";
 export const SITE_URL = "https://www.myfpl.net";
+
+/**
+ * The front page's title and description, which search results show. They
+ * lead with the words people search for ("FPL mini-league stats",
+ * "differentials"). The title stays under about 60 characters and the
+ * description under about 160, the lengths Google shows before cutting off.
+ */
+export const SITE_TITLE = "FPL Mini-League Stats and Differentials | MyFPL.net";
+export const SITE_DESCRIPTION =
+  "Free Fantasy Premier League mini-league stats: find differentials, see who owns whom, compare captains, chips and transfers, and chart your league's race.";
 
 /**
  * Image shown when a link to the site is shared: the logo on the site's dark

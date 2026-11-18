@@ -6,14 +6,14 @@ import type { Metadata } from "next";
 // ("/dashboard/[leagueId]/season"), so Vercel can count a tab's visits
 // across all leagues instead of listing every league as a page of its own.
 import { Analytics } from "@vercel/analytics/next";
-import { PREVIEW_IMAGE, SITE_NAME, SITE_URL } from "@/lib/site";
+import { PREVIEW_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
-const title = "MyFPL.net | Fantasy Premier League Minileague Dashboard";
-const description =
-  "Fantasy Premier League Minileague Dashboard. Enter your League ID to access your personalized dashboard with customizable tables, charts, and statistics.";
+const title = SITE_TITLE;
+const description = SITE_DESCRIPTION;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title,
   description,
   openGraph: {

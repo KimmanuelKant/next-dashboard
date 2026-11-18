@@ -26,6 +26,21 @@ layout of the code ("How it works"); read it first. `TODO.md` is the backlog.
   is not needed to find out whether the code compiles. `.mcp.json` starts it
   through `cmd /c`, which Windows needs; on other systems the command is
   `npx -y next-devtools-mcp@latest`.
+- `.mcp.json` also connects Vercel's MCP server (`https://mcp.vercel.com`).
+  It needs a one-time sign-in: run `/mcp` in Claude Code and authenticate
+  `vercel`. Use it to read deployment status and build logs after a push,
+  and Web Analytics (visitors, referrers, routes) when judging a change to
+  the front page or to search. It acts with the user's Vercel account:
+  read freely, but do not deploy, change settings or environment variables
+  through it without being asked.
+
+## Search engines
+
+Only the front page is indexed (league and team pages are closed in
+`robots.ts`, see below). Its title and description are `SITE_TITLE` and
+`SITE_DESCRIPTION` in `src/lib/site.ts`; `HomeFeatures` is the text below
+the first screen that search engines read, and `src/app/page.tsx` holds the
+structured data. Keep the first screen for the ID boxes.
 
 ## Constraints
 
