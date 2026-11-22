@@ -1,54 +1,213 @@
-/* src/styles/global.css - Dark Mode */
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  background-color: #121212; /* Dark background */
-  color: #e0e0e0; /* Light text */
+/* src/styles/global.css
+   Bootstrap's dark theme (data-bs-theme="dark" on <html>) handles colours,
+   tables and buttons. Keep only site-specific tweaks here. */
+
+/* Long column pickers scroll inside the menu instead of running off the page. */
+#columnVisibilityDropdown + .dropdown-menu {
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+/* The name column stays in view while a wide table scrolls sideways. */
+.table-responsive .sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
 }
 
-th,
-td {
-  border: 1px solid #444444; /* Dark border for table cells */
-  padding: 8px;
-  text-align: left;
+/* Cell borders scroll away under a pinned cell; draw its right edge here. */
+.table-responsive .sticky-col::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background: var(--bs-border-color);
 }
 
-th {
-  background-color: #1e1e1e; /* Darker background for table headers */
-  color: #ffffff; /* White text for headers */
+/* <Narrow>: the short version on phone-width screens, the full one elsewhere. */
+.narrow-short {
+  display: none;
 }
 
-tbody tr:nth-child(even) {
-  background-color: #2a2a2a; /* Darker rows for even rows */
+@media (max-width: 575.98px) {
+  .narrow-short {
+    display: inline;
+  }
+
+  .narrow-full {
+    display: none;
+  }
 }
 
-tbody tr:nth-child(odd) {
-  background-color: #1e1e1e; /* Lighter rows for odd rows */
+/* Phone-width tables: smaller type, and a long name must not take the whole
+   screen width. */
+@media (max-width: 575.98px) {
+  .table-responsive > .table {
+    font-size: 0.875rem;
+  }
+
+  .table-responsive td.sticky-col {
+    max-width: 42vw;
+  }
+
+  /* One line per row, so rows are the same height and easy to scan. A table
+     wider than the screen would otherwise wrap every cell at each space. */
+  .table-responsive td {
+    white-space: nowrap;
+  }
+
+  /* Lists and long text wrap, but not down to one word per line. */
+  .table-responsive td.cell-wrap {
+    min-width: 9rem;
+    white-space: normal;
+  }
+
+  .sticky-name,
+  .sticky-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
-h1,
-h2 {
-  color: #ffffff; /* White text for headers */
+/* Second line of the name cell on phones (the manager under the team). */
+.sticky-sub {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--bs-secondary-color);
 }
 
-a {
-  color: #bb86fc; /* Accent color for links */
+/* Short phone headers are abbreviations; no dotted underline or help cursor. */
+th abbr[title] {
+  text-decoration: none;
+  cursor: inherit;
 }
 
-button {
-  background-color: #333333; /* Dark background for buttons */
-  color: #e0e0e0; /* Light text */
-  padding: 10px 20px;
-  border: none;
+/* Rows that open the panel listing all of a row's stats. */
+tr.row-clickable {
   cursor: pointer;
 }
 
-button:hover {
-  background-color: #444444; /* Slightly lighter on hover */
+/* The name in such a row: a button that looks like the plain name. */
+.row-open {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.row-open .sticky-name {
+  min-width: 0;
+}
+
+/* One stat in the panel: label on the left, value on the right. */
+.detail-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+summary.detail-stat {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary.detail-stat::-webkit-details-marker {
+  display: none;
+}
+
+.detail-value {
+  max-width: 60%;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* The panel has room for the full text at any width. */
+.detail-value .narrow-short {
+  display: none;
+}
+
+.detail-value .narrow-full {
+  display: inline;
+}
+
+.detail-heading {
+  margin: 0;
+  padding-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* View buttons and highlight cards: outlined, with text as bright as body
+   text. Bootstrap's outline-secondary alone is too dim on the dark theme for
+   labels people have to read. */
+.btn-quiet {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-border-color: var(--bs-border-color);
+}
+
+/* The row of view buttons scrolls sideways on phones, which clips whatever
+   sticks out of it. The padding leaves room for a button's focus ring; the
+   margin keeps the row lined up with the table. */
+.view-pills {
+  margin: -0.25rem;
+  padding: 0.25rem;
+}
+
+/* A highlight card's heading: the same small capitals as the panel's. */
+.highlight-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* The second line of a loading message. It fades in after four seconds, so
+   it is seen only when loading is slow: on a quick load it would only
+   flicker. It takes up its space from the start, so nothing moves. */
+.loading-slow {
+  opacity: 0;
+  animation: loading-slow-in 0.3s 4s forwards;
+}
+
+@keyframes loading-slow-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Stacked layout (phones, tablets): keep the logo small so the ID boxes are
+   on the first screen. */
+@media (max-width: 991.98px) {
+  .home-logo {
+    width: auto;
+    max-height: 140px;
+  }
+}
+
+/* The visitor's own team. */
+tr.my-team > * {
+  --bs-table-bg-state: rgba(var(--bs-primary-rgb), 0.3);
+  font-weight: 600;
+}
+
+th[data-sortable="true"] {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
 }

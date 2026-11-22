@@ -1,20 +1,12 @@
 // src/app/dashboard/[leagueId]/team/page.tsx
-import LeagueTeamStats from "@/components/LeagueTeamStats";
-import { Suspense } from "react";
-import ErrorBoundary from "@/components/ErrorBoundary";
+// Old address of the season table; kept so existing links and bookmarks work.
+import { redirect } from "next/navigation";
 
-type PageProps = {
+export default async function TeamPage({
+  params,
+}: {
   params: Promise<{ leagueId: string }>;
-};
-
-export default async function TeamPage({ params }: PageProps) {
+}) {
   const { leagueId } = await params;
-
-  return (
-    <ErrorBoundary>
-      <Suspense fallback={<div>Loading team statistics...</div>}>
-        <LeagueTeamStats leagueId={leagueId} />
-      </Suspense>
-    </ErrorBoundary>
-  );
+  redirect(`/dashboard/${encodeURIComponent(leagueId)}/season`);
 }

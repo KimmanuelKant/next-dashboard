@@ -26,7 +26,7 @@ export interface FplPick {
 }
 
 export interface FplEntryEventPicks {
-  active_chip: null; // always null based on the schema
+  active_chip: string | null; // e.g. "bboost", "3xc", "freehit", "wildcard"
   automatic_subs: unknown[]; // no structure given, so unknown[]
   entry_history: FplEntryEventHistory;
   picks: FplPick[];

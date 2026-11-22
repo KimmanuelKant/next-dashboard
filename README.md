@@ -1,59 +1,92 @@
-# Fantasy Premier League Dashboard
+# MyFPL.net
 
-## Overview
+A dashboard for Fantasy Premier League mini-leagues. Enter a classic league ID
+and get sortable, customisable tables the official site does not offer:
 
-The **FPL-Dashboard** is a web application built using **Next.js** with **App Router**, **Server-Side Rendering (SSR)**, and **TanStack Table**. The application is designed to help users track their Fantasy Premier League mini-leagues, providing rich statistics and insights on team performances compared to their league rivals-
+- **Scout**: every player, owned in the league or not, with league vs
+  global ownership, effective ownership, captaincy counts and who owns whom.
+  Built for finding differentials and making informed transfers.
+  Filter by name, position, club, owner, price and number of owners.
+- **This Gameweek**: each manager's score, captain, chip, transfers in and
+  out, bench, and points lost to the captaincy choice. Earlier gameweeks can
+  be opened as well.
+- **Season**: per-manager transfers, hits, chips, captaincy, ranks,
+  points by position, weeks at the top and bottom, favourite club,
+  most-held player and squad streaks, cards and own goals.
+- **League History**: a chart and table of every team's league position and
+  score, gameweek by gameweek.
 
-## Features
+Leagues of up to 100 teams are loaded in full; larger leagues show the top 100.
 
-- **Team Statistics**: Display customizable comprehensive statistics for teams in a given league. The table currently allows you choose which columns to hide and show. 
-- **Player Statistics**: isplay customizable comprehensive statistics for players selected in a given league.
-- **Awards**: Not Yet Started: Weekly updated awards based on team preformance 
-- **Chat**: Not Yet Started: The plan is to have a messaging board for the league. not a 
+## Stack
 
+Next.js (App Router) on Vercel, React, TanStack Table, Bootstrap. Data comes
+from the public Fantasy Premier League API. There is no database and no login.
 
-## Technologies Used
+## Running locally
 
-- **Next.js**: A React-based framework for server-side rendering and static site generation.
-- **TanStack Table**: A table component library for managing and displaying large datasets.
-- **Bootstrap**: Provides a clean, responsive design for the user interface. Should be improved, but i'm lazy for now.
-- **Fantasy Premier League API**: Data is fetched from the official FPL Website to ensure accuracy.
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm run check    # type check, lint and tests in one go
+npm test         # unit tests for the statistics
+npm run lint
+npm run build
+```
 
-## Installation
+Requires Node 20.9 or newer.
 
-To run the application locally:
+`AGENTS.md` holds the project's rules for AI coding agents, and `.mcp.json`
+connects them to the running dev server and to Vercel (deployments, logs and
+Web Analytics; sign in once with `/mcp` in Claude Code).
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/kimmanuelkant/fpl-dashboard.git
-    ```
-2. Navigate to the project directory:
-    ```bash
-    cd fpl-dashboard
-    ```
-3. Install dependencies:
-    ```bash
-    npm install
-    ```
-4. Start the development server:
-    ```bash
-    npm run dev
-    ```
+## How it works
 
-Visit `http://localhost:3000` in your browser to view the app.
+```
+src/lib/fpl/http.ts       FPL API access: concurrency limit and retries
+src/lib/fpl/sources.ts    Fetch, trim and cache each kind of FPL data
+src/lib/fpl/types.ts      The trimmed shapes, including LeagueSnapshot
+src/lib/fpl/snapshot.ts   getLeagueSnapshot(): everything known about a league
+src/lib/stats/            Pure functions that turn a snapshot into table rows
+src/types/fpl/            Shapes of the raw FPL API responses
+src/components/           DataTable (shared), one table definition per tab,
+                          and the League History chart
+src/app/page.tsx          Front page: the league ID and team ID boxes
+src/app/team/[teamId]/    A team's leagues, for visitors who only know
+                          their team ID
+src/app/dashboard/[leagueId]/   The tabs: gameweek, season, scout, history
+```
 
-## Usage
+A tab is three small pieces. The route (`season/page.tsx`) renders a server
+component (`LeagueTeamStats`), which loads the snapshot, computes the rows
+(`computeTeamStats`) and hands them to a table definition
+(`SeasonStatisticsTable`): the columns, their explanations and the preset
+views. The `awards`, `player` and `team` routes under the dashboard only
+redirect from old addresses.
 
-1. Enter your Fantasy Premier League **League ID** on the homepage to view the league's dashboard.
-2. Use the navigation tabs to toggle between **Team Statistics** and **Player Statistics**. In the future it'll also have **Awards** and **Chat**.
-3. Tables are interactive, allowing you to filter data based on your preferences.
+The Gameweek and Season tabs open with highlight cards (gameweek winner, worst
+captain call, most yellow cards). `src/lib/stats/records.ts` finds who holds
+each record; the table definition says what its card reads and which view it
+opens. Every table keeps its view and sorting in the page address
+(`?view=mishaps&sort=-yellowCards`, see `src/lib/tableUrl.ts`), so a link to a
+particular table can be shared; the Share link at the top of a league does
+that. The Gameweek tab also takes `?gw=7` for an earlier gameweek.
 
-## Future Plans
+A visitor's own team is highlighted on every tab. It is known from the
+address (`?team=`) when they came in with a team ID, or from the "This is my
+team" button in a team's panel, which also remembers the league in the
+browser.
 
-Adding new features, such as:
+Every table is computed from one **league snapshot** (standings, each manager's
+history, each manager's squad per gameweek, player points per gameweek). To add
+a statistic, write a pure function over the snapshot in `src/lib/stats/` and a
+column for it; no new fetching is needed.
 
-- **Awards and Badges**: Showcase achievements and awards for top-performing managers last week.
-- **Chat**: A place to communicate with others in your mini-league.
-- **Caching Implementation**: Introduce a caching layer to optimize API calls and performance.
-- **Log In**: Make an account and log in, to get a dropdown menu so you can toggle between all your leagues, and save custom presets.
-- **UI/UX**: Improve the user experience. Especially on mobile.
+### Caching
+
+Finished gameweeks never change, so their squads and points are cached without
+expiry, one small entry per league per gameweek. Standings, histories and the
+gameweek in progress are cached for a few minutes. Raw FPL responses are never
+cached, only the trimmed data. A failed FPL request is never cached.
+
+League IDs are reused by FPL each season, so cache keys include the season.
