@@ -66,6 +66,30 @@ export interface GameweekStats {
   topBenched: NamedCount | null;
   /** The player who contributed the most points, including any multiplier. */
   bestPlayer: NamedCount | null;
+  /**
+   * Starters who played, whose matches are over, and who scored 2 points or
+   * fewer (with provisional bonus while the gameweek is played).
+   */
+  blanks: string[];
+  /**
+   * Starters who did not play and whom no substitute replaced, so their
+   * place scored nothing. Empty when FPL has sent no minutes.
+   */
+  notReplaced: string[];
+  /**
+   * Cards, own goals and missed penalties of the players who count, one
+   * entry per player: "Saka (yellow card, missed penalty)".
+   */
+  mishaps: string[];
+  /** How many cards, own goals and missed penalties those are. */
+  mishapCount: number;
+
+  /** Season total after this gameweek; the projected total while it is played. */
+  total: number | null;
+  /** Points behind the league's leader on that total (0 for the leader). */
+  gapToLeader: number | null;
+  /** Points behind the nearest team above on that total; null for the teams at the top. */
+  gapToAbove: number | null;
 
   // The live projection, for the current gameweek while it is being played.
   // Null (or empty) for a gameweek FPL has finished.
@@ -80,6 +104,10 @@ export interface GameweekStats {
   automaticSubPoints: number | null;
   /** Players who count and whose club still has a match to finish. */
   playersLeft: number | null;
+  /** The same players counted with their multipliers: the captain twice, or three times. */
+  multipliedLeft: number | null;
+  /** The player with the armband is among them. */
+  captainLeft: boolean;
   /** Their names, in pitch order; "(C)" marks the one with the armband. */
   stillToPlay: string[];
   /** Gameweek score after hits, with provisional bonus and automatic substitutions. */
@@ -145,6 +173,11 @@ function standingsAfter(snapshot: LeagueSnapshot, gw: number): Map<number, Stand
   return standings;
 }
 
+/** "own goal", "2 own goals", or nothing at all for none. */
+function plural(count: number, one: string, many = `${one}s`): string[] {
+  return count === 0 ? [] : count === 1 ? [one] : [`${count} ${many}`];
+}
+
 /**
  * One row per manager for a gameweek: the current one unless another is
  * asked for. Empty before the season starts, and for a gameweek that has not
@@ -176,6 +209,15 @@ export function computeGameweekStats(
         )
       : null;
   const earlierGws = snapshot.gameweekIds.filter((id) => id < gw).reverse();
+  // Only players who played are listed, so with no minutes at all (before
+  // the first kick-off, or a gameweek FPL sent none for) nobody can be said
+  // not to have played.
+  const minutes = snapshot.minutes[gw] ?? {};
+  const minutesKnown = Object.keys(minutes).length > 0;
+  const played = (id: number) => (minutes[id] ?? 0) > 0;
+  // A player's matches are over: always so in a finished gameweek.
+  const done = (id: number) => !live || !live.stillToPlay(id);
+  const incidents = snapshot.incidents[gw] ?? {};
   // Each team's total before this gameweek; null if it had none.
   const totalsBefore = new Map<number, number | null>();
 
@@ -202,6 +244,7 @@ export function computeGameweekStats(
     const totalBefore =
       previousWeek?.totalPoints ??
       (weeks.length === 0 ? manager.total - manager.eventTotal + hit : 0);
+    const projectedTotal = projectedScore === null ? null : totalBefore + projectedScore;
     // A team that started this gameweek had no position before it. Without
     // a history, the standings say whether it had one.
     const hadPositionBefore =
@@ -253,6 +296,43 @@ export function computeGameweekStats(
     const viceStepIn =
       vice !== undefined && (vice[1] >= 2 || projection?.armbandTo === vice[0]);
 
+    // The players who count: after the projected substitutions while the
+    // gameweek is played, otherwise as FPL's picks have them.
+    const multipliers =
+      projection?.multipliers ??
+      new Map<number, number>((team?.picks ?? []).map(([id, multiplier]) => [id, multiplier]));
+    const counting = (team?.picks ?? [])
+      .map(([id]) => id)
+      .filter((id) => (multipliers.get(id) ?? 0) > 0);
+    const blanks = counting.filter((id) => played(id) && done(id) && liveScore(id) <= 2);
+    // Once FPL has made its automatic substitutions, the picks show the
+    // substitute in the starter's place, so the eleven as first picked is
+    // lost; what is left is a starter no substitute could replace. While the
+    // gameweek is played the picks are the original ones, and the projection
+    // says who is replaced; nobody is counted as not replaced while a
+    // substitute may still play.
+    const replaced = new Set((projection?.subs ?? []).map(([, playerOut]) => playerOut));
+    const benchSettled = !projection || projection.bench.every(done);
+    const starters = team ? (team.chip === "bboost" ? team.picks : team.picks.slice(0, 11)) : [];
+    const notReplaced =
+      minutesKnown && benchSettled
+        ? starters.flatMap(([id]) => (!played(id) && done(id) && !replaced.has(id) ? [id] : []))
+        : [];
+    const mishaps: string[] = [];
+    let mishapCount = 0;
+    for (const id of counting) {
+      const [yellow, red, ownGoals, penaltiesMissed] = incidents[id] ?? [0, 0, 0, 0];
+      const what = [
+        ...plural(yellow, "yellow card"),
+        ...plural(red, "red card"),
+        ...plural(ownGoals, "own goal"),
+        ...plural(penaltiesMissed, "missed penalty", "missed penalties"),
+      ];
+      if (what.length === 0) continue;
+      mishaps.push(`${name(id) || "Unknown"} (${what.join(", ")})`);
+      mishapCount += yellow + red + ownGoals + penaltiesMissed;
+    }
+
     return [{
       teamId: manager.entryId,
       teamName: manager.teamName,
@@ -287,6 +367,13 @@ export function computeGameweekStats(
         ? { name: name(benched[0]) || "Unknown", count: benched[1] }
         : null,
       bestPlayer,
+      blanks: blanks.map((id) => name(id) || "Unknown"),
+      notReplaced: notReplaced.map((id) => name(id) || "Unknown"),
+      mishaps,
+      mishapCount,
+      total: projectedTotal ?? week?.totalPoints ?? (isCurrent ? manager.total : null),
+      gapToLeader: null, // filled in below
+      gapToAbove: null, // filled in below
       provisionalBonus: live ? projection?.bonus ?? 0 : null,
       automaticSubs: [
         ...(projection?.subs ?? []).map(
@@ -303,11 +390,19 @@ export function computeGameweekStats(
         ? 0
         : null,
       playersLeft: live ? projection?.playersLeft ?? 0 : null,
+      multipliedLeft: live
+        ? (projection?.left ?? []).reduce(
+            (count, id) => count + (projection?.multipliers.get(id) ?? 0),
+            0
+          )
+        : null,
+      captainLeft:
+        projection?.armband != null && projection.left.includes(projection.armband),
       stillToPlay: (projection?.left ?? []).map(
         (id) => `${name(id) || "Unknown"}${id === projection?.armband ? " (C)" : ""}`
       ),
       projectedScore,
-      projectedTotal: projectedScore === null ? null : totalBefore + projectedScore,
+      projectedTotal,
       projectedPosition: null, // filled in below
       projectedPositionTied: false,
       projectedPositionChange: null, // filled in below
@@ -329,6 +424,16 @@ export function computeGameweekStats(
       const positionBefore = 1 + before.filter((other) => other > totalBefore).length;
       row.projectedPositionChange = positionBefore - row.projectedPosition;
     }
+  }
+
+  // Gaps on the total after the gameweek (projected while it is played).
+  const knownTotals = rows.flatMap((row) => (row.total === null ? [] : [row.total]));
+  for (const row of rows) {
+    const total = row.total;
+    if (total === null) continue;
+    row.gapToLeader = Math.max(...knownTotals) - total;
+    const above = knownTotals.filter((other) => other > total);
+    row.gapToAbove = above.length > 0 ? Math.min(...above) - total : null;
   }
 
   // Only managers who had a team this gameweek are ranked and averaged.

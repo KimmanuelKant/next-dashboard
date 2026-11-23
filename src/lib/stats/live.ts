@@ -100,6 +100,8 @@ export interface TeamProjection {
   bench: number[];
   /** The player whose points are multiplied after the substitutions; null if none. */
   armband: number | null;
+  /** Each pick's multiplier after the substitutions and the armband passing: 0 for the bench. */
+  multipliers: Map<number, number>;
 }
 
 /** True when the eleven is a formation FPL allows: at least three defenders and a forward. */
@@ -196,5 +198,6 @@ export function projectTeam(team: ManagerGameweek, live: LiveGameweek): TeamProj
     left,
     bench: order.filter((id) => !counted(id)),
     armband: order.find((id) => (multiplier.get(id) ?? 0) >= 2) ?? null,
+    multipliers: multiplier,
   };
 }

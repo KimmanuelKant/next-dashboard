@@ -249,6 +249,10 @@ describe("computeTeamStats", () => {
     expect(ann.teamValue).toBe(100.4);
     expect(ann.bank).toBe(0.5);
   });
+
+  it("measures each team's gap to the leader", () => {
+    expect(computeTeamStats(snapshot()).map((team) => team.gapToLeader)).toEqual([0, 100, 200]);
+  });
 });
 
 describe("league history and squad habits", () => {
@@ -433,6 +437,36 @@ describe("computeGameweekStats", () => {
 
   it("leaves the projected position change out of a finished gameweek", () => {
     expect(ann.projectedPositionChange).toBeNull();
+  });
+
+  it("measures the gap to the leader and to the team above on the total", () => {
+    // Totals 200, 180 and 0 (Cy has no history; the standings say 0).
+    expect([ann.total, bo.total, cy.total]).toEqual([200, 180, 0]);
+    expect([ann.gapToLeader, bo.gapToLeader, cy.gapToLeader]).toEqual([0, 20, 200]);
+    expect([ann.gapToAbove, bo.gapToAbove, cy.gapToAbove]).toEqual([null, 20, 180]);
+    // After GW2 Bo led Ann 130 to 126.
+    const [annThen, boThen] = computeGameweekStats(snapshot(), 2);
+    expect([annThen.gapToLeader, annThen.gapToAbove, boThen.gapToAbove]).toEqual([4, 4, null]);
+  });
+
+  it("lists cards, own goals and missed penalties of the players who count", () => {
+    // P14 scored an own goal and missed a penalty in GW3; both teams start him.
+    expect([ann.mishaps, ann.mishapCount]).toEqual([["P14 (own goal, missed penalty)"], 2]);
+    expect([bo.mishapCount, cy.mishapCount]).toEqual([2, 0]);
+  });
+
+  it("lists starters who blanked or were not replaced, once minutes are known", () => {
+    // No minutes at all: nobody can be said not to have played.
+    expect([ann.blanks, ann.notReplaced]).toEqual([[], []]);
+    // Everyone played but P3. P1 (in goal) scored 1 point; P2, on the bench, 2.
+    const withMinutes = snapshot();
+    withMinutes.minutes[3] = Object.fromEntries(
+      players.filter((p) => p.id !== 3).map((p) => [p.id, 90])
+    );
+    const [annNow] = computeGameweekStats(withMinutes);
+    expect(annNow.blanks).toEqual(["P1"]);
+    // FPL's final picks have P3 still in the eleven: nobody came on for him.
+    expect(annNow.notReplaced).toEqual(["P3"]);
   });
 
   it("marks teams level on points, where one moves up and none moves down", () => {
@@ -947,6 +981,57 @@ describe("computeGameweekStats while the gameweek is played", () => {
 
   it("marks the armband about to pass to the vice captain", () => {
     expect([ann.viceStepIn, bo.viceStepIn]).toEqual([true, true]);
+  });
+
+  it("measures the gaps on the projected totals", () => {
+    // Bo 218, Ann 206, Cy 0.
+    expect([bo.gapToLeader, ann.gapToLeader, cy.gapToLeader]).toEqual([0, 12, 218]);
+    expect([bo.gapToAbove, ann.gapToAbove, cy.gapToAbove]).toEqual([null, 12, 206]);
+  });
+
+  it("lists blanks once their matches are over, and starters no substitute can replace", () => {
+    // P1 played and scored 1; P13 has not played yet. P14 did not play, but
+    // P7 comes on for him.
+    expect(ann.blanks).toEqual(["P1"]);
+    expect(ann.notReplaced).toEqual([]);
+    // With the whole bench out as well, nobody can come on for P14.
+    const benchOut = liveSetup({ out: [14, 2, 7, 12, 15] });
+    const [annStuck] = computeGameweekStats({
+      ...playing,
+      points: { ...base.points, 3: benchOut.points },
+      minutes: { 1: {}, 2: {}, 3: benchOut.minutes },
+      liveFixtures: benchOut.fixtures,
+    });
+    expect(annStuck.notReplaced).toEqual(["P14"]);
+  });
+
+  it("does not count a starter as not replaced while a substitute may still play", () => {
+    const benchPending = liveSetup({ out: [14], pending: [7, 12, 15] });
+    const [annWaiting] = computeGameweekStats({
+      ...playing,
+      points: { ...base.points, 3: benchPending.points },
+      minutes: { 1: {}, 2: {}, 3: benchPending.minutes },
+      liveFixtures: benchPending.fixtures,
+    });
+    expect(annWaiting.notReplaced).toEqual([]);
+  });
+
+  it("counts the captain twice, or three times, among the players left", () => {
+    // P13 is left, without the armband.
+    expect([ann.playersLeft, ann.multipliedLeft, ann.captainLeft]).toEqual([1, 1, false]);
+    // Ann's triple captain P14 still to play.
+    const later = liveSetup({ pending: [14] });
+    const [annLater] = computeGameweekStats({
+      ...playing,
+      points: { ...base.points, 3: later.points },
+      minutes: { 1: {}, 2: {}, 3: later.minutes },
+      liveFixtures: later.fixtures,
+    });
+    expect([annLater.playersLeft, annLater.multipliedLeft, annLater.captainLeft]).toEqual([
+      1,
+      3,
+      true,
+    ]);
   });
 
   it("gives no projected position change to a team that started this gameweek", () => {

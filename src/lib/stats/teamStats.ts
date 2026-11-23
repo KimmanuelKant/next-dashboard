@@ -32,6 +32,8 @@ export interface TeamStats {
   teamName: string;
   teamId: number;
   totalPoints: number;
+  /** Points behind the league's leader (0 for the leader). */
+  gapToLeader: number;
   overallRank: number | null;
   totalTransfers: number;
   /** Millions. */
@@ -278,6 +280,7 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     });
     return top;
   };
+  const leaderTotal = Math.max(...snapshot.league.managers.map((manager) => manager.total));
 
   return snapshot.league.managers.map((manager) => {
     const history = snapshot.histories[manager.entryId] ?? {
@@ -425,6 +428,7 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       teamName: manager.teamName,
       teamId: manager.entryId,
       totalPoints: manager.total,
+      gapToLeader: leaderTotal - manager.total,
       overallRank: latest?.overallRank ?? null,
       totalTransfers: weeks.reduce((sum, w) => sum + w.transfers, 0),
       teamValue: latest ? latest.value / 10 : null,

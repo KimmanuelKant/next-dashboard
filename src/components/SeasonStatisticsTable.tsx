@@ -42,6 +42,12 @@ const columns = [
   columnHelper.accessor("teamName", { id: "teamName", header: "Team Name" }),
   columnHelper.accessor("teamId", { id: "teamId", header: "Team ID" }),
   columnHelper.accessor("totalPoints", { id: "totalPoints", header: "Total Points" }),
+  columnHelper.accessor("gapToLeader", {
+    id: "gapToLeader",
+    header: "Gap to Leader",
+    // Nothing to show for the leader.
+    cell: ({ getValue }) => getValue() || "–",
+  }),
   columnHelper.accessor("highestGameweekScore", { id: "highestGameweekScore", header: "Highest GW Score" }),
 
   // League race
@@ -229,6 +235,7 @@ const descriptions: Record<string, string> = {
   teamName: "The name of the team.",
   teamId: "The FPL ID of the team.",
   totalPoints: "Total points this season, after transfer hits.",
+  gapToLeader: "Points behind the league's leader on the season total.",
   highestGameweekScore: "The best single gameweek score.",
   weeksAtTop: "Gameweeks spent in first place in this league.",
   weeksAtBottom: "Gameweeks spent in last place in this league.",
@@ -286,6 +293,7 @@ const shortHeaders: Record<string, string> = {
   teamName: "Team",
   teamId: "ID",
   totalPoints: "Total",
+  gapToLeader: "To 1st",
   highestGameweekScore: "Best GW",
   weeksAtTop: "Wks 1st",
   weeksAtBottom: "Wks Last",
@@ -335,7 +343,7 @@ const shortHeaders: Record<string, string> = {
 
 // Each group is both a heading in the column picker and a view.
 const groups: ColumnGroup[] = [
-  { name: "Standings", columns: ["rank", "totalPoints", "highestGameweekScore"] },
+  { name: "Standings", columns: ["rank", "totalPoints", "gapToLeader", "highestGameweekScore"] },
   {
     name: "League race",
     columns: ["weeksAtTop", "weeksAtBottom", "gameweekWins", "bestLeaguePosition", "worstLeaguePosition"],
@@ -378,6 +386,7 @@ const viewNames: Record<string, string> = {
 // a tap away ("more columns"), and in the team panel. Views left out are
 // narrow enough to show whole. Keyed by the view's name.
 const phoneColumns: Record<string, string[]> = {
+  Standings: ["rank", "totalPoints", "gapToLeader"],
   Transfers: ["totalTransfers", "totalTransferPointsDeducted", "transferGainAfterHits", "teamValue"],
   Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "mostCaptained"],
 };
@@ -389,7 +398,7 @@ const presets: Preset[] = [
       name,
       columns:
         group.name === "Standings"
-          ? ["rank", "managerName", "teamName", "totalPoints", "highestGameweekScore"]
+          ? ["rank", "managerName", "teamName", "totalPoints", "gapToLeader", "highestGameweekScore"]
           : ["teamName", ...group.columns],
       phoneColumns: phoneColumns[name],
     };

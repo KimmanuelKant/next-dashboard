@@ -1,5 +1,6 @@
 // src/components/GameweekStatisticsTable.tsx
 "use client";
+import { useMemo } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
 import { HighlightCard, toHighlight } from "@/components/Highlights";
@@ -14,6 +15,33 @@ const formatNumber = (value: number | null) =>
   value === null ? "–" : value.toLocaleString("en-GB");
 const formatNamed = (item: { name: string; count: number } | null) =>
   item ? `${item.name} (${item.count})` : "–";
+/** "+12", "−3.5" (a true minus sign), "0"; "–" when unknown. */
+function formatSigned(value: number | undefined) {
+  if (value === undefined) return "–";
+  const size = Math.abs(value).toLocaleString("en-GB", { maximumFractionDigits: 1 });
+  return value > 0 ? `+${size}` : value < 0 ? `−${size}` : "0";
+}
+/** Points behind; nothing to show for the team in front. */
+const formatGap = (value: number | undefined) => (value ? String(value) : "–");
+const formatList = (items: string[]) => items.join(", ") || "–";
+
+/**
+ * Points ahead of (+) or behind (−) the visitor's own team on the total.
+ * Built in the browser, where the visitor's team is known; without one,
+ * every cell is empty.
+ */
+function vsYouColumn(myTotal: number | null, myTeam: number | null) {
+  return columnHelper.accessor(
+    (row) => (myTotal === null || row.total === null ? undefined : row.total - myTotal),
+    {
+      id: "vsYou",
+      header: "Vs Your Team",
+      cell: ({ row, getValue }) =>
+        row.original.teamId === myTeam ? "You" : formatSigned(getValue()),
+      sortUndefined: "last",
+    }
+  );
+}
 
 /** Places gained or lost, for the change and the projected change. */
 function formatChange(change: number | null) {
@@ -69,10 +97,14 @@ const columns = [
     cell: ({ getValue }) => getValue() ?? "–",
     sortUndefined: "last",
   }),
-  columnHelper.accessor((row) => row.playersLeft ?? undefined, {
+  // Sorted with the multipliers counted, so that "3 (C)" comes above "3".
+  columnHelper.accessor((row) => row.multipliedLeft ?? undefined, {
     id: "playersLeft",
     header: "Players Left",
-    cell: ({ getValue }) => getValue() ?? "–",
+    cell: ({ row }) =>
+      row.original.playersLeft === null
+        ? "–"
+        : `${row.original.playersLeft}${row.original.captainLeft ? " (C)" : ""}`,
     sortUndefined: "last",
   }),
   columnHelper.accessor("score", { id: "score", header: "GW Score" }),
@@ -85,14 +117,22 @@ const columns = [
   columnHelper.accessor((row) => row.vsAverage ?? undefined, {
     id: "vsAverage",
     header: "Vs League Average",
-    cell: ({ getValue }) => {
-      const value = getValue();
-      if (value === undefined) return "–";
-      const size = Math.abs(value).toLocaleString("en-GB", { maximumFractionDigits: 1 });
-      return value > 0 ? `+${size}` : value < 0 ? `−${size}` : "0";
-    },
+    cell: ({ getValue }) => formatSigned(getValue()),
     sortUndefined: "last",
   }),
+  columnHelper.accessor((row) => row.gapToLeader ?? undefined, {
+    id: "gapToLeader",
+    header: "Gap to Leader",
+    cell: ({ getValue }) => formatGap(getValue()),
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.gapToAbove ?? undefined, {
+    id: "gapToAbove",
+    header: "Gap to Team Above",
+    cell: ({ getValue }) => formatGap(getValue()),
+    sortUndefined: "last",
+  }),
+  vsYouColumn(null, null),
   columnHelper.accessor((row) => row.provisionalBonus ?? undefined, {
     id: "provisionalBonus",
     header: "Provisional Bonus",
@@ -209,6 +249,21 @@ const columns = [
     header: "Best Player",
     cell: ({ row }) => formatNamed(row.original.bestPlayer),
   }),
+  columnHelper.accessor((row) => row.blanks.length, {
+    id: "blanks",
+    header: "Blanks",
+    cell: ({ row }) => formatList(row.original.blanks),
+  }),
+  columnHelper.accessor((row) => row.notReplaced.length, {
+    id: "notReplaced",
+    header: "Not Replaced",
+    cell: ({ row }) => formatList(row.original.notReplaced),
+  }),
+  columnHelper.accessor("mishapCount", {
+    id: "mishaps",
+    header: "Cards and Mistakes",
+    cell: ({ row }) => formatList(row.original.mishaps),
+  }),
 ];
 
 const descriptions: Record<string, string> = {
@@ -220,12 +275,18 @@ const descriptions: Record<string, string> = {
   hit: "Points deducted for extra transfers this gameweek.",
   netScore: "Points scored this gameweek after transfer hits.",
   vsAverage: "Points above (+) or below (−) the league's average score this gameweek, after hits. Only teams that played this gameweek count towards the average. While the gameweek is played, the projected score against the average projected score.",
+  gapToLeader: "Points behind the league's leader on the season total after this gameweek. While the gameweek is played, on the projected totals.",
+  gapToAbove: "Points behind the nearest team above in the league on the season total after this gameweek: what it takes to climb a place. While the gameweek is played, on the projected totals.",
+  vsYou: "Points ahead of (+) or behind (−) your own team on the season total after this gameweek; on the projected totals while it is played. Select your team in the table and mark it as yours to fill this column.",
+  blanks: "Players who counted for the team, played, and scored 2 points or fewer, once their matches are over. While the gameweek is played, the provisional bonus counts.",
+  notReplaced: "Starters who did not play and whom no substitute replaced, so their place scored nothing. While the gameweek is played, shown once no substitute is left to play.",
+  mishaps: "Yellow and red cards, own goals and missed penalties of the players who counted for the team this gameweek.",
   projectedPosition: "The team's position in this league if the gameweek ended with the projected scores. Teams level on points share a position, marked with =.",
   projectedPositionChange: "Places the team would gain or lose this gameweek if it ended with the projected scores, compared with its position before the gameweek.",
   provisionalBonus: "Bonus points the team's players would get if their matches ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in the score. Doubled for the captain.",
   automaticSubs: "Substitutes who would come on for starters who did not play, in bench order and keeping a valid formation, as FPL does after the gameweek's last match. Also the armband passing to the vice captain when the captain did not play. In brackets, the points they add.",
   projectedScore: "This gameweek's score after hits, with the provisional bonus and the automatic substitutions added. It changes while matches are being played.",
-  playersLeft: "Players in the team whose match has not finished: still to kick off, or being played.",
+  playersLeft: "Players who count for the team and whose match has not finished: still to kick off, or being played. (C) when the one with the armband is among them; sorting counts him twice (three times with Triple Captain).",
   projectedTotal: "The team's season total with the projected score for this gameweek.",
   stillToPlay: "The players counted in Players Left, by name. (C) marks the one with the armband.",
   leagueGameweekRank: "Where this gameweek's score (after hits) ranks within the league.",
@@ -257,6 +318,11 @@ const shortHeaders: Record<string, string> = {
   score: "Gross",
   netScore: "Pts",
   vsAverage: "Vs Avg",
+  gapToLeader: "To 1st",
+  gapToAbove: "To Next",
+  vsYou: "Vs You",
+  notReplaced: "No Sub",
+  mishaps: "Mishaps",
   projectedPosition: "Proj Pos",
   projectedPositionChange: "Proj +/−",
   provisionalBonus: "Bonus",
@@ -285,7 +351,7 @@ const shortHeaders: Record<string, string> = {
 const groups: ColumnGroup[] = [
   {
     name: "Scores",
-    columns: ["position", "positionChange", "score", "hit", "netScore", "vsAverage", "leagueGameweekRank", "gameweekRank", "overallRank"],
+    columns: ["position", "positionChange", "score", "hit", "netScore", "vsAverage", "gapToLeader", "gapToAbove", "vsYou", "leagueGameweekRank", "gameweekRank", "overallRank"],
   },
   {
     name: "Captaincy",
@@ -293,6 +359,7 @@ const groups: ColumnGroup[] = [
   },
   { name: "Transfers, chips and value", columns: ["chip", "transfers", "playersIn", "playersOut", "teamValue", "valueChange"] },
   { name: "Bench and best player", columns: ["benchPoints", "topBenched", "bestPlayer"] },
+  { name: "Blanks and mishaps", columns: ["blanks", "notReplaced", "mishaps"] },
 ];
 
 // Each group is also a view. The view's button gets a shorter name than the
@@ -300,18 +367,17 @@ const groups: ColumnGroup[] = [
 const viewNames: Record<string, string> = {
   "Transfers, chips and value": "Transfers",
   "Bench and best player": "Bench",
+  "Blanks and mishaps": "Mishaps",
 };
 
 // The live projection, shown only while the current gameweek is being
-// played. For a finished gameweek these columns would be empty, so they are
-// left out of the table altogether.
+// played. Columns only it has would be empty for a finished gameweek, so
+// they are left out of the table altogether.
 const liveGroup: ColumnGroup = {
   name: "Live",
-  columns: ["projectedPosition", "projectedPositionChange", "projectedScore", "vsAverage", "playersLeft", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"],
+  columns: ["projectedPosition", "projectedPositionChange", "projectedScore", "playersLeft", "vsYou", "gapToLeader", "gapToAbove", "vsAverage", "chip", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"],
 };
-const liveOnly = new Set(
-  liveGroup.columns.filter((id) => id !== "netScore" && id !== "vsAverage")
-);
+const liveOnly = new Set(["projectedPosition", "projectedPositionChange", "projectedScore", "playersLeft", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"]);
 
 // What each view keeps on a phone besides the team name: enough to read a
 // row without scrolling sideways. The rest is a tap away ("more columns"),
@@ -323,6 +389,7 @@ const phoneColumns: Record<string, string[]> = {
   Captaincy: ["captain", "captainPoints", "captaincyPointsLost"],
   Transfers: ["chip", "transfers", "playersIn", "playersOut"],
   Bench: ["benchPoints", "topBenched"],
+  Mishaps: ["blanks", "mishaps"],
 };
 
 function presetsFor(shownGroups: ColumnGroup[]): Preset[] {
@@ -403,7 +470,27 @@ export default function GameweekStatisticsTable({
   isLive: boolean;
 }) {
   const myTeam = useMyTeamId();
-  const table = isLive ? live : finished;
+  const myTotal = stats.find((row) => row.teamId === myTeam)?.total ?? null;
+  const base = isLive ? live : finished;
+  // "Vs your team" needs the visitor's team, known only in the browser. The
+  // column is swapped rather than the rows changed, so that the row panel
+  // stays open when the visitor marks their team from it. Without a team the
+  // views leave the column out; the column picker still lists it.
+  const table = useMemo(
+    () => ({
+      columns: base.columns.map((column) =>
+        column.id === "vsYou" ? vsYouColumn(myTotal, myTeam) : column
+      ),
+      presets:
+        myTeam === null
+          ? base.presets.map((preset) => ({
+              ...preset,
+              columns: preset.columns?.filter((id) => id !== "vsYou"),
+            }))
+          : base.presets,
+    }),
+    [base, myTotal, myTeam]
+  );
   return (
     <DataTable
       // A new table when the gameweek goes from live to finished (or the
@@ -412,7 +499,7 @@ export default function GameweekStatisticsTable({
       data={stats}
       columns={table.columns}
       presets={table.presets}
-      groups={table.groups}
+      groups={base.groups}
       descriptions={descriptions}
       highlights={highlights.map((record) =>
         toHighlight(record, (isLive ? liveHighlightCards : highlightCards)[record.kind])
@@ -422,7 +509,7 @@ export default function GameweekStatisticsTable({
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay"]}
+      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay", "blanks", "notReplaced", "mishaps"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined

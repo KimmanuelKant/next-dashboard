@@ -8,11 +8,13 @@ and get sortable, customisable tables the official site does not offer:
   Built for finding differentials and making informed transfers.
   Filter by name, position, club, owner, price and number of owners.
 - **This Gameweek**: each manager's score and how far it is from the league
-  average, captain (and whether the vice captain stepped in), chip,
-  transfers in and out, bench, and points lost to the captaincy choice. Earlier gameweeks can
-  be opened as well. While a gameweek is played, a Live view projects each
-  score and the league table with provisional bonus and automatic
-  substitutions, and the page refreshes itself during matches.
+  average, the gap to the leader, the team above and your own team,
+  captain (and whether the vice captain stepped in), chip, transfers in
+  and out, bench, points lost to the captaincy choice, and the blanks,
+  cards and own goals. Earlier gameweeks can be opened as well. While a
+  gameweek is played, a Live view projects each score and the league table
+  with provisional bonus and automatic substitutions, and the page
+  refreshes itself during matches.
 - **Season**: per-manager transfers, hits, chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.

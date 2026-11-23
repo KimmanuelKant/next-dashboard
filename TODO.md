@@ -46,20 +46,21 @@ the way to grow without self-promotion.
   multiplier) times points, summed; and the player who swung the week most.
   A highlight card.
 - Unique points: points from players no one else in the league started.
-- Starters who blanked (2 points or fewer).
-- Cards, own goals and missed penalties this gameweek (the Season tab has
-  them, this tab does not).
 - Transfer gain this gameweek: points of players bought minus players sold.
-- Starters who did not play, and in finished gameweeks the automatic
-  substitutions FPL made (minutes are in the snapshot; the substitutions
-  would need `automatic_subs` from picks, trim). The live projection
-  already shows them while a gameweek is played.
+- In finished gameweeks, every starter who did not play and the automatic
+  substitutions FPL made. FPL's final picks put each substitute in the
+  starter's place, so the eleven as first picked is lost; only starters
+  nobody replaced can be told apart ("Not Replaced"). Needs
+  `automatic_subs` from picks (trim), which means raising the picks cache
+  key: every league then reloads the picks of every finished gameweek.
+  The live projection already shows the substitutions while a gameweek is
+  played.
 - Against the global average and highest score; captain against the most
   captained player in the game (trim: `events[]` in bootstrap).
 
 ## Season: stats still to add, by group
-- Standings: gap to leader, form over the last 5 gameweeks, weeks above the
-  league average.
+- Standings: form over the last 5 gameweeks, weeks above the league
+  average.
 - League race: biggest climb and fall, consistency (standard deviation of
   gameweek scores: "boom or bust").
 - League race: manager of the month, from the month ranges in

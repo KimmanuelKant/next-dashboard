@@ -45,6 +45,10 @@ interface DataTableProps<T> {
   data: T[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: ColumnDef<T, any>[];
+  /**
+   * Keep this the same array from render to render (a module constant, or
+   * memoised): a new array re-applies the open view's columns.
+   */
   presets: Preset[];
   /** Column id -> explanation shown in the column picker. */
   descriptions: Record<string, string>;
@@ -255,6 +259,15 @@ export default function DataTable<T>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
     visibilityFor(columns, presets.find((p) => p.name === presetName))
   );
+  // The views can change after the first render: a column that depends on
+  // the visitor's own team, which the browser knows only once the page has
+  // loaded, joins them then. The open view takes its new columns.
+  const [appliedPresets, setAppliedPresets] = useState(presets);
+  if (presets !== appliedPresets) {
+    setAppliedPresets(presets);
+    const preset = presets.find((p) => p.name === presetName);
+    if (preset) setColumnVisibility(visibilityFor(columns, preset));
+  }
   const [sorting, setSorting] = useState<SortingState>(
     () =>
       decodeSorting(
