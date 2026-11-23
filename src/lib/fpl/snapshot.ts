@@ -38,7 +38,7 @@ export const getLeagueSnapshot = cache(
     const current = played.find((g) => g.id === currentGw);
     const liveGw = current && !current.finished ? current.id : null;
 
-    const [dataList, picksList, histories, liveFixtures] = await Promise.all([
+    const [dataList, picksList, histories, live] = await Promise.all([
       Promise.all(played.map((g) => getGameweekData(season, g.id, g.finished))),
       Promise.all(
         played.map((g) =>
@@ -57,7 +57,8 @@ export const getLeagueSnapshot = cache(
       points: {},
       incidents: {},
       minutes: {},
-      liveFixtures,
+      liveFixtures: live?.fixtures ?? null,
+      liveUpdatedAt: null, // filled in below
       picks: {},
       histories,
     };
@@ -66,6 +67,11 @@ export const getLeagueSnapshot = cache(
       snapshot.incidents[g.id] = dataList[i].incidents;
       snapshot.minutes[g.id] = dataList[i].minutes;
       snapshot.picks[g.id] = picksList[i];
+      if (live && g.id === liveGw) {
+        // ISO times in UTC compare as strings.
+        const pointsAt = dataList[i].fetchedAt;
+        snapshot.liveUpdatedAt = pointsAt < live.fetchedAt ? pointsAt : live.fetchedAt;
+      }
     });
     return snapshot;
   }

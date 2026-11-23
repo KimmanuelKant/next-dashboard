@@ -17,7 +17,7 @@ export default function GameweekPicker({
   gameweeks: number[];
   selected: number;
   /** A few words on the selected gameweek, shown beside the picker. */
-  status: string;
+  status: React.ReactNode;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();

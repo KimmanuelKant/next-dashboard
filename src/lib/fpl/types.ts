@@ -111,6 +111,14 @@ export interface GameweekData {
   incidents: Record<number, Incidents>;
   /** playerId -> minutes played. Only players who played are listed. */
   minutes: Record<number, number>;
+  /** When the data was fetched from FPL (ISO time): how fresh live points are. */
+  fetchedAt: string;
+}
+
+/** The matches of the gameweek in progress, and when they were fetched (ISO time). */
+export interface LiveFixtures {
+  fixtures: LiveFixture[];
+  fetchedAt: string;
 }
 
 /** A match of the gameweek in progress, as far as the live projection needs it. */
@@ -180,6 +188,11 @@ export interface LeagueSnapshot {
    * is needed.
    */
   liveFixtures: LiveFixture[] | null;
+  /**
+   * When the older of the live points and the matches was fetched from FPL
+   * (ISO time): what the live view is up to date with. Null when not live.
+   */
+  liveUpdatedAt: string | null;
   picks: Record<number, LeagueGameweekPicks>;
   histories: Record<number, ManagerHistory>;
 }

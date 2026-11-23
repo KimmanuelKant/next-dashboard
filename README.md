@@ -76,7 +76,8 @@ matches, one request for the whole game (`/fixtures/?event={gw}`), loaded
 only while the current gameweek is unfinished. It adds the bonus as the
 bonus points system stands in matches whose bonus FPL has not yet added,
 and makes the automatic substitutions FPL will make after the last match.
-`LiveRefresh` refreshes the page every minute while a match is played.
+`LiveStatus` shows when the scores were fetched, offers a refresh, and
+refreshes the page every minute while a match is played.
 
 Every table keeps its view and sorting in the page address
 (`?view=mishaps&sort=-yellowCards`, see `src/lib/tableUrl.ts`), so a link to a

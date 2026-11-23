@@ -26,6 +26,7 @@ import {
   League,
   LeagueGameweekPicks,
   LiveFixture,
+  LiveFixtures,
   ManagerHistory,
   Pick,
   PICK_CAPTAIN,
@@ -148,7 +149,12 @@ async function fetchGameweekData(gw: number): Promise<GameweekData> {
   if (!raw) {
     throw new FplError(`/event/${gw}/live/`, 404);
   }
-  const data: GameweekData = { points: {}, incidents: {}, minutes: {} };
+  const data: GameweekData = {
+    points: {},
+    incidents: {},
+    minutes: {},
+    fetchedAt: new Date().toISOString(),
+  };
   for (const el of raw.elements) {
     const s = el.stats;
     data.points[el.id] = s.total_points;
@@ -174,17 +180,17 @@ export function getGameweekData(
 ): Promise<GameweekData> {
   return unstable_cache(
     () => fetchGameweekData(gw),
-    ["fpl-gameweek-v3", season, String(gw), finished ? "final" : "live"],
+    ["fpl-gameweek-v4", season, String(gw), finished ? "final" : "live"],
     { revalidate: finished ? false : MINUTE }
   )();
 }
 
-async function fetchLiveFixtures(gw: number): Promise<LiveFixture[]> {
+async function fetchLiveFixtures(gw: number): Promise<LiveFixtures> {
   const raw = await fplGet<FplFixtures>(`/fixtures/?event=${gw}`);
   if (!raw) {
     throw new FplError(`/fixtures/?event=${gw}`, 404);
   }
-  return raw.map((f) => {
+  const fixtures = raw.map((f): LiveFixture => {
     const stat = (identifier: string) => {
       const found = f.stats.find((s) => s.identifier === identifier);
       return found ? [...found.h, ...found.a] : [];
@@ -203,6 +209,7 @@ async function fetchLiveFixtures(gw: number): Promise<LiveFixture[]> {
       bps: bonusAdded ? [] : stat("bps").map((s): [number, number] => [s.element, s.value]),
     };
   });
+  return { fixtures, fetchedAt: new Date().toISOString() };
 }
 
 /**
@@ -210,10 +217,10 @@ async function fetchLiveFixtures(gw: number): Promise<LiveFixture[]> {
  * projection. One request for the whole game, not per league, so it is
  * cached as briefly as the live points.
  */
-export function getLiveFixtures(season: string, gw: number): Promise<LiveFixture[]> {
+export function getLiveFixtures(season: string, gw: number): Promise<LiveFixtures> {
   return unstable_cache(
     () => fetchLiveFixtures(gw),
-    ["fpl-live-fixtures-v1", season, String(gw)],
+    ["fpl-live-fixtures-v2", season, String(gw)],
     { revalidate: MINUTE }
   )();
 }

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import GameweekPicker from "@/components/GameweekPicker";
 import GameweekStatisticsTable from "@/components/GameweekStatisticsTable";
 import LeagueNotices from "@/components/LeagueNotices";
-import LiveRefresh from "@/components/LiveRefresh";
+import LiveStatus from "@/components/LiveStatus";
 import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
 import { computeGameweekHighlights, computeGameweekStats } from "@/lib/stats/gameweekStats";
 
@@ -39,11 +39,13 @@ export default async function LeagueGameweekStats({
       ?.filter((f) => !f.started && f.kickoff !== null)
       .map((f) => f.kickoff as string)
       .sort()[0] ?? null;
-  const status = gameweek?.finished
-    ? "Final scores."
-    : playing
-    ? "Live. Projected with bonus and substitutions as they stand; updates every minute."
-    : "In progress. Projected with bonus and substitutions as they stand.";
+  const status = fixtures ? (
+    <LiveStatus playing={playing} nextKickoff={nextKickoff} updatedAt={snapshot.liveUpdatedAt} />
+  ) : gameweek?.finished ? (
+    "Final scores."
+  ) : (
+    "In progress. Scores can still change."
+  );
 
   return (
     <>
@@ -51,7 +53,6 @@ export default async function LeagueGameweekStats({
       {gameweek && (
         <GameweekPicker gameweeks={snapshot.gameweekIds} selected={gameweek.id} status={status} />
       )}
-      {fixtures && <LiveRefresh playing={playing} nextKickoff={nextKickoff} />}
       <GameweekStatisticsTable
         stats={stats}
         highlights={computeGameweekHighlights(stats)}

@@ -69,6 +69,8 @@ export interface GameweekStats {
   automaticSubPoints: number | null;
   /** Players who count and whose club still has a match to finish. */
   playersLeft: number | null;
+  /** Their names, in pitch order; "(C)" marks the one with the armband. */
+  stillToPlay: string[];
   /** Gameweek score after hits, with provisional bonus and automatic substitutions. */
   projectedScore: number | null;
   /** Season total with the projected gameweek score. */
@@ -198,7 +200,19 @@ export function computeGameweekStats(
     const playersOut = previousSquad && team ? previousSquad.filter((id) => !squad.includes(id)) : [];
 
     const review = team ? reviewCaptaincy(team, points) : null;
-    const benched = team ? topBenched(team, points) : null;
+    // While the gameweek is played, the bench is the one after the projected
+    // substitutions: a substitute about to come on is not left on it.
+    // Otherwise FPL's own bench points.
+    const liveScore = (id: number) => (points[id] ?? 0) + (live?.bonus.get(id) ?? 0);
+    let benched = team ? topBenched(team, points) : null;
+    let benchPoints = week?.benchPoints ?? 0;
+    if (projection) {
+      benched = null;
+      for (const id of projection.bench) {
+        if (!benched || liveScore(id) > benched[1]) benched = [id, liveScore(id)];
+      }
+      benchPoints = projection.bench.reduce((total, id) => total + liveScore(id), 0);
+    }
 
     let bestPlayer: NamedCount | null = null;
     for (const [playerId, multiplier] of team?.picks ?? []) {
@@ -238,7 +252,7 @@ export function computeGameweekStats(
       transfers: week?.transfers ?? 0,
       playersIn: playersIn.map((id) => name(id) || "Unknown"),
       playersOut: playersOut.map((id) => name(id) || "Unknown"),
-      benchPoints: week?.benchPoints ?? 0,
+      benchPoints,
       topBenched: benched
         ? { name: name(benched[0]) || "Unknown", count: benched[1] }
         : null,
@@ -259,6 +273,9 @@ export function computeGameweekStats(
         ? 0
         : null,
       playersLeft: live ? projection?.playersLeft ?? 0 : null,
+      stillToPlay: (projection?.left ?? []).map(
+        (id) => `${name(id) || "Unknown"}${id === projection?.armband ? " (C)" : ""}`
+      ),
       projectedScore,
       projectedTotal: projectedScore === null ? null : totalBefore + projectedScore,
       projectedPosition: null, // filled in below
@@ -288,12 +305,17 @@ export type GameweekHighlight = TeamRecord<
   "winner" | "climber" | "captaincy" | "bench" | "hit" | "lowest"
 >;
 
-/** The gameweek's records. A record nobody holds is left out. */
+/**
+ * The gameweek's records. A record nobody holds is left out. While the
+ * gameweek is played, the highest and lowest scores are the projected ones,
+ * as in the Live view.
+ */
 export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighlight[] {
   // A manager without a team this gameweek holds no records.
   const played = rows.filter((row) => row.leagueGameweekRank !== null);
-  const winner = teamRecord("winner", played, (row) => row.netScore);
-  const lowest = teamRecord("lowest", played, (row) => -row.netScore);
+  const score = (row: GameweekStats) => row.projectedScore ?? row.netScore;
+  const winner = teamRecord("winner", played, score);
+  const lowest = teamRecord("lowest", played, (row) => -score(row));
   return [
     winner,
     teamRecord("climber", played, (row) => row.positionChange ?? 0, 1),

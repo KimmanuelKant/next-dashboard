@@ -126,6 +126,7 @@ function snapshot(): LeagueSnapshot {
     incidents: { 1: { 13: [1, 0, 0, 0], 2: [0, 1, 0, 0] }, 2: {}, 3: { 14: [0, 0, 1, 1] } },
     minutes: { 1: {}, 2: {}, 3: {} },
     liveFixtures: null,
+    liveUpdatedAt: null,
     picks: {
       // Ann: triple captain in GW1, captain did not play in GW2 (vice gets x2),
       // second triple captain in GW3 with bench boost-free normal team.
@@ -771,6 +772,14 @@ describe("projectTeam", () => {
     const projection = projectTeam(team({}), liveSetup({ pending: [13] }).live);
     expect(projection.armbandTo).toBeNull();
     expect(projection.playersLeft).toBe(1);
+    expect(projection.left).toEqual([13]);
+    expect(projection.armband).toBe(13);
+  });
+
+  it("puts a starter who is taken off in his substitute's place on the bench", () => {
+    const projection = projectTeam(team({}), liveSetup({ out: [9] }).live);
+    expect(projection.subs).toEqual([[7, 9]]);
+    expect(projection.bench).toEqual([2, 9, 12, 15]);
   });
 
   it("adds provisional bonus, doubled for the captain", () => {
@@ -828,6 +837,21 @@ describe("computeGameweekStats while the gameweek is played", () => {
     // Ann's armband also passes to P8, but Bo overtakes: 218 against 206.
     expect([ann.projectedTotal, bo.projectedTotal]).toEqual([206, 218]);
     expect([bo.projectedPosition, ann.projectedPosition, cy.projectedPosition]).toEqual([1, 2, 3]);
+  });
+
+  it("names the players still to play, and counts the bench after the substitutions", () => {
+    expect(ann.stillToPlay).toEqual(["P13"]);
+    // P7 came on for P14, who takes his place on the bench with 0 points.
+    expect(ann.benchPoints).toBe(2 + 0 + 12 + 15);
+    expect(ann.topBenched).toEqual({ name: "P15", count: 15 });
+  });
+
+  it("gives the highlight cards the projected scores", () => {
+    const highlights = computeGameweekHighlights([ann, bo, cy]);
+    const winner = highlights.find((h) => h.kind === "winner");
+    const lowest = highlights.find((h) => h.kind === "lowest");
+    expect([winner?.teams, winner?.value]).toEqual([["Bo United"], 88]);
+    expect([lowest?.teams, lowest?.value]).toEqual([["Ann FC"], 80]);
   });
 
   it("projects a manager without a team at what they have", () => {

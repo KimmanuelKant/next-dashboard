@@ -94,6 +94,12 @@ export interface TeamProjection {
   armbandTo: number | null;
   /** Players who count and whose club still has a match to finish. */
   playersLeft: number;
+  /** Those players, in pitch order. */
+  left: number[];
+  /** The players who do not count after the substitutions, in bench order. */
+  bench: number[];
+  /** The player whose points are multiplied after the substitutions; null if none. */
+  armband: number | null;
 }
 
 /** True when the eleven is a formation FPL allows: at least three defenders and a forward. */
@@ -173,12 +179,22 @@ export function projectTeam(team: ManagerGameweek, live: LiveGameweek): TeamProj
   }
 
   const bonus = sum((id) => live.bonus.get(id) ?? 0);
+  // The squad after the substitutions: each substitute swaps places with the
+  // starter he replaces, as FPL shows it.
+  const order = team.picks.map(
+    ([id]) =>
+      subs.find(([, out]) => out === id)?.[0] ?? subs.find(([sub]) => sub === id)?.[1] ?? id
+  );
+  const left = order.filter((id) => counted(id) && live.stillToPlay(id));
   return {
     livePoints,
     points: sum((id) => (live.points[id] ?? 0) + (live.bonus.get(id) ?? 0)),
     bonus,
     subs,
     armbandTo,
-    playersLeft: team.picks.filter(([id]) => counted(id) && live.stillToPlay(id)).length,
+    playersLeft: left.length,
+    left,
+    bench: order.filter((id) => !counted(id)),
+    armband: order.find((id) => (multiplier.get(id) ?? 0) >= 2) ?? null,
   };
 }

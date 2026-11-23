@@ -100,6 +100,11 @@ const columns = [
     cell: ({ getValue }) => formatNumber(getValue() ?? null),
     sortUndefined: "last",
   }),
+  columnHelper.accessor((row) => row.stillToPlay.length, {
+    id: "stillToPlay",
+    header: "Still to Play",
+    cell: ({ row }) => row.original.stillToPlay.join(", ") || "–",
+  }),
   columnHelper.accessor((row) => row.leagueGameweekRank ?? undefined, {
     id: "leagueGameweekRank",
     header: "League GW Rank",
@@ -196,6 +201,7 @@ const descriptions: Record<string, string> = {
   projectedScore: "This gameweek's score after hits, with the provisional bonus and the automatic substitutions added. It changes while matches are being played.",
   playersLeft: "Players in the team whose match has not finished: still to kick off, or being played.",
   projectedTotal: "The team's season total with the projected score for this gameweek.",
+  stillToPlay: "The players counted in Players Left, by name. (C) marks the one with the armband.",
   leagueGameweekRank: "Where this gameweek's score (after hits) ranks within the league.",
   gameweekRank: "Where this gameweek's score ranks among all FPL managers.",
   overallRank: "The team's overall rank among all FPL managers after this gameweek.",
@@ -210,8 +216,8 @@ const descriptions: Record<string, string> = {
   valueChange: "How much the squad value (including the bank) went up or down since the previous gameweek.",
   playersIn: "Players in the squad this gameweek who were not in it the gameweek before. After a Free Hit, the comparison is with the squad before it.",
   playersOut: "Players who were in the squad the gameweek before and are not in it this gameweek.",
-  benchPoints: "Points left on the bench this gameweek.",
-  topBenched: "The highest-scoring player left on the bench, with their points.",
+  benchPoints: "Points left on the bench this gameweek. While the gameweek is played, the bench after the projected automatic substitutions.",
+  topBenched: "The highest-scoring player left on the bench, with their points. While the gameweek is played, the bench after the projected automatic substitutions.",
   bestPlayer: "The player who contributed the most points, including any captaincy multiplier.",
 };
 
@@ -229,6 +235,7 @@ const shortHeaders: Record<string, string> = {
   projectedScore: "Proj",
   playersLeft: "Left",
   projectedTotal: "Proj Total",
+  stillToPlay: "To Play",
   leagueGameweekRank: "Lge Rank",
   gameweekRank: "GW Rank",
   overallRank: "Overall",
@@ -270,7 +277,7 @@ const viewNames: Record<string, string> = {
 // left out of the table altogether.
 const liveGroup: ColumnGroup = {
   name: "Live",
-  columns: ["projectedPosition", "projectedScore", "playersLeft", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal"],
+  columns: ["projectedPosition", "projectedScore", "playersLeft", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"],
 };
 const liveOnly = new Set(liveGroup.columns.filter((id) => id !== "netScore"));
 
@@ -324,6 +331,15 @@ const highlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
   lowest: { title: "Lowest score", value: points, view: "Scores", column: "netScore", desc: false },
 };
 
+// While the gameweek is played, nobody has won it yet: the cards say so,
+// and the scores are the projected ones, as in the Live view. Titles are
+// kept short enough for one line on a phone.
+const liveHighlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
+  ...highlightCards,
+  winner: { title: "Top so far", value: points, view: "Live", column: "projectedScore", desc: true },
+  lowest: { title: "Bottom so far", value: points, view: "Live", column: "projectedScore", desc: false },
+};
+
 export default function GameweekStatisticsTable({
   stats,
   highlights,
@@ -348,13 +364,15 @@ export default function GameweekStatisticsTable({
       presets={table.presets}
       groups={table.groups}
       descriptions={descriptions}
-      highlights={highlights.map((record) => toHighlight(record, highlightCards[record.kind]))}
+      highlights={highlights.map((record) =>
+        toHighlight(record, (isLive ? liveHighlightCards : highlightCards)[record.kind])
+      )}
       initialPreset={isLive ? "Live" : "Overview"}
       initialSorting={[{ id: isLive ? "projectedPosition" : "position", desc: false }]}
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["playersIn", "playersOut", "automaticSubs"]}
+      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined
