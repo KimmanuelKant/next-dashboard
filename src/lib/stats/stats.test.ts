@@ -419,6 +419,21 @@ describe("computeGameweekStats", () => {
     expect(ann.positionTied).toBe(false);
   });
 
+  it("compares each score with the league's average, leaving out a manager without a team", () => {
+    // Ann 74 and Bo 50 average 62; Cy had no team.
+    expect([ann.vsAverage, bo.vsAverage, cy.vsAverage]).toEqual([12, -12, null]);
+  });
+
+  it("marks the vice captain stepping in", () => {
+    expect([ann.viceStepIn, bo.viceStepIn, cy.viceStepIn]).toEqual([false, false, false]);
+    // In GW2 Ann's captain did not play and FPL gave the vice captain x2.
+    expect(computeGameweekStats(snapshot(), 2)[0].viceStepIn).toBe(true);
+  });
+
+  it("leaves the projected position change out of a finished gameweek", () => {
+    expect(ann.projectedPositionChange).toBeNull();
+  });
+
   it("marks teams level on points, where one moves up and none moves down", () => {
     // Cy was third and has drawn level with Bo: FPL ranks both second.
     const level = snapshot();
@@ -852,6 +867,54 @@ describe("computeGameweekStats while the gameweek is played", () => {
     const lowest = highlights.find((h) => h.kind === "lowest");
     expect([winner?.teams, winner?.value]).toEqual([["Bo United"], 88]);
     expect([lowest?.teams, lowest?.value]).toEqual([["Ann FC"], 80]);
+  });
+
+  it("compares the projected position with the position before the gameweek", () => {
+    // Before GW3 Bo led Ann 130 to 126, and stays ahead: no change.
+    expect([bo.projectedPositionChange, ann.projectedPositionChange, cy.projectedPositionChange])
+      .toEqual([0, 0, 0]);
+    // With 120 after GW2, Bo was second and overtakes Ann: 208 against 206.
+    const behind: LeagueSnapshot = {
+      ...playing,
+      histories: {
+        ...playing.histories,
+        200: {
+          ...playing.histories[200],
+          gameweeks: [week(2, 70, { totalPoints: 120 }), week(3, 50, { totalPoints: 170 })],
+        },
+      },
+    };
+    const rows = computeGameweekStats(behind);
+    const [first, second, third] = rows;
+    expect([first.projectedPositionChange, second.projectedPositionChange, third.projectedPositionChange])
+      .toEqual([-1, 1, 0]);
+    expect(computeGameweekHighlights(rows)).toContainEqual({
+      kind: "climber",
+      teams: ["Bo United"],
+      value: 1,
+    });
+  });
+
+  it("compares the projected scores with their average", () => {
+    // Ann 80 and Bo 88 average 84.
+    expect([ann.vsAverage, bo.vsAverage, cy.vsAverage]).toEqual([-4, 4, null]);
+  });
+
+  it("marks the armband about to pass to the vice captain", () => {
+    expect([ann.viceStepIn, bo.viceStepIn]).toEqual([true, true]);
+  });
+
+  it("gives no projected position change to a team that started this gameweek", () => {
+    const started: LeagueSnapshot = {
+      ...playing,
+      league: {
+        ...playing.league,
+        managers: playing.league.managers.map((m) =>
+          m.entryId === 300 ? { ...m, lastRank: 0 } : m
+        ),
+      },
+    };
+    expect(computeGameweekStats(started)[2].projectedPositionChange).toBeNull();
   });
 
   it("projects a manager without a team at what they have", () => {

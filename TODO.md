@@ -46,8 +46,7 @@ the way to grow without self-promotion.
   multiplier) times points, summed; and the player who swung the week most.
   A highlight card.
 - Unique points: points from players no one else in the league started.
-- Score against the league average; starters who blanked (2 points or fewer).
-- Vice captain stepped in (the captain did not play).
+- Starters who blanked (2 points or fewer).
 - Cards, own goals and missed penalties this gameweek (the Season tab has
   them, this tab does not).
 - Transfer gain this gameweek: points of players bought minus players sold.
@@ -55,8 +54,6 @@ the way to grow without self-promotion.
   substitutions FPL made (minutes are in the snapshot; the substitutions
   would need `automatic_subs` from picks, trim). The live projection
   already shows them while a gameweek is played.
-- Live: a highlight card for the projected gameweek winner, and the
-  projected position change beside the projected position.
 - Against the global average and highest score; captain against the most
   captained player in the game (trim: `events[]` in bootstrap).
 

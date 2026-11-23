@@ -28,6 +28,12 @@ export interface GameweekStats {
   hit: number;
   /** Gameweek points after transfer hits. */
   netScore: number;
+  /**
+   * Score after hits against the league's average this gameweek, among the
+   * managers who had a team; the projected scores while it is played. Null
+   * for a manager without a team.
+   */
+  vsAverage: number | null;
   /** Rank of the net score within this league this gameweek (1 = best). */
   leagueGameweekRank: number | null;
   /** Rank of the gameweek score among all FPL managers. */
@@ -36,6 +42,11 @@ export interface GameweekStats {
   /** The player chosen as captain. */
   captain: string;
   viceCaptain: string;
+  /**
+   * The captain did not play and the armband passed to the vice captain;
+   * while the gameweek is played, also when it is about to pass.
+   */
+  viceStepIn: boolean;
   /** Points from the armband, including the multiplier. */
   captainPoints: number;
   /** The starter who would have been the best captain, with their points. */
@@ -78,6 +89,11 @@ export interface GameweekStats {
   /** League position by projected total. */
   projectedPosition: number | null;
   projectedPositionTied: boolean;
+  /**
+   * Places the projected position gains on the position before this
+   * gameweek (negative = drops); null if the team had no position before.
+   */
+  projectedPositionChange: number | null;
 }
 
 interface Standing {
@@ -160,6 +176,8 @@ export function computeGameweekStats(
         )
       : null;
   const earlierGws = snapshot.gameweekIds.filter((id) => id < gw).reverse();
+  // Each team's total before this gameweek; null if it had none.
+  const totalsBefore = new Map<number, number | null>();
 
   const rows = snapshot.league.managers.flatMap((manager): GameweekStats[] => {
     const standing = standings.get(manager.entryId);
@@ -184,6 +202,11 @@ export function computeGameweekStats(
     const totalBefore =
       previousWeek?.totalPoints ??
       (weeks.length === 0 ? manager.total - manager.eventTotal + hit : 0);
+    // A team that started this gameweek had no position before it. Without
+    // a history, the standings say whether it had one.
+    const hadPositionBefore =
+      previousWeek !== undefined || (weeks.length === 0 && manager.lastRank > 0);
+    totalsBefore.set(manager.entryId, hadPositionBefore ? totalBefore : null);
 
     // Squad changes: compare with the last earlier squad that was not a
     // temporary Free Hit squad.
@@ -224,6 +247,11 @@ export function computeGameweekStats(
 
     const armbandMultiplier =
       team?.picks.find((p) => p[0] === review?.armbandId)?.[1] ?? 0;
+    // Once FPL has moved the armband, the vice captain carries the
+    // multiplier; before that, the projection says whether it will move.
+    const vice = team?.picks.find((p) => p[2] === PICK_VICE);
+    const viceStepIn =
+      vice !== undefined && (vice[1] >= 2 || projection?.armbandTo === vice[0]);
 
     return [{
       teamId: manager.entryId,
@@ -235,11 +263,13 @@ export function computeGameweekStats(
       score,
       hit,
       netScore: score - hit,
+      vsAverage: null, // filled in below
       leagueGameweekRank: null, // filled in below
       gameweekRank: week?.rank ?? null,
       overallRank: week?.overallRank ?? null,
       captain: name(team?.picks.find((p) => p[2] === PICK_CAPTAIN)?.[0]),
-      viceCaptain: name(team?.picks.find((p) => p[2] === PICK_VICE)?.[0]),
+      viceCaptain: name(vice?.[0]),
+      viceStepIn,
       captainPoints: review ? review.armbandPoints * armbandMultiplier : 0,
       bestCaptain:
         review && review.bestId !== null
@@ -280,22 +310,36 @@ export function computeGameweekStats(
       projectedTotal: projectedScore === null ? null : totalBefore + projectedScore,
       projectedPosition: null, // filled in below
       projectedPositionTied: false,
+      projectedPositionChange: null, // filled in below
     }];
   });
 
+  // Positions by total, shared by teams level on points, as in the
+  // standings. The position before the gameweek is worked out the same way,
+  // so that the change compares like with like.
   const totals = rows.flatMap((row) => (row.projectedTotal === null ? [] : [row.projectedTotal]));
+  const before = [...totalsBefore.values()].filter((total) => total !== null);
   for (const row of rows) {
     const total = row.projectedTotal;
     if (total === null) continue;
     row.projectedPosition = 1 + totals.filter((other) => other > total).length;
     row.projectedPositionTied = totals.filter((other) => other === total).length > 1;
+    const totalBefore = totalsBefore.get(row.teamId);
+    if (totalBefore != null) {
+      const positionBefore = 1 + before.filter((other) => other > totalBefore).length;
+      row.projectedPositionChange = positionBefore - row.projectedPosition;
+    }
   }
 
-  // Only managers who had a team this gameweek are ranked.
+  // Only managers who had a team this gameweek are ranked and averaged.
   const ranked = rows.filter((row) => snapshot.picks[gw]?.[row.teamId]);
+  const scoreOf = (row: GameweekStats) => row.projectedScore ?? row.netScore;
+  const average = ranked.reduce((sum, row) => sum + scoreOf(row), 0) / ranked.length;
   for (const row of ranked) {
     row.leagueGameweekRank =
       1 + ranked.filter((other) => other.netScore > row.netScore).length;
+    // To one decimal place, as it is shown.
+    row.vsAverage = Math.round((scoreOf(row) - average) * 10) / 10;
   }
   return rows;
 }
@@ -307,8 +351,8 @@ export type GameweekHighlight = TeamRecord<
 
 /**
  * The gameweek's records. A record nobody holds is left out. While the
- * gameweek is played, the highest and lowest scores are the projected ones,
- * as in the Live view.
+ * gameweek is played, the highest and lowest scores and the biggest climb
+ * are the projected ones, as in the Live view.
  */
 export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighlight[] {
   // A manager without a team this gameweek holds no records.
@@ -318,7 +362,13 @@ export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighli
   const lowest = teamRecord("lowest", played, (row) => -score(row));
   return [
     winner,
-    teamRecord("climber", played, (row) => row.positionChange ?? 0, 1),
+    teamRecord(
+      "climber",
+      played,
+      (row) =>
+        (row.projectedPosition !== null ? row.projectedPositionChange : row.positionChange) ?? 0,
+      1
+    ),
     teamRecord("captaincy", played, (row) => row.captaincyPointsLost, 1),
     teamRecord("bench", played, (row) => row.benchPoints, 1),
     teamRecord("hit", played, (row) => row.hit, 1),

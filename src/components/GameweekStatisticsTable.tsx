@@ -15,6 +15,23 @@ const formatNumber = (value: number | null) =>
 const formatNamed = (item: { name: string; count: number } | null) =>
   item ? `${item.name} (${item.count})` : "–";
 
+/** Places gained or lost, for the change and the projected change. */
+function formatChange(change: number | null) {
+  if (change === null) return "–";
+  if (change === 0) return <Narrow short="–">No change</Narrow>;
+  // The arrow's shape shows the direction, so it never depends on colour
+  // alone. Phones get the arrow and number only, to keep the column narrow.
+  return change > 0 ? (
+    <span className="text-success-emphasis">
+      <Narrow short={`▲${change}`}>▲ Up {change}</Narrow>
+    </span>
+  ) : (
+    <span className="text-danger-emphasis">
+      <Narrow short={`▼${-change}`}>▼ Down {-change}</Narrow>
+    </span>
+  );
+}
+
 const columns = [
   columnHelper.accessor("position", {
     id: "position",
@@ -26,22 +43,7 @@ const columns = [
   columnHelper.accessor((row) => row.positionChange ?? 0, {
     id: "positionChange",
     header: "Change",
-    cell: ({ row }) => {
-      const change = row.original.positionChange;
-      if (change === null) return "–";
-      if (change === 0) return <Narrow short="–">No change</Narrow>;
-      // The arrow's shape shows the direction, so it never depends on colour
-      // alone. Phones get the arrow and number only, to keep the column narrow.
-      return change > 0 ? (
-        <span className="text-success-emphasis">
-          <Narrow short={`▲${change}`}>▲ Up {change}</Narrow>
-        </span>
-      ) : (
-        <span className="text-danger-emphasis">
-          <Narrow short={`▼${-change}`}>▼ Down {-change}</Narrow>
-        </span>
-      );
-    },
+    cell: ({ row }) => formatChange(row.original.positionChange),
   }),
   columnHelper.accessor((row) => row.projectedPosition ?? undefined, {
     id: "projectedPosition",
@@ -50,6 +52,12 @@ const columns = [
       row.original.projectedPosition === null
         ? "–"
         : `${row.original.projectedPosition}${row.original.projectedPositionTied ? "=" : ""}`,
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.projectedPositionChange ?? undefined, {
+    id: "projectedPositionChange",
+    header: "Projected Change",
+    cell: ({ row }) => formatChange(row.original.projectedPositionChange),
     sortUndefined: "last",
   }),
   columnHelper.accessor("teamName", { id: "teamName", header: "Team Name" }),
@@ -74,6 +82,17 @@ const columns = [
     cell: ({ getValue }) => (getValue() ? `-${getValue()}` : "0"),
   }),
   columnHelper.accessor("netScore", { id: "netScore", header: "Score After Hit" }),
+  columnHelper.accessor((row) => row.vsAverage ?? undefined, {
+    id: "vsAverage",
+    header: "Vs League Average",
+    cell: ({ getValue }) => {
+      const value = getValue();
+      if (value === undefined) return "–";
+      const size = Math.abs(value).toLocaleString("en-GB", { maximumFractionDigits: 1 });
+      return value > 0 ? `+${size}` : value < 0 ? `−${size}` : "0";
+    },
+    sortUndefined: "last",
+  }),
   columnHelper.accessor((row) => row.provisionalBonus ?? undefined, {
     id: "provisionalBonus",
     header: "Provisional Bonus",
@@ -130,6 +149,11 @@ const columns = [
     id: "viceCaptain",
     header: "Vice Captain",
     cell: ({ getValue }) => getValue() || "–",
+  }),
+  columnHelper.accessor((row) => (row.viceStepIn ? 1 : 0), {
+    id: "viceStepIn",
+    header: "Vice Stepped In",
+    cell: ({ row }) => (row.original.viceStepIn ? "Yes" : "–"),
   }),
   columnHelper.accessor("captainPoints", { id: "captainPoints", header: "Captain Points" }),
   columnHelper.accessor((row) => row.bestCaptain?.count ?? 0, {
@@ -195,7 +219,9 @@ const descriptions: Record<string, string> = {
   score: "Points scored this gameweek, before transfer hits.",
   hit: "Points deducted for extra transfers this gameweek.",
   netScore: "Points scored this gameweek after transfer hits.",
+  vsAverage: "Points above (+) or below (−) the league's average score this gameweek, after hits. Only teams that played this gameweek count towards the average. While the gameweek is played, the projected score against the average projected score.",
   projectedPosition: "The team's position in this league if the gameweek ended with the projected scores. Teams level on points share a position, marked with =.",
+  projectedPositionChange: "Places the team would gain or lose this gameweek if it ended with the projected scores, compared with its position before the gameweek.",
   provisionalBonus: "Bonus points the team's players would get if their matches ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in the score. Doubled for the captain.",
   automaticSubs: "Substitutes who would come on for starters who did not play, in bench order and keeping a valid formation, as FPL does after the gameweek's last match. Also the armband passing to the vice captain when the captain did not play. In brackets, the points they add.",
   projectedScore: "This gameweek's score after hits, with the provisional bonus and the automatic substitutions added. It changes while matches are being played.",
@@ -207,6 +233,7 @@ const descriptions: Record<string, string> = {
   overallRank: "The team's overall rank among all FPL managers after this gameweek.",
   captain: "The player chosen as captain.",
   viceCaptain: "The player chosen as vice captain.",
+  viceStepIn: "Yes when the captain did not play and the armband passed to the vice captain. While the gameweek is played, also when it is about to pass: the captain's matches are over without him playing, and the vice captain has played.",
   captainPoints: "Points from the armband this gameweek, including the multiplier. The vice captain's if the captain did not play.",
   bestCaptain: "The highest-scoring player in the starting eleven, with their points before any multiplier.",
   captaincyPointsLost: "Points lost by not giving the armband to the highest-scoring starter.",
@@ -229,7 +256,9 @@ const shortHeaders: Record<string, string> = {
   managerName: "Manager",
   score: "Gross",
   netScore: "Pts",
+  vsAverage: "Vs Avg",
   projectedPosition: "Proj Pos",
+  projectedPositionChange: "Proj +/−",
   provisionalBonus: "Bonus",
   automaticSubs: "Subs",
   projectedScore: "Proj",
@@ -240,6 +269,7 @@ const shortHeaders: Record<string, string> = {
   gameweekRank: "GW Rank",
   overallRank: "Overall",
   viceCaptain: "Vice",
+  viceStepIn: "Vice In",
   captainPoints: "Capt Pts",
   bestCaptain: "Best Capt",
   captaincyPointsLost: "Capt Lost",
@@ -255,11 +285,11 @@ const shortHeaders: Record<string, string> = {
 const groups: ColumnGroup[] = [
   {
     name: "Scores",
-    columns: ["position", "positionChange", "score", "hit", "netScore", "leagueGameweekRank", "gameweekRank", "overallRank"],
+    columns: ["position", "positionChange", "score", "hit", "netScore", "vsAverage", "leagueGameweekRank", "gameweekRank", "overallRank"],
   },
   {
     name: "Captaincy",
-    columns: ["captain", "viceCaptain", "captainPoints", "bestCaptain", "captaincyPointsLost"],
+    columns: ["captain", "viceCaptain", "viceStepIn", "captainPoints", "bestCaptain", "captaincyPointsLost"],
   },
   { name: "Transfers, chips and value", columns: ["chip", "transfers", "playersIn", "playersOut", "teamValue", "valueChange"] },
   { name: "Bench and best player", columns: ["benchPoints", "topBenched", "bestPlayer"] },
@@ -277,9 +307,11 @@ const viewNames: Record<string, string> = {
 // left out of the table altogether.
 const liveGroup: ColumnGroup = {
   name: "Live",
-  columns: ["projectedPosition", "projectedScore", "playersLeft", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"],
+  columns: ["projectedPosition", "projectedPositionChange", "projectedScore", "vsAverage", "playersLeft", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"],
 };
-const liveOnly = new Set(liveGroup.columns.filter((id) => id !== "netScore"));
+const liveOnly = new Set(
+  liveGroup.columns.filter((id) => id !== "netScore" && id !== "vsAverage")
+);
 
 function presetsFor(shownGroups: ColumnGroup[]): Preset[] {
   return [
@@ -337,6 +369,11 @@ const highlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
 const liveHighlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
   ...highlightCards,
   winner: { title: "Top so far", value: points, view: "Live", column: "projectedScore", desc: true },
+  climber: {
+    ...highlightCards.climber,
+    view: "Live",
+    column: "projectedPositionChange",
+  },
   lowest: { title: "Bottom so far", value: points, view: "Live", column: "projectedScore", desc: false },
 };
 
