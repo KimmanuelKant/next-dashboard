@@ -6,7 +6,7 @@ import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types
 import { reviewCaptaincy, topBenched } from "./decisions";
 import { computeLeagueHistory } from "./leagueHistory";
 import { liveGameweek, projectTeam } from "./live";
-import { teamRecord, TeamRecord } from "./records";
+import { pickHighlights, teamRecord, TeamRecord } from "./records";
 import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
 
 export interface GameweekStats {
@@ -350,31 +350,36 @@ export type GameweekHighlight = TeamRecord<
 >;
 
 /**
- * The gameweek's records. A record nobody holds is left out. While the
- * gameweek is played, the highest and lowest scores and the biggest climb
- * are the projected ones, as in the Live view.
+ * The gameweek's records for the cards: the winner first, then the others
+ * by how far they stand out this gameweek. A record nobody holds is left
+ * out. While the gameweek is played, the highest and lowest scores and the
+ * biggest climb are the projected ones, as in the Live view.
+ *
+ * `scale` is the gap worth noticing in each stat (see teamRecord): a few
+ * points in a score, a single place in the table.
  */
 export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighlight[] {
   // A manager without a team this gameweek holds no records.
   const played = rows.filter((row) => row.leagueGameweekRank !== null);
   const score = (row: GameweekStats) => row.projectedScore ?? row.netScore;
-  const winner = teamRecord("winner", played, score);
-  const lowest = teamRecord("lowest", played, (row) => -score(row));
-  return [
+  const winner = teamRecord("winner", played, score, { scale: 5 });
+  const lowest = teamRecord("lowest", played, (row) => -score(row), { scale: 5 });
+  const records = [
     winner,
     teamRecord(
       "climber",
       played,
       (row) =>
         (row.projectedPosition !== null ? row.projectedPositionChange : row.positionChange) ?? 0,
-      1
+      { minimum: 1, scale: 1 }
     ),
-    teamRecord("captaincy", played, (row) => row.captaincyPointsLost, 1),
-    teamRecord("bench", played, (row) => row.benchPoints, 1),
-    teamRecord("hit", played, (row) => row.hit, 1),
+    teamRecord("captaincy", played, (row) => row.captaincyPointsLost, { minimum: 1, scale: 4 }),
+    teamRecord("bench", played, (row) => row.benchPoints, { minimum: 1, scale: 4 }),
+    teamRecord("hit", played, (row) => row.hit, { minimum: 1, scale: 4 }),
     // No lowest score when every team scored the same: they are all winners.
     winner && lowest && -lowest.value < winner.value
       ? { ...lowest, value: -lowest.value }
       : null,
   ].filter((record) => record !== null);
+  return pickHighlights(records, { pinned: ["winner"] });
 }

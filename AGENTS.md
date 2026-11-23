@@ -78,8 +78,11 @@ old name then open the default view.
 The Gameweek and Season tabs show highlight cards above the table. To add
 one, add the record to `computeGameweekHighlights()` or
 `computeSeasonHighlights()` with `teamRecord()`, and its card to
-`highlightCards` in the table file. Six cards fill three rows on a phone;
-replace one before adding a seventh.
+`highlightCards` in the table file. There can be more records than cards:
+`pickHighlights()` shows at most six (three rows on a phone), the ones
+that stand out most from the rest of the league that week or season. Give
+each record a `scale`, the smallest gap in that stat worth noticing, so
+that a rare stat held by one team does not outrank everything else.
 
 ## FPL API and caching
 

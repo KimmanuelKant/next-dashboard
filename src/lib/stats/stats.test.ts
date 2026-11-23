@@ -21,6 +21,7 @@ import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
 import { reviewCaptaincy } from "./decisions";
+import { pickHighlights, teamRecord, TeamRecord } from "./records";
 import { liveGameweek, projectTeam, provisionalBonus } from "./live";
 
 // Players 1-15: 1-2 goalkeepers, 3-7 defenders, 8-12 midfielders, 13-15 forwards.
@@ -490,25 +491,67 @@ describe("computeGameweekStats for an earlier gameweek", () => {
   });
 });
 
+/** A record without its standout score, which the tests below check apart. */
+const facts = (records: TeamRecord<string>[]) =>
+  records.map(({ kind, teams, value }) => ({ kind, teams, value }));
+
+describe("teamRecord and pickHighlights", () => {
+  const league = (...values: number[]) =>
+    values.map((value, i) => ({ teamName: "ABCDEFGH"[i], value }));
+  const byValue = (row: { value: number }) => row.value;
+
+  it("measures the gap to the median in units of the league's spread", () => {
+    // Median 2; the average distance from it is 8 / 4 = 2.
+    expect(teamRecord("x", league(10, 2, 2, 2), byValue)?.standout).toBe(4);
+  });
+
+  it("uses the gap worth noticing when the league is spread less than that", () => {
+    expect(teamRecord("x", league(10, 2, 2, 2), byValue, { scale: 4 })?.standout).toBe(2);
+  });
+
+  it("makes a shared record stand out less", () => {
+    // Median 6, spread 4: a gap of one spread, shared by two teams.
+    const shared = teamRecord("x", league(10, 10, 2, 2), byValue);
+    expect(shared?.teams).toEqual(["A", "B"]);
+    expect(shared?.standout).toBeCloseTo(1 / Math.SQRT2);
+  });
+
+  it("gives no standout to a record every team holds", () => {
+    expect(teamRecord("x", league(3, 3, 3), byValue)?.standout).toBe(0);
+  });
+
+  it("puts the pinned records first, then the rest by standout, up to the limit", () => {
+    const record = (kind: string, standout: number) => ({ kind, teams: ["A"], value: 1, standout });
+    const records = [record("a", 1), record("b", 5), record("pin", 0), record("c", 3)];
+    expect(pickHighlights(records, { pinned: ["pin"], max: 3 }).map((r) => r.kind)).toEqual([
+      "pin",
+      "b",
+      "c",
+    ]);
+    expect(pickHighlights(records).map((r) => r.kind)).toEqual(["b", "c", "a", "pin"]);
+  });
+});
+
 describe("computeGameweekHighlights", () => {
   const rows = computeGameweekStats(snapshot());
   const [ann, bo, cy] = rows;
 
-  it("names the holder of each record, and every team that shares one", () => {
-    // Nobody climbed or took a hit, so those two records are left out.
-    expect(computeGameweekHighlights(rows)).toEqual([
+  it("names the holder of each record, the winner first and the rest by how far they stand out", () => {
+    // Nobody climbed or took a hit, so those two records are left out. The
+    // lowest score is as far from the median as the winner's; a 2-point
+    // captaincy loss is half the gap worth noticing; the bench is level.
+    expect(facts(computeGameweekHighlights(rows))).toEqual([
       { kind: "winner", teams: ["Ann FC"], value: 74 },
+      { kind: "lowest", teams: ["Bo United"], value: 50 },
       { kind: "captaincy", teams: ["Bo United"], value: 2 },
       { kind: "bench", teams: ["Ann FC", "Bo United"], value: 3 },
-      { kind: "lowest", teams: ["Bo United"], value: 50 },
     ]);
   });
 
   it("reports the biggest climb and the biggest hit when there is one", () => {
-    const highlights = computeGameweekHighlights([
-      ann,
-      { ...bo, positionChange: 2, hit: 8, netScore: 42 },
-    ]);
+    const highlights = facts(
+      computeGameweekHighlights([ann, { ...bo, positionChange: 2, hit: 8, netScore: 42 }])
+    );
     expect(highlights).toContainEqual({ kind: "climber", teams: ["Bo United"], value: 2 });
     expect(highlights).toContainEqual({ kind: "hit", teams: ["Bo United"], value: 8 });
   });
@@ -530,7 +573,9 @@ describe("computeSeasonHighlights", () => {
   const rows = computeTeamStats(snapshot());
 
   it("names the holder of each season record", () => {
-    expect(computeSeasonHighlights(rows)).toEqual([
+    const highlights = facts(computeSeasonHighlights(rows));
+    expect(highlights).toHaveLength(6);
+    expect(highlights).toEqual(expect.arrayContaining([
       // Ann had the top score in GW1 (alone in the league) and GW3; Bo in GW2.
       { kind: "gameweekWins", teams: ["Ann FC"], value: 2 },
       { kind: "highestScore", teams: ["Bo United"], value: 80 },
@@ -540,7 +585,7 @@ describe("computeSeasonHighlights", () => {
       { kind: "captaincy", teams: ["Ann FC"], value: 8 },
       { kind: "bench", teams: ["Ann FC"], value: 9 },
       { kind: "yellowCards", teams: ["Ann FC"], value: 1 },
-    ]);
+    ]));
   });
 
   it("leaves out a record nobody holds", () => {
@@ -888,7 +933,7 @@ describe("computeGameweekStats while the gameweek is played", () => {
     const [first, second, third] = rows;
     expect([first.projectedPositionChange, second.projectedPositionChange, third.projectedPositionChange])
       .toEqual([-1, 1, 0]);
-    expect(computeGameweekHighlights(rows)).toContainEqual({
+    expect(facts(computeGameweekHighlights(rows))).toContainEqual({
       kind: "climber",
       teams: ["Bo United"],
       value: 1,

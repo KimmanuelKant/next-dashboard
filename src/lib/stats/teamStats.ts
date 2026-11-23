@@ -12,7 +12,7 @@ import {
 } from "@/lib/fpl/types";
 import { computeLeagueHistory } from "./leagueHistory";
 import { reviewCaptaincy, topBenched } from "./decisions";
-import { teamRecord, TeamRecord } from "./records";
+import { pickHighlights, teamRecord, TeamRecord } from "./records";
 
 export interface ChipUse {
   gw: number;
@@ -491,15 +491,20 @@ export type SeasonHighlight = TeamRecord<
   "gameweekWins" | "highestScore" | "transfers" | "captaincy" | "bench" | "yellowCards"
 >;
 
-/** The season's records. A record nobody holds is left out. */
+/**
+ * The season's records for the cards, the ones that stand out most first.
+ * A record nobody holds is left out. `scale` is the gap worth noticing in
+ * each stat over a season (see teamRecord).
+ */
 export function computeSeasonHighlights(rows: TeamStats[]): SeasonHighlight[] {
-  return [
-    teamRecord("gameweekWins", rows, (row) => row.gameweekWins, 1),
-    teamRecord("highestScore", rows, (row) => row.highestGameweekScore, 1),
+  const records = [
+    teamRecord("gameweekWins", rows, (row) => row.gameweekWins, { minimum: 1, scale: 1 }),
+    teamRecord("highestScore", rows, (row) => row.highestGameweekScore, { minimum: 1, scale: 5 }),
     // Only a gain is a record: with every team at a loss, nobody's transfers were "best".
-    teamRecord("transfers", rows, (row) => row.transferGainAfterHits, 1),
-    teamRecord("captaincy", rows, (row) => row.captaincyPointsLost, 1),
-    teamRecord("bench", rows, (row) => row.pointsOnBench, 1),
-    teamRecord("yellowCards", rows, (row) => row.yellowCards, 1),
+    teamRecord("transfers", rows, (row) => row.transferGainAfterHits, { minimum: 1, scale: 10 }),
+    teamRecord("captaincy", rows, (row) => row.captaincyPointsLost, { minimum: 1, scale: 10 }),
+    teamRecord("bench", rows, (row) => row.pointsOnBench, { minimum: 1, scale: 10 }),
+    teamRecord("yellowCards", rows, (row) => row.yellowCards, { minimum: 1, scale: 2 }),
   ].filter((record) => record !== null);
+  return pickHighlights(records);
 }
