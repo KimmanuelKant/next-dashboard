@@ -24,6 +24,22 @@ const columns = [
   }),
   columnHelper.accessor("totalPoints", { id: "totalPoints", header: "Total Points" }),
   columnHelper.accessor("gameweekPoints", { id: "gameweekPoints", header: "GW Points" }),
+  // While the gameweek is played: the Live view shows them in this order.
+  columnHelper.accessor((row) => row.liveStatus ?? "", {
+    id: "liveStatus",
+    header: "Status",
+    cell: ({ getValue }) => getValue() || "–",
+  }),
+  columnHelper.accessor((row) => row.gameweekPoints + (row.provisionalBonus ?? 0), {
+    id: "livePoints",
+    header: "Live Points",
+  }),
+  columnHelper.accessor((row) => row.provisionalBonus ?? undefined, {
+    id: "provisionalBonus",
+    header: "Provisional Bonus",
+    cell: ({ getValue }) => (getValue() ? `+${getValue()}` : "0"),
+    sortUndefined: "last",
+  }),
   columnHelper.accessor("form", {
     id: "form",
     header: "Form",
@@ -55,6 +71,16 @@ const columns = [
     id: "effectiveOwnership",
     header: "Effective Ownership %",
     cell: ({ getValue }) => percent(getValue()),
+  }),
+  columnHelper.accessor("nonStarterCost", {
+    id: "nonStarterCost",
+    header: "Cost to Non-starters",
+    // A cost is a loss to the non-starters; a player on negative points is
+    // a gain to them.
+    cell: ({ getValue }) => {
+      const cost = getValue();
+      return cost > 0 ? `−${cost.toFixed(1)}` : cost < 0 ? `+${(-cost).toFixed(1)}` : "0";
+    },
   }),
   columnHelper.accessor("leagueCaptainCount", { id: "leagueCaptainCount", header: "Captained" }),
   columnHelper.accessor("leagueViceCaptainCount", { id: "leagueViceCaptainCount", header: "Vice Captained" }),
@@ -89,7 +115,11 @@ const descriptions: Record<string, string> = {
   ownershipDifference: "League ownership minus global ownership, in percentage points. Negative means the player is rarer here than in the game overall.",
   globalOwnershipCount: "Approximate number of FPL managers worldwide who own the player.",
   leagueStartingCount: "Number of managers in this league with the player in their starting eleven.",
-  effectiveOwnership: "Ownership weighted by points multiplier: a captain counts twice, a benched player not at all.",
+  effectiveOwnership: "Ownership weighted by points multiplier: a captain counts twice, a benched player not at all. While the gameweek is played, after the automatic substitutions and the armband passing FPL would make now.",
+  nonStarterCost: "How many points a team without the player in its eleven falls behind the league's average team because of him this gameweek: his points times his effective ownership in the league. A team that captains him gains back his points above that. While the gameweek is played, with the provisional bonus.",
+  livePoints: "Points the player has scored in the current gameweek, with the provisional bonus.",
+  provisionalBonus: "Bonus points the player would get if his match ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in his points.",
+  liveStatus: "Played (his match is over), Playing, To play (his match has not started), or Did not play.",
   leagueCaptainCount: "Number of managers in this league who captained the player.",
   leagueViceCaptainCount: "Number of managers in this league who vice-captained the player.",
   owners: "The teams in this league that own the player.",
@@ -108,6 +138,9 @@ const shortHeaders: Record<string, string> = {
   globalOwnershipCount: "Global #",
   leagueStartingCount: "Start",
   effectiveOwnership: "EO %",
+  nonStarterCost: "Cost",
+  livePoints: "Live",
+  provisionalBonus: "Bonus",
   leagueCaptainCount: "Capt",
   leagueViceCaptainCount: "Vice",
 };
@@ -115,14 +148,25 @@ const shortHeaders: Record<string, string> = {
 // `phoneColumns`: what the widest views keep on a phone besides the player's
 // name and club; the rest is a tap away ("more columns"), and in the
 // player panel.
+const differentials: Preset = {
+  name: "Differentials",
+  columns: ["name", "club", "value", "gameweekPoints", "leagueOwnershipCount", "leagueOwnershipPercentage", "globalOwnershipPercentage", "ownershipDifference", "owners"],
+  // Owners rather than League %: they say the same, and the view opens
+  // sorted by Owners, which keeps that column in view anyway.
+  phoneColumns: ["leagueOwnershipCount", "globalOwnershipPercentage", "ownershipDifference"],
+};
+
+// While the gameweek is played: how each player is doing and what he means
+// for the league's teams.
+const liveView: Preset = {
+  name: "Live",
+  columns: ["name", "club", "liveStatus", "livePoints", "provisionalBonus", "leagueStartingCount", "leagueCaptainCount", "effectiveOwnership", "nonStarterCost"],
+  phoneColumns: ["livePoints", "effectiveOwnership", "nonStarterCost"],
+};
+const liveOnly = new Set(["livePoints", "provisionalBonus", "liveStatus"]);
+
 const presets: Preset[] = [
-  {
-    name: "Differentials",
-    columns: ["name", "club", "value", "gameweekPoints", "leagueOwnershipCount", "leagueOwnershipPercentage", "globalOwnershipPercentage", "ownershipDifference", "owners"],
-    // Owners rather than League %: they say the same, and the view opens
-    // sorted by Owners, which keeps that column in view anyway.
-    phoneColumns: ["leagueOwnershipCount", "globalOwnershipPercentage", "ownershipDifference"],
-  },
+  differentials,
   {
     name: "Ownership",
     columns: ["name", "leagueOwnershipCount", "leagueOwnershipPercentage", "leagueStartingCount", "effectiveOwnership", "globalOwnershipPercentage", "globalOwnershipCount"],
@@ -130,7 +174,7 @@ const presets: Preset[] = [
   },
   {
     name: "Captaincy",
-    columns: ["name", "leagueCaptainCount", "leagueViceCaptainCount", "effectiveOwnership", "gameweekPoints"],
+    columns: ["name", "leagueCaptainCount", "leagueViceCaptainCount", "effectiveOwnership", "gameweekPoints", "nonStarterCost"],
   },
   {
     name: "Player details",
@@ -144,12 +188,26 @@ const presets: Preset[] = [
   { name: "All columns" },
 ];
 
+const finished = {
+  columns: columns.filter((column) => !liveOnly.has(column.id as string)),
+  presets,
+};
+const live = { columns, presets: [differentials, liveView, ...presets.slice(1)] };
+
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 
 const uniqueSorted = (values: string[]) =>
   Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 
-export default function PlayerStatisticsTable({ players }: { players: PlayerStats[] }) {
+export default function PlayerStatisticsTable({
+  players,
+  isLive,
+}: {
+  players: PlayerStats[];
+  /** The gameweek is being played: the Live view and its columns are offered. */
+  isLive: boolean;
+}) {
+  const table = isLive ? live : finished;
   const [search, setSearch] = useState("");
   const [position, setPosition] = useState("");
   const [club, setClub] = useState("");
@@ -354,8 +412,9 @@ export default function PlayerStatisticsTable({ players }: { players: PlayerStat
 
       <DataTable
         data={filtered}
-        columns={columns}
-        presets={presets}
+        key={isLive ? "live" : "finished"}
+        columns={table.columns}
+        presets={table.presets}
         descriptions={descriptions}
         initialPreset="Differentials"
         initialSorting={[{ id: "leagueOwnershipCount", desc: false }]}

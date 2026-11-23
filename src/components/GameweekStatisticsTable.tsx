@@ -24,6 +24,9 @@ function formatSigned(value: number | undefined) {
 /** Points behind; nothing to show for the team in front. */
 const formatGap = (value: number | undefined) => (value ? String(value) : "–");
 const formatList = (items: string[]) => items.join(", ") || "–";
+/** "Palmer (+9.6)", "Haaland (−7)". */
+const formatSwing = (item: { name: string; count: number } | null) =>
+  item ? `${item.name} (${formatSigned(item.count)})` : "–";
 
 /**
  * Points ahead of (+) or behind (−) the visitor's own team on the total.
@@ -264,6 +267,29 @@ const columns = [
     header: "Cards and Mistakes",
     cell: ({ row }) => formatList(row.original.mishaps),
   }),
+  columnHelper.accessor((row) => row.swingGain?.count ?? undefined, {
+    id: "swingGain",
+    header: "Biggest Swing For",
+    cell: ({ row }) => formatSwing(row.original.swingGain),
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.swingLoss?.count ?? undefined, {
+    id: "swingLoss",
+    header: "Biggest Swing Against",
+    cell: ({ row }) => formatSwing(row.original.swingLoss),
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.uniquePoints ?? undefined, {
+    id: "uniquePoints",
+    header: "Unique Points",
+    cell: ({ getValue }) => getValue() ?? "–",
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.uniquePlayers.length, {
+    id: "uniquePlayers",
+    header: "Unique Players",
+    cell: ({ row }) => formatList(row.original.uniquePlayers),
+  }),
 ];
 
 const descriptions: Record<string, string> = {
@@ -281,6 +307,10 @@ const descriptions: Record<string, string> = {
   blanks: "Players who counted for the team, played, and scored 2 points or fewer, once their matches are over. While the gameweek is played, the provisional bonus counts.",
   notReplaced: "Starters who did not play and whom no substitute replaced, so their place scored nothing. While the gameweek is played, shown once no substitute is left to play.",
   mishaps: "Yellow and red cards, own goals and missed penalties of the players who counted for the team this gameweek.",
+  swingGain: "The player who won the team the most points against the rest of the league this gameweek: his points times how much more he counted for this team than for the league's average team. A captain few others had, or a player few others started. While the gameweek is played, with the provisional bonus and the projected substitutions.",
+  swingLoss: "The player who cost the team the most points against the rest of the league: one the league had and this team did not start, or captained less. A team's swings added up are its score before hits less the league's average.",
+  uniquePoints: "Points, with the captain's multiplier, from players who counted for this team and for no other team in the league this gameweek.",
+  uniquePlayers: "The players counted in Unique Points, with the points each brought.",
   projectedPosition: "The team's position in this league if the gameweek ended with the projected scores. Teams level on points share a position, marked with =.",
   projectedPositionChange: "Places the team would gain or lose this gameweek if it ended with the projected scores, compared with its position before the gameweek.",
   provisionalBonus: "Bonus points the team's players would get if their matches ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in the score. Doubled for the captain.",
@@ -323,6 +353,10 @@ const shortHeaders: Record<string, string> = {
   vsYou: "Vs You",
   notReplaced: "No Sub",
   mishaps: "Mishaps",
+  swingGain: "Swing +",
+  swingLoss: "Swing −",
+  uniquePoints: "Unique",
+  uniquePlayers: "Unique Players",
   projectedPosition: "Proj Pos",
   projectedPositionChange: "Proj +/−",
   provisionalBonus: "Bonus",
@@ -360,6 +394,10 @@ const groups: ColumnGroup[] = [
   { name: "Transfers, chips and value", columns: ["chip", "transfers", "playersIn", "playersOut", "teamValue", "valueChange"] },
   { name: "Bench and best player", columns: ["benchPoints", "topBenched", "bestPlayer"] },
   { name: "Blanks and mishaps", columns: ["blanks", "notReplaced", "mishaps"] },
+  {
+    name: "Swing and differentials",
+    columns: ["netScore", "vsAverage", "swingGain", "swingLoss", "uniquePoints", "uniquePlayers"],
+  },
 ];
 
 // Each group is also a view. The view's button gets a shorter name than the
@@ -368,6 +406,7 @@ const viewNames: Record<string, string> = {
   "Transfers, chips and value": "Transfers",
   "Bench and best player": "Bench",
   "Blanks and mishaps": "Mishaps",
+  "Swing and differentials": "Swing",
 };
 
 // The live projection, shown only while the current gameweek is being
@@ -390,6 +429,7 @@ const phoneColumns: Record<string, string[]> = {
   Transfers: ["chip", "transfers", "playersIn", "playersOut"],
   Bench: ["benchPoints", "topBenched"],
   Mishaps: ["blanks", "mishaps"],
+  Swing: ["swingGain", "uniquePoints"],
 };
 
 function presetsFor(shownGroups: ColumnGroup[]): Preset[] {
@@ -441,6 +481,21 @@ const highlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
   bench: { title: "Most left on bench", value: points, view: "Bench", column: "benchPoints", desc: true },
   hit: { title: "Biggest hit", value: (value) => `−${points(value)}`, view: "Scores", column: "hit", desc: true },
   lowest: { title: "Lowest score", value: points, view: "Scores", column: "netScore", desc: false },
+  swing: {
+    title: "Biggest swing",
+    value: (value, player) => `${player} +${value}`,
+    view: "Swing",
+    column: "swingGain",
+    desc: true,
+  },
+  swingAgainst: {
+    title: "Swung against",
+    value: (value, player) => `${player} −${value}`,
+    view: "Swing",
+    column: "swingLoss",
+    desc: false,
+  },
+  unique: { title: "Most unique points", value: points, view: "Swing", column: "uniquePoints", desc: true },
 };
 
 // While the gameweek is played, nobody has won it yet: the cards say so,
@@ -509,7 +564,7 @@ export default function GameweekStatisticsTable({
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay", "blanks", "notReplaced", "mishaps"]}
+      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay", "blanks", "notReplaced", "mishaps", "uniquePlayers"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined

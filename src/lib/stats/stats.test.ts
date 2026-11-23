@@ -23,6 +23,7 @@ import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats
 import { reviewCaptaincy } from "./decisions";
 import { pickHighlights, teamRecord, TeamRecord } from "./records";
 import { liveGameweek, projectTeam, provisionalBonus } from "./live";
+import { leagueGameweek, playerSwings } from "./leagueGameweek";
 
 // Players 1-15: 1-2 goalkeepers, 3-7 defenders, 8-12 midfielders, 13-15 forwards.
 const positionOf = (id: number) => (id <= 2 ? 1 : id <= 7 ? 2 : id <= 12 ? 3 : 4);
@@ -469,6 +470,35 @@ describe("computeGameweekStats", () => {
     expect(annNow.notReplaced).toEqual(["P3"]);
   });
 
+  it("finds the players who swung the gameweek for and against each team", () => {
+    // Ann tripled P14 where Bo doubled him: (3 − 2.5) × 14 = +7. Ann did not
+    // have Bo's P16: (0 − 0.5) × 16 = −8.
+    expect([ann.swingGain, ann.swingLoss]).toEqual([
+      { name: "P14", count: 7 },
+      { name: "P16", count: -8 },
+    ]);
+    expect([bo.swingGain, bo.swingLoss]).toEqual([
+      { name: "P16", count: 8 },
+      { name: "P14", count: -7 },
+    ]);
+    expect([cy.swingGain, cy.swingLoss]).toEqual([null, null]);
+  });
+
+  it("adds up the swings to the score against the league's average", () => {
+    // From the picks, Ann scores 112 and Bo 101: 5.5 either side of 106.5.
+    const league = leagueGameweek(snapshot(), 3);
+    const total = (teamId: number) =>
+      [...playerSwings(league, teamId).values()].reduce((sum, swing) => sum + swing, 0);
+    expect([total(100), total(200), total(300)]).toEqual([5.5, -5.5, 0]);
+  });
+
+  it("counts the points of players no other team counts on", () => {
+    // Bo does not have P13; Ann does not have P16.
+    expect([ann.uniquePoints, ann.uniquePlayers]).toEqual([13, ["P13 (13)"]]);
+    expect([bo.uniquePoints, bo.uniquePlayers]).toEqual([16, ["P16 (16)"]]);
+    expect([cy.uniquePoints, cy.uniquePlayers]).toEqual([null, []]);
+  });
+
   it("marks teams level on points, where one moves up and none moves down", () => {
     // Cy was third and has drawn level with Bo: FPL ranks both second.
     const level = snapshot();
@@ -572,14 +602,26 @@ describe("computeGameweekHighlights", () => {
 
   it("names the holder of each record, the winner first and the rest by how far they stand out", () => {
     // Nobody climbed or took a hit, so those two records are left out. The
-    // lowest score is as far from the median as the winner's; a 2-point
-    // captaincy loss is half the gap worth noticing; the bench is level.
+    // lowest score is as far from the median as the winner's. The others
+    // fall short of the gap worth noticing (4 points): the most unique
+    // points (16 against 13) stand 1.5 above the median, the captaincy loss
+    // 1 and the swings (8 against 7) 0.5. The bench is level, and only six
+    // records get a card.
     expect(facts(computeGameweekHighlights(rows))).toEqual([
       { kind: "winner", teams: ["Ann FC"], value: 74 },
       { kind: "lowest", teams: ["Bo United"], value: 50 },
+      { kind: "unique", teams: ["Bo United"], value: 16 },
       { kind: "captaincy", teams: ["Bo United"], value: 2 },
-      { kind: "bench", teams: ["Ann FC", "Bo United"], value: 3 },
+      { kind: "swing", teams: ["Bo United"], value: 8 },
+      { kind: "swingAgainst", teams: ["Ann FC"], value: 8 },
     ]);
+  });
+
+  it("names the player behind a swing", () => {
+    const highlights = computeGameweekHighlights(rows);
+    // Bo's P16, whom Ann did not have.
+    expect(highlights.find((h) => h.kind === "swing")?.detail).toBe("P16");
+    expect(highlights.find((h) => h.kind === "swingAgainst")?.detail).toBe("P16");
   });
 
   it("reports the biggest climb and the biggest hit when there is one", () => {
@@ -725,6 +767,16 @@ describe("computePlayerStats", () => {
     // P2 is on both benches.
     expect(byName("P2").effectiveOwnership).toBe(0);
     expect(byName("P2").leagueStartingCount).toBe(0);
+  });
+
+  it("works out what a player costs the teams that do not start him", () => {
+    // P14's 14 points at an average multiplier of 2.5; nobody starts P2.
+    expect(byName("P14").nonStarterCost).toBe(35);
+    expect(byName("P2").nonStarterCost).toBe(0);
+  });
+
+  it("leaves the live columns empty once the gameweek is finished", () => {
+    expect([byName("P1").provisionalBonus, byName("P1").liveStatus]).toEqual([null, null]);
   });
 
   it("includes players nobody in the league owns", () => {
@@ -981,6 +1033,32 @@ describe("computeGameweekStats while the gameweek is played", () => {
 
   it("marks the armband about to pass to the vice captain", () => {
     expect([ann.viceStepIn, bo.viceStepIn]).toEqual([true, true]);
+  });
+
+  it("works out swing and unique points after the projected substitutions", () => {
+    // P14 counts for nobody now. P8 takes the armband: x3 for Ann, x2 for
+    // Bo, an average of 2.5, and he scored 8. P7 comes on for both.
+    expect([ann.swingGain, ann.swingLoss]).toEqual([
+      { name: "P8", count: 4 },
+      { name: "P16", count: -8 },
+    ]);
+    expect(bo.swingGain).toEqual({ name: "P16", count: 8 });
+    // P13 is Ann's alone, and has not played yet.
+    expect([ann.uniquePoints, ann.uniquePlayers]).toEqual([0, ["P13 (0)"]]);
+    expect(bo.uniquePoints).toBe(16);
+  });
+
+  it("gives Scout the projected effective ownership and each player's state", () => {
+    const scout = computePlayerStats(playing);
+    const byName = (name: string) => scout.find((p) => p.name === name)!;
+    expect([byName("P14").effectiveOwnership, byName("P8").effectiveOwnership]).toEqual([0, 250]);
+    expect(byName("P8").nonStarterCost).toBe(20);
+    expect([byName("P1").liveStatus, byName("P13").liveStatus, byName("P14").liveStatus]).toEqual([
+      "Played",
+      "To play",
+      "Did not play",
+    ]);
+    expect(byName("P1").provisionalBonus).toBe(0);
   });
 
   it("measures the gaps on the projected totals", () => {

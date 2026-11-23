@@ -7,6 +7,7 @@ import LeagueNotices from "@/components/LeagueNotices";
 import LiveStatus from "@/components/LiveStatus";
 import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
 import { computeGameweekHighlights, computeGameweekStats } from "@/lib/stats/gameweekStats";
+import { matchTimes } from "@/lib/stats/live";
 
 // Errors thrown here are caught by the ErrorBoundary in the page.
 export default async function LeagueGameweekStats({
@@ -33,14 +34,8 @@ export default async function LeagueGameweekStats({
   // The live projection belongs to the current gameweek while FPL has not
   // marked it finished.
   const fixtures = gw === snapshot.currentGw ? snapshot.liveFixtures : null;
-  const playing = fixtures?.some((f) => f.started && !f.done) ?? false;
-  const nextKickoff =
-    fixtures
-      ?.filter((f) => !f.started && f.kickoff !== null)
-      .map((f) => f.kickoff as string)
-      .sort()[0] ?? null;
   const status = fixtures ? (
-    <LiveStatus playing={playing} nextKickoff={nextKickoff} updatedAt={snapshot.liveUpdatedAt} />
+    <LiveStatus {...matchTimes(fixtures)} updatedAt={snapshot.liveUpdatedAt} />
   ) : gameweek?.finished ? (
     "Final scores."
   ) : (

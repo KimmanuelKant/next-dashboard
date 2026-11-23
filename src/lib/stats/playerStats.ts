@@ -3,6 +3,7 @@
 // computed from a league snapshot. Pure functions: no fetching.
 
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, PositionId } from "@/lib/fpl/types";
+import { leagueGameweek } from "./leagueGameweek";
 
 export interface PlayerStats {
   id: number;
@@ -24,9 +25,21 @@ export interface PlayerStats {
   leagueStartingCount: number;
   /**
    * Sum of multipliers across the league, as a percent of managers. A captain
-   * counts twice, a benched player not at all.
+   * counts twice, a benched player not at all. While the gameweek is played,
+   * after the projected automatic substitutions and armband passing.
    */
   effectiveOwnership: number;
+  /**
+   * How far a team that does not count the player falls behind the league's
+   * average team because of him: his points times his average multiplier
+   * in the league, to one decimal place.
+   */
+  nonStarterCost: number;
+  // While the gameweek is played; null once FPL has finished it.
+  /** Bonus the player would get if his match ended now, where FPL has not added it yet. */
+  provisionalBonus: number | null;
+  /** "Played", "Playing", "To play" or "Did not play". */
+  liveStatus: string | null;
   leagueCaptainCount: number;
   leagueViceCaptainCount: number;
   /** Team names of the managers who own the player. */
@@ -58,7 +71,6 @@ export function computePlayerStats(snapshot: LeagueSnapshot): PlayerStats[] {
   interface Tally {
     owners: string[];
     starting: number;
-    multiplierSum: number;
     captain: number;
     vice: number;
   }
@@ -72,11 +84,10 @@ export function computePlayerStats(snapshot: LeagueSnapshot): PlayerStats[] {
     for (const [playerId, multiplier, role] of team.picks) {
       let tally = tallies.get(playerId);
       if (!tally) {
-        tally = { owners: [], starting: 0, multiplierSum: 0, captain: 0, vice: 0 };
+        tally = { owners: [], starting: 0, captain: 0, vice: 0 };
         tallies.set(playerId, tally);
       }
       tally.owners.push(manager.teamName);
-      tally.multiplierSum += multiplier;
       if (multiplier > 0) tally.starting++;
       if (role === PICK_CAPTAIN) tally.captain++;
       if (role === PICK_VICE) tally.vice++;
@@ -85,9 +96,19 @@ export function computePlayerStats(snapshot: LeagueSnapshot): PlayerStats[] {
 
   for (const player of bootstrap.players) {
     if (!tallies.has(player.id)) {
-      tallies.set(player.id, { owners: [], starting: 0, multiplierSum: 0, captain: 0, vice: 0 });
+      tallies.set(player.id, { owners: [], starting: 0, captain: 0, vice: 0 });
     }
   }
+
+  // The multipliers as they count: projected while the gameweek is played.
+  const counted = leagueGameweek(snapshot, currentGw);
+  const { live } = counted;
+  const status = (playerId: number) => {
+    if (!live) return null;
+    const state = live.state(playerId);
+    if (state === "played") return live.stillToPlay(playerId) ? "Playing" : "Played";
+    return state === "pending" ? "To play" : "Did not play";
+  };
 
   const percentOfLeague = (n: number) =>
     managersWithTeam > 0 ? (n / managersWithTeam) * 100 : 0;
@@ -114,7 +135,11 @@ export function computePlayerStats(snapshot: LeagueSnapshot): PlayerStats[] {
       leagueOwnershipPercentage: leaguePercent,
       ownershipDifference: leaguePercent - globalPercent,
       leagueStartingCount: tally.starting,
-      effectiveOwnership: percentOfLeague(tally.multiplierSum),
+      effectiveOwnership: percentOfLeague(counted.multiplierSums.get(playerId) ?? 0),
+      nonStarterCost:
+        Math.round(counted.score(playerId) * counted.averageMultiplier(playerId) * 10) / 10,
+      provisionalBonus: live ? live.bonus.get(playerId) ?? 0 : null,
+      liveStatus: status(playerId),
       leagueCaptainCount: tally.captain,
       leagueViceCaptainCount: tally.vice,
       owners: tally.owners,

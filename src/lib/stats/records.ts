@@ -15,6 +15,8 @@ export interface TeamRecord<Kind extends string> {
    * the league is on that stat. 0 when it does not stand out at all.
    */
   standout: number;
+  /** What the record was won with, for the card: the player behind a swing. */
+  detail?: string;
 }
 
 /** As many cards as fill three rows on a phone, two to a row. */

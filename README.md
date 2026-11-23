@@ -6,12 +6,15 @@ and get sortable, customisable tables the official site does not offer:
 - **Scout**: every player, owned in the league or not, with league vs
   global ownership, effective ownership, captaincy counts and who owns whom.
   Built for finding differentials and making informed transfers.
-  Filter by name, position, club, owner, price and number of owners.
+  Filter by name, position, club, owner, price and number of owners. While
+  a gameweek is played, a Live view shows each player's points with
+  provisional bonus and what he costs the teams that do not start him.
 - **This Gameweek**: each manager's score and how far it is from the league
   average, the gap to the leader, the team above and your own team,
   captain (and whether the vice captain stepped in), chip, transfers in
-  and out, bench, points lost to the captaincy choice, and the blanks,
-  cards and own goals. Earlier gameweeks can be opened as well. While a
+  and out, bench, points lost to the captaincy choice, the blanks, cards
+  and own goals, the players who swung the gameweek for and against each
+  team, and points from players nobody else in the league started. Earlier gameweeks can be opened as well. While a
   gameweek is played, a Live view projects each score and the league table
   with provisional bonus and automatic substitutions, and the page
   refreshes itself during matches.
@@ -81,6 +84,12 @@ bonus points system stands in matches whose bonus FPL has not yet added,
 and makes the automatic substitutions FPL will make after the last match.
 `LiveStatus` shows when the scores were fetched, offers a refresh, and
 refreshes the page every minute while a match is played.
+
+`src/lib/stats/leagueGameweek.ts` works out what each team counts on in a
+gameweek: every player's multiplier, after the projected substitutions
+while the gameweek is played, and the league's average of it. Swing, unique
+points and Scout's effective ownership are built on it, so they agree with
+the projected scores.
 
 Every table keeps its view and sorting in the page address
 (`?view=mishaps&sort=-yellowCards`, see `src/lib/tableUrl.ts`), so a link to a

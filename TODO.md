@@ -36,16 +36,11 @@ the way to grow without self-promotion.
   highlight card from it to share.
 
 ## Next stats (best value for the effort)
-- Gameweek: swing vs league and unique points.
 - Season: seller's remorse.
 - Season: manager of the month, and previous seasons (trim).
 - Scout: upcoming fixtures (fetch `/fixtures/`).
 
 ## Gameweek: stats still to add
-- Swing vs league: per player, (your multiplier minus the league's average
-  multiplier) times points, summed; and the player who swung the week most.
-  A highlight card.
-- Unique points: points from players no one else in the league started.
 - Transfer gain this gameweek: points of players bought minus players sold.
 - In finished gameweeks, every starter who did not play and the automatic
   substitutions FPL made. FPL's final picks put each substitute in the

@@ -59,6 +59,25 @@ export function provisionalBonus(fixtures: LiveFixture[]): Map<number, number> {
   return bonus;
 }
 
+/**
+ * Whether a match is being played, and when the next one starts (null when
+ * none is left to start): what the live status line needs to know when to
+ * refresh the page.
+ */
+export function matchTimes(fixtures: LiveFixture[]): {
+  playing: boolean;
+  nextKickoff: string | null;
+} {
+  return {
+    playing: fixtures.some((f) => f.started && !f.done),
+    nextKickoff:
+      fixtures
+        .filter((f) => !f.started && f.kickoff !== null)
+        .map((f) => f.kickoff as string)
+        .sort()[0] ?? null,
+  };
+}
+
 export function liveGameweek(
   fixtures: LiveFixture[],
   points: GameweekPoints,

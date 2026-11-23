@@ -18,8 +18,8 @@ export interface Highlight {
 /** What the card for one kind of record says, and where the table shows it. */
 export interface HighlightCard {
   title: string;
-  /** The record's value as the card words it: "74 pts", "3 wins". */
-  value: (value: number) => string;
+  /** The record's value as the card words it: "74 pts", "3 wins", "Palmer +9.6". */
+  value: (value: number, detail?: string) => string;
   /** Name of the view (preset) that holds the column. */
   view: string;
   column: string;
@@ -33,7 +33,7 @@ export function toHighlight(record: TeamRecord<string>, card: HighlightCard): Hi
     title: card.title,
     name: record.teams[0],
     others: record.teams.length > 1 ? `+${record.teams.length - 1}` : undefined,
-    value: card.value(record.value),
+    value: card.value(record.value, record.detail),
     preset: card.view,
     sorting: [{ id: card.column, desc: card.desc }],
   };

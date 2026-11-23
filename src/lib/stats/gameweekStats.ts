@@ -5,7 +5,7 @@
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types";
 import { reviewCaptaincy, topBenched } from "./decisions";
 import { computeLeagueHistory } from "./leagueHistory";
-import { liveGameweek, projectTeam } from "./live";
+import { leagueGameweek, playerSwings } from "./leagueGameweek";
 import { pickHighlights, teamRecord, TeamRecord } from "./records";
 import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
 
@@ -83,6 +83,20 @@ export interface GameweekStats {
   mishaps: string[];
   /** How many cards, own goals and missed penalties those are. */
   mishapCount: number;
+  /**
+   * The player who won the team the most against the rest of the league
+   * (see playerSwings), with that swing to one decimal place; null if none.
+   */
+  swingGain: NamedCount | null;
+  /** The player who cost the team the most against the league (a negative count); null if none. */
+  swingLoss: NamedCount | null;
+  /**
+   * Points, with multipliers, from players who count for this team and for
+   * no other team in the league; null for a manager without a team.
+   */
+  uniquePoints: number | null;
+  /** Those players, with their points: "Wissa (8)". */
+  uniquePlayers: string[];
 
   /** Season total after this gameweek; the projected total while it is played. */
   total: number | null;
@@ -199,15 +213,8 @@ export function computeGameweekStats(
   const name = (id: number | null | undefined) =>
     (id != null && players.get(id)?.name) || "";
   const points = snapshot.points[gw] ?? {};
-  const live =
-    isCurrent && snapshot.liveFixtures
-      ? liveGameweek(
-          snapshot.liveFixtures,
-          points,
-          snapshot.minutes[gw] ?? {},
-          snapshot.bootstrap.players
-        )
-      : null;
+  const league = leagueGameweek(snapshot, gw);
+  const live = league.live;
   const earlierGws = snapshot.gameweekIds.filter((id) => id < gw).reverse();
   // Only players who played are listed, so with no minutes at all (before
   // the first kick-off, or a gameweek FPL sent none for) nobody can be said
@@ -230,7 +237,7 @@ export function computeGameweekStats(
     const weeks = snapshot.histories[manager.entryId]?.gameweeks ?? [];
     const week = weeks.find((w) => w.gw === gw);
     const previousWeek = [...weeks].reverse().find((w) => w.gw < gw);
-    const projection = live && team ? projectTeam(team, live) : null;
+    const projection = league.projections.get(manager.entryId) ?? null;
     // While the gameweek is played, the score is worked out from the picks,
     // as FPL does, so that it is as fresh as the projection beside it. The
     // standings carry the score of the current gameweek only.
@@ -269,7 +276,7 @@ export function computeGameweekStats(
     // While the gameweek is played, the bench is the one after the projected
     // substitutions: a substitute about to come on is not left on it.
     // Otherwise FPL's own bench points.
-    const liveScore = (id: number) => (points[id] ?? 0) + (live?.bonus.get(id) ?? 0);
+    const liveScore = league.score;
     let benched = team ? topBenched(team, points) : null;
     let benchPoints = week?.benchPoints ?? 0;
     if (projection) {
@@ -318,6 +325,18 @@ export function computeGameweekStats(
       minutesKnown && benchSettled
         ? starters.flatMap(([id]) => (!played(id) && done(id) && !replaced.has(id) ? [id] : []))
         : [];
+    // The players who won and lost the team the most against the league.
+    let swingGain: NamedCount | null = null;
+    let swingLoss: NamedCount | null = null;
+    for (const [id, swing] of playerSwings(league, manager.entryId)) {
+      const count = Math.round(swing * 10) / 10;
+      if (count > (swingGain?.count ?? 0)) swingGain = { name: name(id) || "Unknown", count };
+      if (count < (swingLoss?.count ?? 0)) swingLoss = { name: name(id) || "Unknown", count };
+    }
+    // Points from players no other team in the league counts on.
+    const pointsOf = (id: number) => (multipliers.get(id) ?? 0) * liveScore(id);
+    const unique = counting.filter((id) => league.countedBy.get(id) === 1);
+
     const mishaps: string[] = [];
     let mishapCount = 0;
     for (const id of counting) {
@@ -371,6 +390,10 @@ export function computeGameweekStats(
       notReplaced: notReplaced.map((id) => name(id) || "Unknown"),
       mishaps,
       mishapCount,
+      swingGain,
+      swingLoss,
+      uniquePoints: team ? unique.reduce((total, id) => total + pointsOf(id), 0) : null,
+      uniquePlayers: unique.map((id) => `${name(id) || "Unknown"} (${pointsOf(id)})`),
       total: projectedTotal ?? week?.totalPoints ?? (isCurrent ? manager.total : null),
       gapToLeader: null, // filled in below
       gapToAbove: null, // filled in below
@@ -451,7 +474,7 @@ export function computeGameweekStats(
 
 /** One of the gameweek's records, for the cards above the table. */
 export type GameweekHighlight = TeamRecord<
-  "winner" | "climber" | "captaincy" | "bench" | "hit" | "lowest"
+  "winner" | "climber" | "captaincy" | "bench" | "hit" | "lowest" | "swing" | "swingAgainst" | "unique"
 >;
 
 /**
@@ -469,6 +492,17 @@ export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighli
   const score = (row: GameweekStats) => row.projectedScore ?? row.netScore;
   const winner = teamRecord("winner", played, score, { scale: 5 });
   const lowest = teamRecord("lowest", played, (row) => -score(row), { scale: 5 });
+  // A swing record names the player as well as the team, from the first
+  // team that holds it. The swing against is counted as a positive size.
+  const swingRecord = (
+    kind: "swing" | "swingAgainst",
+    swing: (row: GameweekStats) => NamedCount | null
+  ) => {
+    const size = (row: GameweekStats) => Math.abs(swing(row)?.count ?? 0);
+    const record = teamRecord(kind, played, size, { minimum: 1, scale: 4 });
+    const holder = record && played.find((row) => size(row) === record.value);
+    return record && holder ? { ...record, detail: swing(holder)?.name } : null;
+  };
   const records = [
     winner,
     teamRecord(
@@ -481,6 +515,9 @@ export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighli
     teamRecord("captaincy", played, (row) => row.captaincyPointsLost, { minimum: 1, scale: 4 }),
     teamRecord("bench", played, (row) => row.benchPoints, { minimum: 1, scale: 4 }),
     teamRecord("hit", played, (row) => row.hit, { minimum: 1, scale: 4 }),
+    swingRecord("swing", (row) => row.swingGain),
+    swingRecord("swingAgainst", (row) => row.swingLoss),
+    teamRecord("unique", played, (row) => row.uniquePoints ?? 0, { minimum: 1, scale: 4 }),
     // No lowest score when every team scored the same: they are all winners.
     winner && lowest && -lowest.value < winner.value
       ? { ...lowest, value: -lowest.value }
