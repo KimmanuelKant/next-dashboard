@@ -78,6 +78,14 @@ const columns = [
     header: "Transfer Gain After Hits",
     cell: ({ getValue }) => formatSigned(getValue()),
   }),
+  // Sorted by the share that paid off; a manager who never took a hit goes last.
+  columnHelper.accessor((row) => (row.hitWeeks ? row.hitsPaidOff / row.hitWeeks : undefined), {
+    id: "hitsPaidOff",
+    header: "Hits That Paid Off",
+    cell: ({ row }) =>
+      row.original.hitWeeks ? `${row.original.hitsPaidOff} of ${row.original.hitWeeks}` : "–",
+    sortUndefined: "last",
+  }),
   columnHelper.accessor((row) => row.bestTransfer?.value ?? -Infinity, {
     id: "bestTransfer",
     header: "Best Transfer",
@@ -246,6 +254,7 @@ const descriptions: Record<string, string> = {
   totalTransferPointsDeducted: "Points deducted for extra transfers.",
   transferGain: "What the players bought scored in their first gameweek, minus what the players sold scored that same week. Counts points whether or not the player was in the starting eleven. Free Hit weeks are left out.",
   transferGainAfterHits: "Transfer gain minus the points paid in hits.",
+  hitsPaidOff: "Of the gameweeks in which the manager took a hit, those whose transfers gained more than the hit cost that same gameweek.",
   bestTransfer: "The single transfer with the biggest first-week gain.",
   worstTransfer: "The single transfer with the biggest first-week loss.",
   biggestProfitSale: "The sale that made the most money: selling price minus buying price, with the player and the gameweek he was sold. For a player in the squad from the start, the buying price is his start-of-season price.",
@@ -303,6 +312,7 @@ const shortHeaders: Record<string, string> = {
   totalTransferPointsDeducted: "Hits",
   transferGain: "Trf Gain",
   transferGainAfterHits: "Net Gain",
+  hitsPaidOff: "Hits Paid",
   bestTransfer: "Best Trf",
   worstTransfer: "Worst Trf",
   biggestProfitSale: "Best Sale",
@@ -350,7 +360,7 @@ const groups: ColumnGroup[] = [
   },
   {
     name: "Transfers and value",
-    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "bestTransfer", "worstTransfer", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
+    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "hitsPaidOff", "bestTransfer", "worstTransfer", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
   },
   {
     name: "Chips",

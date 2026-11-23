@@ -2,7 +2,49 @@
 // Stats that judge a manager's choices in one gameweek, rather than report
 // what happened: who should have been captain, who was left on the bench.
 
-import { GameweekPoints, ManagerGameweek } from "@/lib/fpl/types";
+import { GameweekPoints, ManagerGameweek, ManagerHistory } from "@/lib/fpl/types";
+
+export interface TransferOutcome {
+  playerIn: number;
+  playerOut: number;
+  /** What the player bought scored that gameweek, minus what the player sold scored. */
+  gain: number;
+}
+
+/**
+ * The transfers made for one gameweek, each judged by that gameweek alone.
+ * Points count whether or not the player was in the starting eleven, so a
+ * transfer is judged on the player, not on the manager's team selection.
+ * `score` gives a player's points that gameweek (with the provisional bonus
+ * while it is played). The Gameweek tab shows these for one gameweek, and
+ * the Season tab adds them up and sets each week's against its hit.
+ *
+ * FPL lists every transfer made before the deadline, so on a wildcard a
+ * player can be bought and sold again before the gameweek starts. Such
+ * chains are joined (A for X, then B for A, is B for X), and a player sold
+ * and bought back is no transfer at all. The total gain is the same either
+ * way; the joined list says what the squad actually changed.
+ */
+export function transferOutcomes(
+  transfers: ManagerHistory["transfers"],
+  gw: number,
+  score: (playerId: number) => number
+): TransferOutcome[] {
+  const joined: { playerIn: number; playerOut: number }[] = [];
+  for (const { gw: week, playerIn, playerOut } of transfers) {
+    if (week !== gw) continue;
+    const earlier = joined.find((transfer) => transfer.playerIn === playerOut);
+    if (earlier) earlier.playerIn = playerIn;
+    else joined.push({ playerIn, playerOut });
+  }
+  return joined
+    .filter(({ playerIn, playerOut }) => playerIn !== playerOut)
+    .map(({ playerIn, playerOut }) => ({
+      playerIn,
+      playerOut,
+      gain: score(playerIn) - score(playerOut),
+    }));
+}
 
 export interface CaptaincyReview {
   /** Player whose points were multiplied (vice captain if the captain did not play); null if neither played. */

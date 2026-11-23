@@ -3,7 +3,7 @@
 // one the visitor has gone back to. Season-long stats live in teamStats.ts.
 
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types";
-import { reviewCaptaincy, topBenched } from "./decisions";
+import { reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
 import { computeLeagueHistory } from "./leagueHistory";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
 import { pickHighlights, teamRecord, TeamRecord } from "./records";
@@ -61,6 +61,16 @@ export interface GameweekStats {
   transfers: number;
   playersIn: string[];
   playersOut: string[];
+  /**
+   * What the players bought scored this gameweek, minus what the players
+   * sold scored (see transferOutcomes); null without transfers. Free Hit
+   * transfers count: they were real for this gameweek.
+   */
+  transferGain: number | null;
+  /** The transfer gain less the hit paid for it. */
+  transferGainAfterHit: number | null;
+  /** Each transfer with its gain: "Saka for Palmer (+6)". */
+  transferOutcomes: string[];
   benchPoints: number;
   /** Highest-scoring player left on the bench. */
   topBenched: NamedCount | null;
@@ -271,6 +281,15 @@ export function computeGameweekStats(
     const squad = team?.picks.map((p) => p[0]) ?? [];
     const playersIn = previousSquad ? squad.filter((id) => !previousSquad!.includes(id)) : [];
     const playersOut = previousSquad && team ? previousSquad.filter((id) => !squad.includes(id)) : [];
+    // Each transfer judged by this gameweek's points, with the provisional
+    // bonus while it is played.
+    const outcomes = transferOutcomes(
+      snapshot.histories[manager.entryId]?.transfers ?? [],
+      gw,
+      league.score
+    );
+    const transferGain =
+      outcomes.length > 0 ? outcomes.reduce((total, outcome) => total + outcome.gain, 0) : null;
 
     const review = team ? reviewCaptaincy(team, points) : null;
     // While the gameweek is played, the bench is the one after the projected
@@ -381,6 +400,14 @@ export function computeGameweekStats(
       transfers: week?.transfers ?? 0,
       playersIn: playersIn.map((id) => name(id) || "Unknown"),
       playersOut: playersOut.map((id) => name(id) || "Unknown"),
+      transferGain,
+      transferGainAfterHit: transferGain === null ? null : transferGain - hit,
+      transferOutcomes: outcomes.map(
+        ({ playerIn, playerOut, gain }) =>
+          `${name(playerIn) || "Unknown"} for ${name(playerOut) || "Unknown"} (${
+            gain > 0 ? "+" : ""
+          }${gain})`
+      ),
       benchPoints,
       topBenched: benched
         ? { name: name(benched[0]) || "Unknown", count: benched[1] }
@@ -474,7 +501,17 @@ export function computeGameweekStats(
 
 /** One of the gameweek's records, for the cards above the table. */
 export type GameweekHighlight = TeamRecord<
-  "winner" | "climber" | "captaincy" | "bench" | "hit" | "lowest" | "swing" | "swingAgainst" | "unique"
+  | "winner"
+  | "climber"
+  | "captaincy"
+  | "bench"
+  | "hit"
+  | "lowest"
+  | "swing"
+  | "swingAgainst"
+  | "unique"
+  | "transfers"
+  | "transfersBackfired"
 >;
 
 /**
@@ -518,6 +555,12 @@ export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighli
     swingRecord("swing", (row) => row.swingGain),
     swingRecord("swingAgainst", (row) => row.swingLoss),
     teamRecord("unique", played, (row) => row.uniquePoints ?? 0, { minimum: 1, scale: 4 }),
+    // After the hit: a transfer that paid for itself, or one that cost more than it brought.
+    teamRecord("transfers", played, (row) => row.transferGainAfterHit ?? 0, { minimum: 1, scale: 4 }),
+    teamRecord("transfersBackfired", played, (row) => -(row.transferGainAfterHit ?? 0), {
+      minimum: 1,
+      scale: 4,
+    }),
     // No lowest score when every team scored the same: they are all winners.
     winner && lowest && -lowest.value < winner.value
       ? { ...lowest, value: -lowest.value }

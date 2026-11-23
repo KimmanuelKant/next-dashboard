@@ -20,7 +20,7 @@ import {
 import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
-import { reviewCaptaincy } from "./decisions";
+import { reviewCaptaincy, transferOutcomes } from "./decisions";
 import { pickHighlights, teamRecord, TeamRecord } from "./records";
 import { liveGameweek, projectTeam, provisionalBonus } from "./live";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
@@ -307,6 +307,28 @@ describe("league history and squad habits", () => {
   });
 });
 
+describe("transferOutcomes", () => {
+  const transfer = (gw: number, playerIn: number, playerOut: number) => ({
+    gw, playerIn, playerOut, inCost: 50, outCost: 50,
+  });
+  const score = (id: number) => id;
+
+  it("judges each transfer of the gameweek by its points", () => {
+    const outcomes = transferOutcomes([transfer(2, 9, 3), transfer(3, 8, 5)], 3, score);
+    expect(outcomes).toEqual([{ playerIn: 8, playerOut: 5, gain: 3 }]);
+  });
+
+  it("joins a player bought and sold again before the deadline into one transfer", () => {
+    // On a wildcard: P8 for P3, then P12 for P8; P4 out for P9, then back for P9.
+    const outcomes = transferOutcomes(
+      [transfer(3, 8, 3), transfer(3, 9, 4), transfer(3, 12, 8), transfer(3, 4, 9)],
+      3,
+      score
+    );
+    expect(outcomes).toEqual([{ playerIn: 12, playerOut: 3, gain: 9 }]);
+  });
+});
+
 describe("decisions", () => {
   const [ann, bo, cy] = computeTeamStats(snapshot());
 
@@ -350,6 +372,19 @@ describe("decisions", () => {
     expect(ann.transferGain).toBe(0);
     expect(ann.transferGainAfterHits).toBe(-4);
     expect(ann.bestTransfer).toBeNull();
+  });
+
+  it("counts the hits whose transfers gained more than they cost", () => {
+    // Ann's GW2 hit bought nothing; Bo took none.
+    expect([ann.hitWeeks, ann.hitsPaidOff]).toEqual([1, 0]);
+    expect([bo.hitWeeks, bo.hitsPaidOff]).toEqual([0, 0]);
+    // Bo's +3 transfer pays for a 2-point hit, not for a 4-point one.
+    for (const [cost, paidOff] of [[2, 1], [4, 0]]) {
+      const withHit = snapshot();
+      withHit.histories[200].gameweeks[1].transfersCost = cost;
+      const boNow = computeTeamStats(withHit)[1];
+      expect([boNow.hitWeeks, boNow.hitsPaidOff]).toEqual([1, paidOff]);
+    }
   });
 
   it("finds the most profitable sale", () => {
@@ -492,6 +527,24 @@ describe("computeGameweekStats", () => {
     expect([total(100), total(200), total(300)]).toEqual([5.5, -5.5, 0]);
   });
 
+  it("judges each transfer by this gameweek's points, before and after the hit", () => {
+    // Bo bought P16 (16 points) for P13 (13). Ann made no transfers.
+    expect([bo.transferGain, bo.transferGainAfterHit, bo.transferOutcomes]).toEqual([
+      3,
+      3,
+      ["P16 for P13 (+3)"],
+    ]);
+    expect([ann.transferGain, ann.transferGainAfterHit, ann.transferOutcomes]).toEqual([
+      null,
+      null,
+      [],
+    ]);
+    // With a 4-point hit, the transfer did not pay for itself.
+    const withHit = snapshot();
+    withHit.histories[200].gameweeks[1].transfersCost = 4;
+    expect(computeGameweekStats(withHit)[1].transferGainAfterHit).toBe(-1);
+  });
+
   it("counts the points of players no other team counts on", () => {
     // Bo does not have P13; Ann does not have P16.
     expect([ann.uniquePoints, ann.uniquePlayers]).toEqual([13, ["P13 (13)"]]);
@@ -604,16 +657,16 @@ describe("computeGameweekHighlights", () => {
     // Nobody climbed or took a hit, so those two records are left out. The
     // lowest score is as far from the median as the winner's. The others
     // fall short of the gap worth noticing (4 points): the most unique
-    // points (16 against 13) stand 1.5 above the median, the captaincy loss
-    // 1 and the swings (8 against 7) 0.5. The bench is level, and only six
-    // records get a card.
+    // points (16 against 13) and Bo's transfer (+3 against none) stand 1.5
+    // above the median, the captaincy loss 1 and the swings (8 against 7)
+    // 0.5. The bench is level, and only six records get a card.
     expect(facts(computeGameweekHighlights(rows))).toEqual([
       { kind: "winner", teams: ["Ann FC"], value: 74 },
       { kind: "lowest", teams: ["Bo United"], value: 50 },
       { kind: "unique", teams: ["Bo United"], value: 16 },
+      { kind: "transfers", teams: ["Bo United"], value: 3 },
       { kind: "captaincy", teams: ["Bo United"], value: 2 },
       { kind: "swing", teams: ["Bo United"], value: 8 },
-      { kind: "swingAgainst", teams: ["Ann FC"], value: 8 },
     ]);
   });
 
@@ -621,7 +674,6 @@ describe("computeGameweekHighlights", () => {
     const highlights = computeGameweekHighlights(rows);
     // Bo's P16, whom Ann did not have.
     expect(highlights.find((h) => h.kind === "swing")?.detail).toBe("P16");
-    expect(highlights.find((h) => h.kind === "swingAgainst")?.detail).toBe("P16");
   });
 
   it("reports the biggest climb and the biggest hit when there is one", () => {
@@ -1046,6 +1098,11 @@ describe("computeGameweekStats while the gameweek is played", () => {
     // P13 is Ann's alone, and has not played yet.
     expect([ann.uniquePoints, ann.uniquePlayers]).toEqual([0, ["P13 (0)"]]);
     expect(bo.uniquePoints).toBe(16);
+  });
+
+  it("judges the transfers on the points so far", () => {
+    // P13, whom Bo sold, has not played yet.
+    expect(bo.transferOutcomes).toEqual(["P16 for P13 (+16)"]);
   });
 
   it("gives Scout the projected effective ownership and each player's state", () => {

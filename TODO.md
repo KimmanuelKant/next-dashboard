@@ -41,7 +41,6 @@ the way to grow without self-promotion.
 - Scout: upcoming fixtures (fetch `/fixtures/`).
 
 ## Gameweek: stats still to add
-- Transfer gain this gameweek: points of players bought minus players sold.
 - In finished gameweeks, every starter who did not play and the automatic
   substitutions FPL made. FPL's final picks put each substitute in the
   starter's place, so the eleven as first picked is lost; only starters
@@ -70,8 +69,7 @@ the way to grow without self-promotion.
   captain saves.
 - Transfers: seller's remorse (points scored by players after they were
   sold), bought too late (points a player scored before being bought),
-  knee-jerk transfers (sold within 1-2 gameweeks of buying), hits that paid
-  off (transfer gain larger than the hit).
+  knee-jerk transfers (sold within 1-2 gameweeks of buying).
 - Points breakdown: by club, share of points from the top 3 players.
 - Points breakdown (trim, `/event/{gw}/live/`): bonus points, goals and
   clean sheets by the starting eleven, actual points against xGI ("luck").

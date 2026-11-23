@@ -11,7 +11,7 @@ import {
   Player,
 } from "@/lib/fpl/types";
 import { computeLeagueHistory } from "./leagueHistory";
-import { reviewCaptaincy, topBenched } from "./decisions";
+import { reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
 import { pickHighlights, teamRecord, TeamRecord } from "./records";
 
 export interface ChipUse {
@@ -99,6 +99,10 @@ export interface TeamStats {
   transferGain: number;
   /** Transfer gain minus the points paid in hits. */
   transferGainAfterHits: number;
+  /** Gameweeks in which the manager took a hit. */
+  hitWeeks: number;
+  /** Of those, the gameweeks whose transfers gained more than the hit cost. */
+  hitsPaidOff: number;
   bestTransfer: LabelledValue | null;
   worstTransfer: LabelledValue | null;
   /** The sale that made the most money: selling price minus buying price, in millions. */
@@ -379,21 +383,32 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
 
     // Transfer outcomes: what the player bought scored in his first gameweek,
     // against what the player sold scored that week. Free Hit transfers are
-    // undone a week later, so they are left out.
+    // undone a week later, so they are left out. A week's hit paid off when
+    // its transfers gained more than the hit cost.
     let transferGain = 0;
     let bestTransfer: LabelledValue | null = null;
     let worstTransfer: LabelledValue | null = null;
-    for (const transfer of history.transfers) {
-      const weekPoints = snapshot.points[transfer.gw];
-      if (!weekPoints || freeHitWeeks.has(transfer.gw)) continue;
-      const gain =
-        (weekPoints[transfer.playerIn] ?? 0) - (weekPoints[transfer.playerOut] ?? 0);
-      transferGain += gain;
-      const label = `${playerName(transfer.playerIn) || "Unknown"} for ${
-        playerName(transfer.playerOut) || "Unknown"
-      }, GW${transfer.gw}`;
-      if (!bestTransfer || gain > bestTransfer.value) bestTransfer = { label, value: gain };
-      if (!worstTransfer || gain < worstTransfer.value) worstTransfer = { label, value: gain };
+    let hitWeeks = 0;
+    let hitsPaidOff = 0;
+    for (const gw of snapshot.gameweekIds) {
+      const weekPoints = snapshot.points[gw];
+      if (!weekPoints || freeHitWeeks.has(gw)) continue;
+      const outcomes = transferOutcomes(history.transfers, gw, (id) => weekPoints[id] ?? 0);
+      let weekGain = 0;
+      for (const { playerIn, playerOut, gain } of outcomes) {
+        weekGain += gain;
+        const label = `${playerName(playerIn) || "Unknown"} for ${
+          playerName(playerOut) || "Unknown"
+        }, GW${gw}`;
+        if (!bestTransfer || gain > bestTransfer.value) bestTransfer = { label, value: gain };
+        if (!worstTransfer || gain < worstTransfer.value) worstTransfer = { label, value: gain };
+      }
+      transferGain += weekGain;
+      const hit = weeks.find((w) => w.gw === gw)?.transfersCost ?? 0;
+      if (hit > 0) {
+        hitWeeks++;
+        if (weekGain > hit) hitsPaidOff++;
+      }
     }
 
     const sales = computeSales(
@@ -482,6 +497,8 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       biggestBenchedHaul,
       transferGain,
       transferGainAfterHits: transferGain - hits,
+      hitWeeks,
+      hitsPaidOff,
       bestTransfer,
       worstTransfer,
       biggestProfitSale,

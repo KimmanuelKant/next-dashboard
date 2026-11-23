@@ -211,6 +211,23 @@ const columns = [
     cell: ({ row }) => row.original.chip ?? "–",
   }),
   columnHelper.accessor("transfers", { id: "transfers", header: "Transfers" }),
+  columnHelper.accessor((row) => row.transferGain ?? undefined, {
+    id: "transferGain",
+    header: "Transfer Gain",
+    cell: ({ getValue }) => formatSigned(getValue()),
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.transferGainAfterHit ?? undefined, {
+    id: "transferGainAfterHit",
+    header: "Gain After Hit",
+    cell: ({ getValue }) => formatSigned(getValue()),
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.transferOutcomes.length, {
+    id: "transferOutcomes",
+    header: "Each Transfer",
+    cell: ({ row }) => formatList(row.original.transferOutcomes),
+  }),
   columnHelper.accessor((row) => row.teamValue ?? undefined, {
     id: "teamValue",
     header: "Team Value",
@@ -334,6 +351,9 @@ const descriptions: Record<string, string> = {
   valueChange: "How much the squad value (including the bank) went up or down since the previous gameweek.",
   playersIn: "Players in the squad this gameweek who were not in it the gameweek before. After a Free Hit, the comparison is with the squad before it.",
   playersOut: "Players who were in the squad the gameweek before and are not in it this gameweek.",
+  transferGain: "What the players bought for this gameweek scored, minus what the players they replaced scored. Points count whether or not the player started. Free Hit transfers count too: they were real for this gameweek. While the gameweek is played, with the provisional bonus.",
+  transferGainAfterHit: "The transfer gain less the points paid in hits: above 0, the transfers paid for themselves this gameweek.",
+  transferOutcomes: "Each transfer made for this gameweek, with what it gained or lost: the points of the player bought minus those of the player sold.",
   benchPoints: "Points left on the bench this gameweek. While the gameweek is played, the bench after the projected automatic substitutions.",
   topBenched: "The highest-scoring player left on the bench, with their points. While the gameweek is played, the bench after the projected automatic substitutions.",
   bestPlayer: "The player who contributed the most points, including any captaincy multiplier.",
@@ -378,6 +398,9 @@ const shortHeaders: Record<string, string> = {
   valueChange: "Value ±",
   playersIn: "In",
   playersOut: "Out",
+  transferGain: "Trf Gain",
+  transferGainAfterHit: "Net Gain",
+  transferOutcomes: "Each Trf",
   benchPoints: "Bench",
   topBenched: "Top Benched",
 };
@@ -391,7 +414,10 @@ const groups: ColumnGroup[] = [
     name: "Captaincy",
     columns: ["captain", "viceCaptain", "viceStepIn", "captainPoints", "bestCaptain", "captaincyPointsLost"],
   },
-  { name: "Transfers, chips and value", columns: ["chip", "transfers", "playersIn", "playersOut", "teamValue", "valueChange"] },
+  {
+    name: "Transfers, chips and value",
+    columns: ["chip", "transfers", "hit", "transferGain", "transferGainAfterHit", "transferOutcomes", "playersIn", "playersOut", "teamValue", "valueChange"],
+  },
   { name: "Bench and best player", columns: ["benchPoints", "topBenched", "bestPlayer"] },
   { name: "Blanks and mishaps", columns: ["blanks", "notReplaced", "mishaps"] },
   {
@@ -426,7 +452,7 @@ const phoneColumns: Record<string, string[]> = {
   Live: ["projectedPosition", "projectedPositionChange", "projectedScore", "playersLeft"],
   Scores: ["position", "positionChange", "netScore", "vsAverage"],
   Captaincy: ["captain", "captainPoints", "captaincyPointsLost"],
-  Transfers: ["chip", "transfers", "playersIn", "playersOut"],
+  Transfers: ["transferGainAfterHit", "playersIn"],
   Bench: ["benchPoints", "topBenched"],
   Mishaps: ["blanks", "mishaps"],
   Swing: ["swingGain", "uniquePoints"],
@@ -493,6 +519,20 @@ const highlightCards: Record<GameweekHighlight["kind"], HighlightCard> = {
     value: (value, player) => `${player} −${value}`,
     view: "Swing",
     column: "swingLoss",
+    desc: false,
+  },
+  transfers: {
+    title: "Best transfers",
+    value: (value) => `+${points(value)} after hits`,
+    view: "Transfers",
+    column: "transferGainAfterHit",
+    desc: true,
+  },
+  transfersBackfired: {
+    title: "Transfers backfired",
+    value: (value) => `−${points(value)} after hits`,
+    view: "Transfers",
+    column: "transferGainAfterHit",
     desc: false,
   },
   unique: { title: "Most unique points", value: points, view: "Swing", column: "uniquePoints", desc: true },
@@ -564,7 +604,7 @@ export default function GameweekStatisticsTable({
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay", "blanks", "notReplaced", "mishaps", "uniquePlayers"]}
+      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay", "blanks", "notReplaced", "mishaps", "uniquePlayers", "transferOutcomes"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined

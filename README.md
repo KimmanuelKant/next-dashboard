@@ -12,13 +12,13 @@ and get sortable, customisable tables the official site does not offer:
 - **This Gameweek**: each manager's score and how far it is from the league
   average, the gap to the leader, the team above and your own team,
   captain (and whether the vice captain stepped in), chip, transfers in
-  and out, bench, points lost to the captaincy choice, the blanks, cards
+  and out and what each gained that week, bench, points lost to the captaincy choice, the blanks, cards
   and own goals, the players who swung the gameweek for and against each
   team, and points from players nobody else in the league started. Earlier gameweeks can be opened as well. While a
   gameweek is played, a Live view projects each score and the league table
   with provisional bonus and automatic substitutions, and the page
   refreshes itself during matches.
-- **Season**: per-manager transfers, hits, chips, captaincy, ranks,
+- **Season**: per-manager transfers, hits (and how many paid off), chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.
 - **League History**: a chart and table of every team's league position and
