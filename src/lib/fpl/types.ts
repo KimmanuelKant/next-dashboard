@@ -109,6 +109,27 @@ export interface GameweekData {
   points: GameweekPoints;
   /** playerId -> incidents. Only players with at least one incident are listed. */
   incidents: Record<number, Incidents>;
+  /** playerId -> minutes played. Only players who played are listed. */
+  minutes: Record<number, number>;
+}
+
+/** A match of the gameweek in progress, as far as the live projection needs it. */
+export interface LiveFixture {
+  id: number;
+  homeClubId: number;
+  awayClubId: number;
+  kickoff: string | null;
+  started: boolean;
+  /** The final whistle has gone: no player's minutes in it will change. */
+  done: boolean;
+  /** FPL has added the match's bonus points to its players' points. */
+  bonusAdded: boolean;
+  /**
+   * [playerId, bonus points system score] for every player in the match.
+   * Kept only while the bonus has not been added, since it is only needed
+   * to work out the bonus as it stands.
+   */
+  bps: [playerId: number, bps: number][];
 }
 
 export interface ManagerHistoryGameweek {
@@ -151,6 +172,14 @@ export interface LeagueSnapshot {
   gameweekIds: number[];
   points: Record<number, GameweekPoints>;
   incidents: Record<number, Record<number, Incidents>>;
+  /** gw -> playerId -> minutes played; players who did not play are left out. */
+  minutes: Record<number, Record<number, number>>;
+  /**
+   * The matches of the current gameweek while it is in progress; null once
+   * FPL has marked it finished (or before the season), when no projection
+   * is needed.
+   */
+  liveFixtures: LiveFixture[] | null;
   picks: Record<number, LeagueGameweekPicks>;
   histories: Record<number, ManagerHistory>;
 }

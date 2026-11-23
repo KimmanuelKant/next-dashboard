@@ -6,7 +6,7 @@
 //   without expiry. One cache entry per gameweek (not per manager) keeps the
 //   number of cache reads per page view low.
 // - Everything else (bootstrap, standings, histories, the gameweek in
-//   progress) is cached for a few minutes.
+//   progress and its matches) is cached for a few minutes.
 // - Failed fetches throw, so a failure is never cached.
 
 import { unstable_cache } from "next/cache";
@@ -17,6 +17,7 @@ import type { FplEntryHistory } from "@/types/fpl/FplEntryHistory";
 import type { FplEntryTransfers } from "@/types/fpl/FplEntryTransfers";
 import type { FplEntryEventPicks } from "@/types/fpl/FplEntryEventPicks";
 import type { FplEntry } from "@/types/fpl/FplEntry";
+import type { FplFixtures } from "@/types/fpl/FplFixtures";
 import { fplGet, FplError } from "./http";
 import { MAX_MANAGERS } from "@/lib/leagueId";
 import {
@@ -24,6 +25,7 @@ import {
   GameweekData,
   League,
   LeagueGameweekPicks,
+  LiveFixture,
   ManagerHistory,
   Pick,
   PICK_CAPTAIN,
@@ -146,10 +148,13 @@ async function fetchGameweekData(gw: number): Promise<GameweekData> {
   if (!raw) {
     throw new FplError(`/event/${gw}/live/`, 404);
   }
-  const data: GameweekData = { points: {}, incidents: {} };
+  const data: GameweekData = { points: {}, incidents: {}, minutes: {} };
   for (const el of raw.elements) {
     const s = el.stats;
     data.points[el.id] = s.total_points;
+    if (s.minutes > 0) {
+      data.minutes[el.id] = s.minutes;
+    }
     if (s.yellow_cards || s.red_cards || s.own_goals || s.penalties_missed) {
       data.incidents[el.id] = [
         s.yellow_cards,
@@ -169,8 +174,47 @@ export function getGameweekData(
 ): Promise<GameweekData> {
   return unstable_cache(
     () => fetchGameweekData(gw),
-    ["fpl-gameweek-v2", season, String(gw), finished ? "final" : "live"],
+    ["fpl-gameweek-v3", season, String(gw), finished ? "final" : "live"],
     { revalidate: finished ? false : MINUTE }
+  )();
+}
+
+async function fetchLiveFixtures(gw: number): Promise<LiveFixture[]> {
+  const raw = await fplGet<FplFixtures>(`/fixtures/?event=${gw}`);
+  if (!raw) {
+    throw new FplError(`/fixtures/?event=${gw}`, 404);
+  }
+  return raw.map((f) => {
+    const stat = (identifier: string) => {
+      const found = f.stats.find((s) => s.identifier === identifier);
+      return found ? [...found.h, ...found.a] : [];
+    };
+    // FPL fills in a match's bonus when it adds it to the players' points,
+    // shortly after the final whistle.
+    const bonusAdded = stat("bonus").length > 0;
+    return {
+      id: f.id,
+      homeClubId: f.team_h,
+      awayClubId: f.team_a,
+      kickoff: f.kickoff_time ?? null,
+      started: f.started ?? false,
+      done: f.finished || f.finished_provisional,
+      bonusAdded,
+      bps: bonusAdded ? [] : stat("bps").map((s): [number, number] => [s.element, s.value]),
+    };
+  });
+}
+
+/**
+ * The matches of a gameweek that is still being played, for the live
+ * projection. One request for the whole game, not per league, so it is
+ * cached as briefly as the live points.
+ */
+export function getLiveFixtures(season: string, gw: number): Promise<LiveFixture[]> {
+  return unstable_cache(
+    () => fetchLiveFixtures(gw),
+    ["fpl-live-fixtures-v1", season, String(gw)],
+    { revalidate: MINUTE }
   )();
 }
 

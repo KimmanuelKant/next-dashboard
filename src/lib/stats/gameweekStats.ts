@@ -5,6 +5,7 @@
 import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types";
 import { reviewCaptaincy, topBenched } from "./decisions";
 import { computeLeagueHistory } from "./leagueHistory";
+import { liveGameweek, projectTeam } from "./live";
 import { teamRecord, TeamRecord } from "./records";
 import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
 
@@ -54,6 +55,27 @@ export interface GameweekStats {
   topBenched: NamedCount | null;
   /** The player who contributed the most points, including any multiplier. */
   bestPlayer: NamedCount | null;
+
+  // The live projection, for the current gameweek while it is being played.
+  // Null (or empty) for a gameweek FPL has finished.
+  /** Bonus from matches whose bonus FPL has not added yet, with multipliers. */
+  provisionalBonus: number | null;
+  /**
+   * Automatic substitutions FPL would make now ("Saka for Haaland"), and the
+   * armband passing to the vice captain.
+   */
+  automaticSubs: string[];
+  /** Points those substitutions and the armband add. */
+  automaticSubPoints: number | null;
+  /** Players who count and whose club still has a match to finish. */
+  playersLeft: number | null;
+  /** Gameweek score after hits, with provisional bonus and automatic substitutions. */
+  projectedScore: number | null;
+  /** Season total with the projected gameweek score. */
+  projectedTotal: number | null;
+  /** League position by projected total. */
+  projectedPosition: number | null;
+  projectedPositionTied: boolean;
 }
 
 interface Standing {
@@ -126,6 +148,15 @@ export function computeGameweekStats(
   const name = (id: number | null | undefined) =>
     (id != null && players.get(id)?.name) || "";
   const points = snapshot.points[gw] ?? {};
+  const live =
+    isCurrent && snapshot.liveFixtures
+      ? liveGameweek(
+          snapshot.liveFixtures,
+          points,
+          snapshot.minutes[gw] ?? {},
+          snapshot.bootstrap.players
+        )
+      : null;
   const earlierGws = snapshot.gameweekIds.filter((id) => id < gw).reverse();
 
   const rows = snapshot.league.managers.flatMap((manager): GameweekStats[] => {
@@ -137,9 +168,20 @@ export function computeGameweekStats(
     const weeks = snapshot.histories[manager.entryId]?.gameweeks ?? [];
     const week = weeks.find((w) => w.gw === gw);
     const previousWeek = [...weeks].reverse().find((w) => w.gw < gw);
-    // The standings carry the score of the current gameweek only.
-    const score = week?.points ?? (isCurrent ? manager.eventTotal : 0);
+    const projection = live && team ? projectTeam(team, live) : null;
+    // While the gameweek is played, the score is worked out from the picks,
+    // as FPL does, so that it is as fresh as the projection beside it. The
+    // standings carry the score of the current gameweek only.
+    const score =
+      projection?.livePoints ?? week?.points ?? (isCurrent ? manager.eventTotal : 0);
     const hit = week?.transfersCost ?? 0;
+    const projectedScore = live ? (projection?.points ?? score) - hit : null;
+    // The total before this gameweek is settled, so the projected total
+    // moves only with the projected score. Without a history, it is the
+    // standings' total less this gameweek's points.
+    const totalBefore =
+      previousWeek?.totalPoints ??
+      (weeks.length === 0 ? manager.total - manager.eventTotal + hit : 0);
 
     // Squad changes: compare with the last earlier squad that was not a
     // temporary Free Hit squad.
@@ -201,8 +243,36 @@ export function computeGameweekStats(
         ? { name: name(benched[0]) || "Unknown", count: benched[1] }
         : null,
       bestPlayer,
+      provisionalBonus: live ? projection?.bonus ?? 0 : null,
+      automaticSubs: [
+        ...(projection?.subs ?? []).map(
+          ([playerIn, playerOut]) =>
+            `${name(playerIn) || "Unknown"} for ${name(playerOut) || "Unknown"}`
+        ),
+        ...(projection?.armbandTo
+          ? [`Armband to ${name(projection.armbandTo) || "Unknown"}`]
+          : []),
+      ],
+      automaticSubPoints: projection
+        ? projection.points - projection.livePoints - projection.bonus
+        : live
+        ? 0
+        : null,
+      playersLeft: live ? projection?.playersLeft ?? 0 : null,
+      projectedScore,
+      projectedTotal: projectedScore === null ? null : totalBefore + projectedScore,
+      projectedPosition: null, // filled in below
+      projectedPositionTied: false,
     }];
   });
+
+  const totals = rows.flatMap((row) => (row.projectedTotal === null ? [] : [row.projectedTotal]));
+  for (const row of rows) {
+    const total = row.projectedTotal;
+    if (total === null) continue;
+    row.projectedPosition = 1 + totals.filter((other) => other > total).length;
+    row.projectedPositionTied = totals.filter((other) => other === total).length > 1;
+  }
 
   // Only managers who had a team this gameweek are ranked.
   const ranked = rows.filter((row) => snapshot.picks[gw]?.[row.teamId]);

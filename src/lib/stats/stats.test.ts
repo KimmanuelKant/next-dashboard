@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LeagueSnapshot,
+  LiveFixture,
   ManagerGameweek,
   Pick,
   PICK_CAPTAIN,
@@ -20,6 +21,7 @@ import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
 import { reviewCaptaincy } from "./decisions";
+import { liveGameweek, projectTeam, provisionalBonus } from "./live";
 
 // Players 1-15: 1-2 goalkeepers, 3-7 defenders, 8-12 midfielders, 13-15 forwards.
 const positionOf = (id: number) => (id <= 2 ? 1 : id <= 7 ? 2 : id <= 12 ? 3 : 4);
@@ -122,6 +124,8 @@ function snapshot(): LeagueSnapshot {
     points: { 1: points, 2: points, 3: points },
     // P13 is booked in GW1; P2 (always benched) is sent off in GW1; P14 has a bad GW3.
     incidents: { 1: { 13: [1, 0, 0, 0], 2: [0, 1, 0, 0] }, 2: {}, 3: { 14: [0, 0, 1, 1] } },
+    minutes: { 1: {}, 2: {}, 3: {} },
+    liveFixtures: null,
     picks: {
       // Ann: triple captain in GW1, captain did not play in GW2 (vice gets x2),
       // second triple captain in GW3 with bench boost-free normal team.
@@ -642,5 +646,198 @@ describe("computePlayerStats", () => {
 
   it("returns nothing before the season starts", () => {
     expect(computePlayerStats({ ...snapshot(), currentGw: null })).toEqual([]);
+  });
+});
+
+// Live projection. Each player is given a club of his own (club id = player
+// id), so a test can say whose match is over, being played or still to come.
+const livePlayers: Player[] = players.map((p) => ({ ...p, clubId: p.id }));
+
+function liveFixture(club: number, state: Partial<LiveFixture>): LiveFixture {
+  return {
+    id: club,
+    homeClubId: club,
+    awayClubId: 100 + club,
+    kickoff: "2026-11-21T15:00:00Z",
+    started: true,
+    done: true,
+    bonusAdded: true,
+    bps: [],
+    ...state,
+  };
+}
+
+/**
+ * Every player has played a finished match and scored his id in points,
+ * except those listed: `out` did not play in a finished match, `pending`
+ * has a match still to come, and `playing` is on the pitch in a match
+ * whose bonus is not yet added (where he leads the bonus points system).
+ */
+function liveSetup({
+  out = [],
+  pending = [],
+  playing = [],
+}: { out?: number[]; pending?: number[]; playing?: number[] } = {}) {
+  const fixtures = livePlayers.map((p) =>
+    pending.includes(p.id)
+      ? liveFixture(p.id, { started: false, done: false, bonusAdded: false })
+      : playing.includes(p.id)
+      ? liveFixture(p.id, { done: false, bonusAdded: false, bps: [[p.id, 30], [99, 10]] })
+      : liveFixture(p.id, {})
+  );
+  const scored = Object.fromEntries(
+    livePlayers.map((p) => [p.id, out.includes(p.id) || pending.includes(p.id) ? 0 : p.id])
+  );
+  const minutes = Object.fromEntries(
+    livePlayers
+      .filter((p) => !out.includes(p.id) && !pending.includes(p.id))
+      .map((p) => [p.id, 90])
+  );
+  return {
+    fixtures,
+    points: scored,
+    minutes,
+    live: liveGameweek(fixtures, scored, minutes, livePlayers),
+  };
+}
+
+const sumOf = (ids: number[]) => ids.reduce((total, id) => total + id, 0);
+
+describe("provisionalBonus", () => {
+  const bonusOf = (bps: [number, number][], state: Partial<LiveFixture> = {}) =>
+    Object.fromEntries(
+      provisionalBonus([liveFixture(1, { done: false, bonusAdded: false, bps, ...state })])
+    );
+
+  it("gives 3, 2 and 1 to the three best scores", () => {
+    expect(bonusOf([[1, 40], [2, 30], [3, 20], [4, 10]])).toEqual({ 1: 3, 2: 2, 3: 1 });
+  });
+
+  it("shares a place between players level, skipping the next place", () => {
+    expect(bonusOf([[1, 40], [2, 40], [3, 20], [4, 10]])).toEqual({ 1: 3, 2: 3, 3: 1 });
+    expect(bonusOf([[1, 40], [2, 30], [3, 30], [4, 10]])).toEqual({ 1: 3, 2: 2, 3: 2 });
+    expect(bonusOf([[1, 40], [2, 30], [3, 20], [4, 20]])).toEqual({ 1: 3, 2: 2, 3: 1, 4: 1 });
+  });
+
+  it("gives nothing while most players are level, as in a match's first minutes", () => {
+    expect(bonusOf([[1, 3], [2, 3], [3, 3], [4, 3], [5, 3]])).toEqual({});
+  });
+
+  it("gives nothing before kick-off, or once FPL has added the bonus", () => {
+    expect(bonusOf([[1, 40]], { started: false })).toEqual({});
+    expect(bonusOf([[1, 40]], { bonusAdded: true })).toEqual({});
+  });
+});
+
+describe("projectTeam", () => {
+  const starters = sumOf(STARTERS) + 13; // the captain, P13, scores twice
+
+  it("adds nothing when every starter has played", () => {
+    const projection = projectTeam(team({}), liveSetup().live);
+    expect(projection.livePoints).toBe(starters);
+    expect(projection.points).toBe(starters);
+    expect(projection.subs).toEqual([]);
+    expect(projection.playersLeft).toBe(0);
+  });
+
+  it("brings on the first substitute who keeps the formation valid", () => {
+    // Both forwards miss out. P7 (a defender) can replace P13, but P14 then
+    // needs a forward, so P12 is passed over for P15.
+    const projection = projectTeam(team({ captain: 8 }), liveSetup({ out: [13, 14] }).live);
+    expect(projection.subs).toEqual([[7, 13], [15, 14]]);
+    expect(projection.points).toBe(sumOf(STARTERS) - 13 - 14 + 7 + 15 + 8);
+  });
+
+  it("replaces a goalkeeper only with the substitute goalkeeper", () => {
+    const projection = projectTeam(team({}), liveSetup({ out: [1] }).live);
+    expect(projection.subs).toEqual([[2, 1]]);
+  });
+
+  it("waits for a substitute whose match is still to come", () => {
+    const projection = projectTeam(team({}), liveSetup({ out: [9], pending: [7] }).live);
+    // P12 has played, but P7 comes first on the bench and may yet play.
+    expect(projection.subs).toEqual([]);
+    expect(projection.points).toBe(starters - 9);
+  });
+
+  it("passes the armband to the vice captain when the captain did not play", () => {
+    const projection = projectTeam(team({}), liveSetup({ out: [13] }).live);
+    expect(projection.armbandTo).toBe(8);
+    expect(projection.subs).toEqual([[7, 13]]);
+    expect(projection.points).toBe(sumOf(STARTERS) - 13 + 7 + 8);
+  });
+
+  it("keeps the armband with a captain whose match is still to come", () => {
+    const projection = projectTeam(team({}), liveSetup({ pending: [13] }).live);
+    expect(projection.armbandTo).toBeNull();
+    expect(projection.playersLeft).toBe(1);
+  });
+
+  it("adds provisional bonus, doubled for the captain", () => {
+    const projection = projectTeam(team({}), liveSetup({ playing: [13, 3] }).live);
+    expect(projection.bonus).toBe(3 * 2 + 3);
+    expect(projection.points).toBe(starters + 9);
+    expect(projection.playersLeft).toBe(2);
+  });
+
+  it("makes no substitutions under Bench Boost", () => {
+    const projection = projectTeam(team({ chip: "bboost" }), liveSetup({ out: [9] }).live);
+    expect(projection.subs).toEqual([]);
+    expect(projection.points).toBe(starters - 9 + sumOf(BENCH));
+  });
+
+  it("changes nothing once FPL has made the substitutions", () => {
+    // FPL brought P7 on for P13, the captain, and moved the armband to P8.
+    const done = team({ captainMultiplier: 0, viceMultiplier: 2, swap: [13, 7] });
+    done.picks[11] = [2, 0, PICK_NONE];
+    done.picks[12] = [13, 0, PICK_CAPTAIN];
+    const projection = projectTeam(done, liveSetup({ out: [13] }).live);
+    expect(projection.subs).toEqual([]);
+    expect(projection.armbandTo).toBeNull();
+    expect(projection.points).toBe(projection.livePoints);
+  });
+});
+
+describe("computeGameweekStats while the gameweek is played", () => {
+  // Ann's P13 is still to play; Bo's captain P14 did not play.
+  const { fixtures, points: scored, minutes } = liveSetup({ pending: [13], out: [14] });
+  const base = snapshot();
+  const playing: LeagueSnapshot = {
+    ...base,
+    bootstrap: { ...base.bootstrap, players: livePlayers },
+    points: { ...base.points, 3: scored },
+    minutes: { 1: {}, 2: {}, 3: minutes },
+    liveFixtures: fixtures,
+  };
+  const [ann, bo, cy] = computeGameweekStats(playing);
+
+  it("works the score out from the picks", () => {
+    // Ann's triple captain P14 did not play; P13 has not played yet.
+    expect(ann.score).toBe(sumOf(STARTERS) - 13 - 14);
+    expect(ann.playersLeft).toBe(1);
+  });
+
+  it("projects the score, total and position", () => {
+    // Bo: P16 is in for P13. P14, the captain, is replaced by P7 and P8
+    // takes the armband.
+    expect(bo.automaticSubs).toEqual(["P7 for P14", "Armband to P8"]);
+    expect(bo.automaticSubPoints).toBe(7 + 8);
+    expect(bo.projectedScore).toBe(bo.score + 15);
+    expect(bo.projectedTotal).toBe(130 + bo.projectedScore!);
+    expect(ann.projectedTotal).toBe(126 + ann.projectedScore!);
+    // Ann's armband also passes to P8, but Bo overtakes: 218 against 206.
+    expect([ann.projectedTotal, bo.projectedTotal]).toEqual([206, 218]);
+    expect([bo.projectedPosition, ann.projectedPosition, cy.projectedPosition]).toEqual([1, 2, 3]);
+  });
+
+  it("projects a manager without a team at what they have", () => {
+    expect(cy.projectedScore).toBe(0);
+    expect(cy.automaticSubs).toEqual([]);
+  });
+
+  it("leaves the projection out of a finished gameweek", () => {
+    const [earlier] = computeGameweekStats(playing, 2);
+    expect(earlier.projectedScore).toBeNull();
+    expect(earlier.projectedPosition).toBeNull();
   });
 });

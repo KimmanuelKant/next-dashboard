@@ -43,8 +43,30 @@ const columns = [
       );
     },
   }),
+  columnHelper.accessor((row) => row.projectedPosition ?? undefined, {
+    id: "projectedPosition",
+    header: "Projected Position",
+    cell: ({ row }) =>
+      row.original.projectedPosition === null
+        ? "–"
+        : `${row.original.projectedPosition}${row.original.projectedPositionTied ? "=" : ""}`,
+    sortUndefined: "last",
+  }),
   columnHelper.accessor("teamName", { id: "teamName", header: "Team Name" }),
   columnHelper.accessor("managerName", { id: "managerName", header: "Manager Name" }),
+  // Next to the name, so that a phone shows them without scrolling.
+  columnHelper.accessor((row) => row.projectedScore ?? undefined, {
+    id: "projectedScore",
+    header: "Projected Score",
+    cell: ({ getValue }) => getValue() ?? "–",
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.playersLeft ?? undefined, {
+    id: "playersLeft",
+    header: "Players Left",
+    cell: ({ getValue }) => getValue() ?? "–",
+    sortUndefined: "last",
+  }),
   columnHelper.accessor("score", { id: "score", header: "GW Score" }),
   columnHelper.accessor("hit", {
     id: "hit",
@@ -52,6 +74,32 @@ const columns = [
     cell: ({ getValue }) => (getValue() ? `-${getValue()}` : "0"),
   }),
   columnHelper.accessor("netScore", { id: "netScore", header: "Score After Hit" }),
+  columnHelper.accessor((row) => row.provisionalBonus ?? undefined, {
+    id: "provisionalBonus",
+    header: "Provisional Bonus",
+    cell: ({ getValue }) => {
+      const value = getValue();
+      return value === undefined ? "–" : value > 0 ? `+${value}` : "0";
+    },
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.automaticSubPoints ?? undefined, {
+    id: "automaticSubs",
+    header: "Automatic Subs",
+    cell: ({ row }) => {
+      const { automaticSubs, automaticSubPoints } = row.original;
+      if (automaticSubs.length === 0) return "–";
+      const gain = automaticSubPoints ? ` (+${automaticSubPoints})` : "";
+      return automaticSubs.join(", ") + gain;
+    },
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.projectedTotal ?? undefined, {
+    id: "projectedTotal",
+    header: "Projected Total",
+    cell: ({ getValue }) => formatNumber(getValue() ?? null),
+    sortUndefined: "last",
+  }),
   columnHelper.accessor((row) => row.leagueGameweekRank ?? undefined, {
     id: "leagueGameweekRank",
     header: "League GW Rank",
@@ -142,6 +190,12 @@ const descriptions: Record<string, string> = {
   score: "Points scored this gameweek, before transfer hits.",
   hit: "Points deducted for extra transfers this gameweek.",
   netScore: "Points scored this gameweek after transfer hits.",
+  projectedPosition: "The team's position in this league if the gameweek ended with the projected scores. Teams level on points share a position, marked with =.",
+  provisionalBonus: "Bonus points the team's players would get if their matches ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in the score. Doubled for the captain.",
+  automaticSubs: "Substitutes who would come on for starters who did not play, in bench order and keeping a valid formation, as FPL does after the gameweek's last match. Also the armband passing to the vice captain when the captain did not play. In brackets, the points they add.",
+  projectedScore: "This gameweek's score after hits, with the provisional bonus and the automatic substitutions added. It changes while matches are being played.",
+  playersLeft: "Players in the team whose match has not finished: still to kick off, or being played.",
+  projectedTotal: "The team's season total with the projected score for this gameweek.",
   leagueGameweekRank: "Where this gameweek's score (after hits) ranks within the league.",
   gameweekRank: "Where this gameweek's score ranks among all FPL managers.",
   overallRank: "The team's overall rank among all FPL managers after this gameweek.",
@@ -169,6 +223,12 @@ const shortHeaders: Record<string, string> = {
   managerName: "Manager",
   score: "Gross",
   netScore: "Pts",
+  projectedPosition: "Proj Pos",
+  provisionalBonus: "Bonus",
+  automaticSubs: "Subs",
+  projectedScore: "Proj",
+  playersLeft: "Left",
+  projectedTotal: "Proj Total",
   leagueGameweekRank: "Lge Rank",
   gameweekRank: "GW Rank",
   overallRank: "Overall",
@@ -205,17 +265,39 @@ const viewNames: Record<string, string> = {
   "Bench and best player": "Bench",
 };
 
-const presets: Preset[] = [
-  {
-    name: "Overview",
-    columns: ["position", "positionChange", "teamName", "netScore", "captain", "chip", "hit", "benchPoints"],
-  },
-  ...groups.map((group) => ({
-    name: viewNames[group.name] ?? group.name,
-    columns: ["teamName", ...group.columns],
-  })),
-  { name: "All columns" },
-];
+// The live projection, shown only while the current gameweek is being
+// played. For a finished gameweek these columns would be empty, so they are
+// left out of the table altogether.
+const liveGroup: ColumnGroup = {
+  name: "Live",
+  columns: ["projectedPosition", "projectedScore", "playersLeft", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal"],
+};
+const liveOnly = new Set(liveGroup.columns.filter((id) => id !== "netScore"));
+
+function presetsFor(shownGroups: ColumnGroup[]): Preset[] {
+  return [
+    {
+      name: "Overview",
+      columns: ["position", "positionChange", "teamName", "netScore", "captain", "chip", "hit", "benchPoints"],
+    },
+    ...shownGroups.map((group) => ({
+      name: viewNames[group.name] ?? group.name,
+      columns: ["teamName", ...group.columns],
+    })),
+    { name: "All columns" },
+  ];
+}
+
+const finished = {
+  columns: columns.filter((column) => !liveOnly.has(column.id as string)),
+  groups,
+  presets: presetsFor(groups),
+};
+const live = {
+  columns,
+  groups: [liveGroup, ...groups],
+  presets: presetsFor([liveGroup, ...groups]),
+};
 
 const points = (value: number) => `${value} pts`;
 
@@ -246,26 +328,33 @@ export default function GameweekStatisticsTable({
   stats,
   highlights,
   leagueName,
+  isLive,
 }: {
   stats: GameweekStats[];
   highlights: GameweekHighlight[];
   leagueName: string;
+  /** The gameweek is being played: the live projection is shown, and opens first. */
+  isLive: boolean;
 }) {
   const myTeam = useMyTeamId();
+  const table = isLive ? live : finished;
   return (
     <DataTable
+      // A new table when the gameweek goes from live to finished (or the
+      // visitor steps to another gameweek), as the columns differ.
+      key={isLive ? "live" : "finished"}
       data={stats}
-      columns={columns}
-      presets={presets}
-      groups={groups}
+      columns={table.columns}
+      presets={table.presets}
+      groups={table.groups}
       descriptions={descriptions}
       highlights={highlights.map((record) => toHighlight(record, highlightCards[record.kind]))}
-      initialPreset="Overview"
-      initialSorting={[{ id: "position", desc: false }]}
+      initialPreset={isLive ? "Live" : "Overview"}
+      initialSorting={[{ id: isLive ? "projectedPosition" : "position", desc: false }]}
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["playersIn", "playersOut"]}
+      wrapColumns={["playersIn", "playersOut", "automaticSubs"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined

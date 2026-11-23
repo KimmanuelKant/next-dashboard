@@ -16,6 +16,24 @@ team name where the league ID goes.
   URL to read it from. A large share of visitors are on Android.
 - League History chart on a phone: its own height and text size (it is drawn
   at a fixed size and scaled down), highlighting your team and the leader.
+- An example league linked from the front page, so a visitor without their
+  ID to hand can see what the site does. Best a MyFPL.net league of our own
+  (it does not exist yet); the top 100 of a big public league would do as a
+  stand-in, but its teams change from week to week and it does not show
+  the site at its best.
+- When letters are typed into an ID box, say that FPL cannot search by team
+  name and point to where the number is, instead of the generic error.
+
+## Sharing (how the site grows)
+Visitors finding odd stats and posting them in their league's group chat is
+the way to grow without self-promotion.
+- "Copy recap" on the Gameweek tab: a few lines of text for a group chat,
+  built from the highlight cards ("GW12: Ali won with 87, Sam's captain
+  scored 2, Jo left 19 on the bench").
+- A preview image per league link (`opengraph-image.tsx` with `next/og`,
+  cached): league name, leader, gameweek winner.
+- Later: let visitors pick a stat or an outlier themselves and make a
+  highlight card from it to share.
 
 ## Next stats (best value for the effort)
 - Gameweek: swing vs league and unique points.
@@ -33,8 +51,12 @@ team name where the league ID goes.
 - Cards, own goals and missed penalties this gameweek (the Season tab has
   them, this tab does not).
 - Transfer gain this gameweek: points of players bought minus players sold.
-- Automatic substitutions and starters who did not play (trim:
-  `automatic_subs` from picks, or `minutes` from `/event/{gw}/live/`).
+- Starters who did not play, and in finished gameweeks the automatic
+  substitutions FPL made (minutes are in the snapshot; the substitutions
+  would need `automatic_subs` from picks, trim). The live projection
+  already shows them while a gameweek is played.
+- Live: a highlight card for the projected gameweek winner, and the
+  projected position change beside the projected position.
 - Against the global average and highest score; captain against the most
   captained player in the game (trim: `events[]` in bootstrap).
 
@@ -46,6 +68,11 @@ team name where the league ID goes.
 - League race: manager of the month, from the month ranges in
   `bootstrap.phases` (trim). Monthly wins as a column and a highlight card.
 - Chips: chip timing against the league average.
+- Chips left and free transfers banked, for every rival (what to expect
+  before a deadline). The Season tab shows only the chips used. Mind this
+  season's rules: each chip once in each half of the season (`chips` in
+  bootstrap gives the ranges), wildcards and free hits do not use up free
+  transfers, and at most `max_extra_free_transfers` can be saved.
 - Captaincy: captain blanks (armband returned 2 points or fewer), vice
   captain saves.
 - Transfers: seller's remorse (points scored by players after they were

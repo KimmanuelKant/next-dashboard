@@ -9,7 +9,9 @@ and get sortable, customisable tables the official site does not offer:
   Filter by name, position, club, owner, price and number of owners.
 - **This Gameweek**: each manager's score, captain, chip, transfers in and
   out, bench, and points lost to the captaincy choice. Earlier gameweeks can
-  be opened as well.
+  be opened as well. While a gameweek is played, a Live view projects each
+  score and the league table with provisional bonus and automatic
+  substitutions, and the page refreshes itself during matches.
 - **Season**: per-manager transfers, hits, chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.
@@ -67,7 +69,16 @@ redirect from old addresses.
 The Gameweek and Season tabs open with highlight cards (gameweek winner, worst
 captain call, most yellow cards). `src/lib/stats/records.ts` finds who holds
 each record; the table definition says what its card reads and which view it
-opens. Every table keeps its view and sorting in the page address
+opens.
+
+The live projection (`src/lib/stats/live.ts`) works from the gameweek's
+matches, one request for the whole game (`/fixtures/?event={gw}`), loaded
+only while the current gameweek is unfinished. It adds the bonus as the
+bonus points system stands in matches whose bonus FPL has not yet added,
+and makes the automatic substitutions FPL will make after the last match.
+`LiveRefresh` refreshes the page every minute while a match is played.
+
+Every table keeps its view and sorting in the page address
 (`?view=mishaps&sort=-yellowCards`, see `src/lib/tableUrl.ts`), so a link to a
 particular table can be shared; the Share link at the top of a league does
 that. The Gameweek tab also takes `?gw=7` for an earlier gameweek.

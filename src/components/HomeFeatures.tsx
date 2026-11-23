@@ -12,7 +12,7 @@ const features = [
   },
   {
     title: "This Gameweek",
-    text: "Each manager's score, captain, chip, transfers in and out, bench points and the points won or lost on the captaincy choice. Earlier gameweeks open too.",
+    text: "Live projected scores while matches are played, with bonus points and automatic substitutions as they stand. Each manager's score, captain, chip, transfers in and out, bench points and the points won or lost on the captaincy choice. Earlier gameweeks open too.",
   },
   {
     title: "Season",

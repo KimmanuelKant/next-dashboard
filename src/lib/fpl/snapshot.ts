@@ -9,6 +9,7 @@ import {
   getLeague,
   getLeagueHistories,
   getLeaguePicks,
+  getLiveFixtures,
 } from "./sources";
 import { LeagueSnapshot } from "./types";
 
@@ -32,8 +33,12 @@ export const getLeagueSnapshot = cache(
       (g) => currentGw !== null && g.id <= currentGw
     );
     const entryIds = league.managers.map((m) => m.entryId);
+    // The matches are needed only to project the scores of a gameweek that
+    // is still being played.
+    const current = played.find((g) => g.id === currentGw);
+    const liveGw = current && !current.finished ? current.id : null;
 
-    const [dataList, picksList, histories] = await Promise.all([
+    const [dataList, picksList, histories, liveFixtures] = await Promise.all([
       Promise.all(played.map((g) => getGameweekData(season, g.id, g.finished))),
       Promise.all(
         played.map((g) =>
@@ -41,6 +46,7 @@ export const getLeagueSnapshot = cache(
         )
       ),
       getLeagueHistories(season, leagueId, entryIds),
+      liveGw === null ? null : getLiveFixtures(season, liveGw),
     ]);
 
     const snapshot: LeagueSnapshot = {
@@ -50,12 +56,15 @@ export const getLeagueSnapshot = cache(
       gameweekIds: played.map((g) => g.id),
       points: {},
       incidents: {},
+      minutes: {},
+      liveFixtures,
       picks: {},
       histories,
     };
     played.forEach((g, i) => {
       snapshot.points[g.id] = dataList[i].points;
       snapshot.incidents[g.id] = dataList[i].incidents;
+      snapshot.minutes[g.id] = dataList[i].minutes;
       snapshot.picks[g.id] = picksList[i];
     });
     return snapshot;
