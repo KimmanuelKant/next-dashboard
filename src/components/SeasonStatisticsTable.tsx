@@ -374,14 +374,26 @@ const viewNames: Record<string, string> = {
   "Points breakdown": "Points",
 };
 
+// What the widest views keep on a phone besides the team name; the rest is
+// a tap away ("more columns"), and in the team panel. Views left out are
+// narrow enough to show whole. Keyed by the view's name.
+const phoneColumns: Record<string, string[]> = {
+  Transfers: ["totalTransfers", "totalTransferPointsDeducted", "transferGainAfterHits", "teamValue"],
+  Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "mostCaptained"],
+};
+
 const presets: Preset[] = [
-  ...groups.map((group) => ({
-    name: viewNames[group.name] ?? group.name,
-    columns:
-      group.name === "Standings"
-        ? ["rank", "managerName", "teamName", "totalPoints", "highestGameweekScore"]
-        : ["teamName", ...group.columns],
-  })),
+  ...groups.map((group) => {
+    const name = viewNames[group.name] ?? group.name;
+    return {
+      name,
+      columns:
+        group.name === "Standings"
+          ? ["rank", "managerName", "teamName", "totalPoints", "highestGameweekScore"]
+          : ["teamName", ...group.columns],
+      phoneColumns: phoneColumns[name],
+    };
+  }),
   { name: "All columns" },
 ];
 

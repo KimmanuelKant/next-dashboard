@@ -112,14 +112,21 @@ const shortHeaders: Record<string, string> = {
   leagueViceCaptainCount: "Vice",
 };
 
+// `phoneColumns`: what the widest views keep on a phone besides the player's
+// name and club; the rest is a tap away ("more columns"), and in the
+// player panel.
 const presets: Preset[] = [
   {
     name: "Differentials",
     columns: ["name", "club", "value", "gameweekPoints", "leagueOwnershipCount", "leagueOwnershipPercentage", "globalOwnershipPercentage", "ownershipDifference", "owners"],
+    // Owners rather than League %: they say the same, and the view opens
+    // sorted by Owners, which keeps that column in view anyway.
+    phoneColumns: ["leagueOwnershipCount", "globalOwnershipPercentage", "ownershipDifference"],
   },
   {
     name: "Ownership",
     columns: ["name", "leagueOwnershipCount", "leagueOwnershipPercentage", "leagueStartingCount", "effectiveOwnership", "globalOwnershipPercentage", "globalOwnershipCount"],
+    phoneColumns: ["leagueOwnershipCount", "effectiveOwnership", "globalOwnershipPercentage"],
   },
   {
     name: "Captaincy",
@@ -132,6 +139,7 @@ const presets: Preset[] = [
   {
     name: "Form and points",
     columns: ["name", "club", "position", "value", "form", "totalPoints", "gameweekPoints", "globalOwnershipPercentage", "leagueOwnershipCount"],
+    phoneColumns: ["form", "totalPoints", "gameweekPoints"],
   },
   { name: "All columns" },
 ];

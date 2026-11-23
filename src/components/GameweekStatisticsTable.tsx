@@ -313,16 +313,29 @@ const liveOnly = new Set(
   liveGroup.columns.filter((id) => id !== "netScore" && id !== "vsAverage")
 );
 
+// What each view keeps on a phone besides the team name: enough to read a
+// row without scrolling sideways. The rest is a tap away ("more columns"),
+// and in the team panel. Keyed by the view's name.
+const phoneColumns: Record<string, string[]> = {
+  Overview: ["position", "positionChange", "netScore", "captain"],
+  Live: ["projectedPosition", "projectedPositionChange", "projectedScore", "playersLeft"],
+  Scores: ["position", "positionChange", "netScore", "vsAverage"],
+  Captaincy: ["captain", "captainPoints", "captaincyPointsLost"],
+  Transfers: ["chip", "transfers", "playersIn", "playersOut"],
+  Bench: ["benchPoints", "topBenched"],
+};
+
 function presetsFor(shownGroups: ColumnGroup[]): Preset[] {
   return [
     {
       name: "Overview",
       columns: ["position", "positionChange", "teamName", "netScore", "captain", "chip", "hit", "benchPoints"],
+      phoneColumns: phoneColumns.Overview,
     },
-    ...shownGroups.map((group) => ({
-      name: viewNames[group.name] ?? group.name,
-      columns: ["teamName", ...group.columns],
-    })),
+    ...shownGroups.map((group) => {
+      const name = viewNames[group.name] ?? group.name;
+      return { name, columns: ["teamName", ...group.columns], phoneColumns: phoneColumns[name] };
+    }),
     { name: "All columns" },
   ];
 }

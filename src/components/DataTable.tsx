@@ -32,6 +32,13 @@ export interface Preset {
   name: string;
   /** Column ids to show. Omit to show every column. */
   columns?: string[];
+  /**
+   * The columns this view keeps on phone-width screens, where a wide table
+   * means scrolling sideways to read a row. The others are hidden there
+   * until the visitor taps "more columns"; the sticky column and the column
+   * the table is sorted by always show. Omit to show every column on phones.
+   */
+  phoneColumns?: string[];
 }
 
 interface DataTableProps<T> {
@@ -259,6 +266,9 @@ export default function DataTable<T>({
   // empty mid-animation; `detailOpen` says whether it is showing.
   const [detail, setDetail] = useState<T | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  // On phones, the visitor has asked for every column of the view. Each view
+  // starts with its short list again.
+  const [allOnPhone, setAllOnPhone] = useState(false);
 
   // Writes the view and sorting into the address. replaceState changes the
   // address without asking the server for the page again, and without adding
@@ -297,6 +307,7 @@ export default function DataTable<T>({
     const nextSorting = requestedSorting ?? (stillShown ? sorting : initialSorting);
     setPresetName(name);
     setColumnVisibility(visibilityFor(columns, preset));
+    setAllOnPhone(false);
     setSorting(nextSorting);
     writeUrl(name, nextSorting);
   };
@@ -332,14 +343,30 @@ export default function DataTable<T>({
     Boolean(id && leafColumns.find((column) => column.id === id)?.getIsVisible());
   // On phones the subtitle column folds into the sticky one, when both show.
   const foldSubtitle = isVisible(stickyColumn) && isVisible(subtitleColumn);
-  const cellClass = (id: string) =>
-    id === stickyColumn
-      ? "sticky-col"
-      : foldSubtitle && id === subtitleColumn
-      ? "d-none d-sm-table-cell"
-      : wrapColumns.includes(id)
-      ? "cell-wrap"
-      : undefined;
+  // Columns of the view that phones leave out until asked. A hand-picked set
+  // of columns (no view) shows as picked. CSS does the hiding, so the page
+  // is the same on the server and in every browser, and nothing jumps on load.
+  const phoneColumns = presets.find((p) => p.name === presetName)?.phoneColumns;
+  const offPhone = (id: string) =>
+    phoneColumns !== undefined &&
+    id !== stickyColumn &&
+    !(foldSubtitle && id === subtitleColumn) &&
+    !phoneColumns.includes(id) &&
+    // A table sorted by a column out of sight looks shuffled.
+    !sorting.some((sort) => sort.id === id);
+  const offPhoneCount = table
+    .getVisibleLeafColumns()
+    .filter((column) => offPhone(column.id)).length;
+  const cellClass = (id: string) => {
+    if (id === stickyColumn) return "sticky-col";
+    const hidden =
+      (foldSubtitle && id === subtitleColumn) || (!allOnPhone && offPhone(id));
+    return (
+      [hidden ? "d-none d-sm-table-cell" : "", wrapColumns.includes(id) ? "cell-wrap" : ""]
+        .join(" ")
+        .trim() || undefined
+    );
+  };
 
   const rows = table.getRowModel().rows;
   const renderCell = (cell: Cell<T, unknown>) =>
@@ -425,6 +452,7 @@ export default function DataTable<T>({
                     // A hand-picked set of columns is no view: no button is
                     // lit, and the address names none.
                     setPresetName("");
+                    setAllOnPhone(false);
                     writeUrl("", sorting);
                     column.toggleVisibility(e.target.checked);
                   }}
@@ -457,10 +485,31 @@ export default function DataTable<T>({
         )}
       </div>
 
-      {detailNoun && data.length > 0 && (
-        <p className="text-secondary small mb-2">
-          {detailHint ?? `Select a ${detailNoun} to see the full list of stats.`}
-        </p>
+      {data.length > 0 && (detailNoun || offPhoneCount > 0) && (
+        <div
+          className={`d-flex justify-content-between align-items-center gap-2 mb-2 ${
+            detailNoun ? "" : "d-sm-none"
+          }`}
+        >
+          {detailNoun && (
+            <p className="text-secondary small mb-0">
+              {detailHint ?? `Select a ${detailNoun} to see the full list of stats.`}
+            </p>
+          )}
+          {/* Phones only: the view's other columns, one tap away. */}
+          {offPhoneCount > 0 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary btn-quiet text-nowrap ms-auto d-sm-none"
+              aria-pressed={allOnPhone}
+              onClick={() => setAllOnPhone(!allOnPhone)}
+            >
+              {allOnPhone
+                ? "Fewer columns"
+                : `+${offPhoneCount} more column${offPhoneCount === 1 ? "" : "s"}`}
+            </button>
+          )}
+        </div>
       )}
 
       <div className="table-responsive">

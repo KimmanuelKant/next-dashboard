@@ -110,7 +110,10 @@ A large share of visitors use a phone. Check a change to a page or table at a
 width of about 380px as well as on a desktop. `DataTable` keeps the name
 column in view while a table scrolls sideways, and opens a panel listing
 every column when a row is selected. Below 576px it also switches to the
-short headers and folds the subtitle column into the name column. `<Narrow>`
+short headers and folds the subtitle column into the name column. A view's
+`phoneColumns` lists the columns it keeps below 576px; the others wait
+behind a "+N more columns" button. When you add a column to a wide view,
+decide whether it belongs on that list. `<Narrow>`
 renders a short and a full version of a text and lets CSS pick one.
 
 ## Conventions
