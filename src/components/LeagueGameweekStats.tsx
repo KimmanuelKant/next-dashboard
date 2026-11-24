@@ -2,6 +2,7 @@
 
 import { notFound } from "next/navigation";
 import GameweekPicker from "@/components/GameweekPicker";
+import CopyRecap from "@/components/CopyRecap";
 import GameweekStatisticsTable from "@/components/GameweekStatisticsTable";
 import LeagueNotices from "@/components/LeagueNotices";
 import LiveStatus from "@/components/LiveStatus";
@@ -10,6 +11,7 @@ import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
 import { computeGameweekHighlights, computeGameweekStats } from "@/lib/stats/gameweekStats";
 import { leagueGameweek } from "@/lib/stats/leagueGameweek";
 import { matchTimes } from "@/lib/stats/live";
+import { gameweekRecap } from "@/lib/stats/recap";
 import { leagueMatches } from "@/lib/stats/matches";
 
 // Errors thrown here are caught by the ErrorBoundary in the page.
@@ -66,16 +68,38 @@ export default async function LeagueGameweekStats({
     </>
   );
 
+  const highlights = computeGameweekHighlights(stats);
+  // The same records as the cards, as text for a group chat.
+  const recap =
+    gameweek && highlights.length > 0 ? (
+      <CopyRecap
+        lines={gameweekRecap({
+          leagueName: snapshot.league.name,
+          gw: gameweek.id,
+          live: fixtures !== null,
+          highlights,
+          averageScore: gameweek.averageScore,
+          captainsLeft: stats.filter((row) => row.captainLeft).length,
+        })}
+        path={`/dashboard/${leagueId}/gameweek?gw=${gameweek.id}`}
+      />
+    ) : null;
+
   return (
     <>
       <LeagueNotices snapshot={snapshot} />
       {gameweek && (
-        <GameweekPicker gameweeks={snapshot.gameweekIds} selected={gameweek.id} status={status} />
+        <GameweekPicker
+          gameweeks={snapshot.gameweekIds}
+          selected={gameweek.id}
+          status={status}
+          action={recap}
+        />
       )}
       {matches && <NowPlaying {...matches} />}
       <GameweekStatisticsTable
         stats={stats}
-        highlights={computeGameweekHighlights(stats)}
+        highlights={highlights}
         leagueName={snapshot.league.name}
         isLive={fixtures !== null}
       />

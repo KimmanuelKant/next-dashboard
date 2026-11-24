@@ -22,6 +22,9 @@ and get sortable, customisable tables the official site does not offer:
   refreshes itself during matches, marking the scores that changed at
   the last update. A strip shows the matches on now (or next), with their
   score and how many of the league's teams have a player in each.
+  "Copy recap" gives the gameweek in a few lines for a group chat, built
+  from the highlight cards, with a link back (a "so far" version while it
+  is played; `src/lib/stats/recap.ts`).
 - **Season**: per-manager transfers, hits (and how many paid off), chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.

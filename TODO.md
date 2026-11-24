@@ -27,12 +27,6 @@ team name where the league ID goes.
 ## Sharing (how the site grows)
 Visitors finding odd stats and posting them in their league's group chat is
 the way to grow without self-promotion.
-- "Copy recap" on the Gameweek tab: a few lines of text for a group chat,
-  built from the highlight cards ("GW12: Ali won with 87, Sam's captain
-  scored 2, Jo left 19 on the bench"). While the gameweek is played, a
-  "so far" version from the live cards ("GW13 so far: Bo top with 88, 3
-  teams still have their captain to play"): group chats are busiest while
-  matches are on.
 - A preview image per league link (`opengraph-image.tsx` with `next/og`,
   cached): league name, leader, gameweek winner.
 - Later: let visitors pick a stat or an outlier themselves and make a

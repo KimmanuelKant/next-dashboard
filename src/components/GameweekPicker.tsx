@@ -12,12 +12,15 @@ export default function GameweekPicker({
   gameweeks,
   selected,
   status,
+  action,
 }: {
   /** Every gameweek played so far, oldest first. */
   gameweeks: number[];
   selected: number;
   /** A few words on the selected gameweek, shown beside the picker. */
   status: React.ReactNode;
+  /** A button at the end of the row, such as "Copy recap". */
+  action?: React.ReactNode;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -85,6 +88,7 @@ export default function GameweekPicker({
           status
         )}
       </span>
+      {action && <div className="ms-auto">{action}</div>}
     </div>
   );
 }
