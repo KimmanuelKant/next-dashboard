@@ -27,8 +27,6 @@ team name where the league ID goes.
 ## Sharing (how the site grows)
 Visitors finding odd stats and posting them in their league's group chat is
 the way to grow without self-promotion.
-- A preview image per league link (`opengraph-image.tsx` with `next/og`,
-  cached): league name, leader, gameweek winner.
 - Later: let visitors pick a stat or an outlier themselves and make a
   highlight card from it to share.
 

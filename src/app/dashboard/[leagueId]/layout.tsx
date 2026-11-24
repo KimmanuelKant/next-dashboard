@@ -8,7 +8,7 @@ import RememberLeague from "@/components/RememberLeague";
 import ShareButton from "@/components/ShareButton";
 import { isValidLeagueId } from "@/lib/leagueId";
 import { getLeague } from "@/lib/fpl/sources";
-import { PREVIEW_IMAGE, SITE_NAME } from "@/lib/site";
+import { SITE_NAME } from "@/lib/site";
 
 type Params = Promise<{ leagueId: string }>;
 
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       siteName: SITE_NAME,
       title,
       description,
-      images: [PREVIEW_IMAGE],
+      // The picture is opengraph-image.tsx beside this file, drawn for the league.
     },
   };
 }

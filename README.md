@@ -109,6 +109,12 @@ Every table keeps its view and sorting in the page address
 particular table can be shared; the Share link at the top of a league does
 that. The Gameweek tab also takes `?gw=7` for an earlier gameweek.
 
+A league's link, pasted into a chat, shows a picture drawn for that league
+(`src/app/dashboard/[leagueId]/opengraph-image.tsx`): its name, its leader
+and the gameweek's top score. It is drawn from the standings and bootstrap
+only, never the full league load, and Vercel's CDN keeps it for ten
+minutes. `robots.ts` lets the link-preview fetchers into league pages.
+
 A visitor's own team is highlighted on every tab. It is known from the
 address (`?team=`) when they came in with a team ID, or from the "This is my
 team" button in a team's panel, which also remembers the league in the
