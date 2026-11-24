@@ -12,7 +12,7 @@ import {
 } from "@/lib/fpl/types";
 import { computeLeagueHistory } from "./leagueHistory";
 import { reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
-import { pickHighlights, teamRecord, TeamRecord } from "./records";
+import { PickOptions, pickHighlights, teamRecord, TeamRecord } from "./records";
 
 export interface ChipUse {
   gw: number;
@@ -517,7 +517,10 @@ export type SeasonHighlight = TeamRecord<
  * A record nobody holds is left out. `scale` is the gap worth noticing in
  * each stat over a season (see teamRecord).
  */
-export function computeSeasonHighlights(rows: TeamStats[]): SeasonHighlight[] {
+export function computeSeasonHighlights(
+  rows: TeamStats[],
+  pick: PickOptions = {}
+): SeasonHighlight[] {
   const records = [
     teamRecord("gameweekWins", rows, (row) => row.gameweekWins, { minimum: 1, scale: 1 }),
     teamRecord("highestScore", rows, (row) => row.highestGameweekScore, { minimum: 1, scale: 5 }),
@@ -527,5 +530,5 @@ export function computeSeasonHighlights(rows: TeamStats[]): SeasonHighlight[] {
     teamRecord("bench", rows, (row) => row.pointsOnBench, { minimum: 1, scale: 10 }),
     teamRecord("yellowCards", rows, (row) => row.yellowCards, { minimum: 1, scale: 2 }),
   ].filter((record) => record !== null);
-  return pickHighlights(records);
+  return pickHighlights(records, pick);
 }

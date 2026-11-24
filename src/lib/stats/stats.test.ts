@@ -21,7 +21,7 @@ import { computePlayerStats } from "./playerStats";
 import { computeLeagueHistory } from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
 import { reviewCaptaincy, transferOutcomes } from "./decisions";
-import { pickHighlights, teamRecord, TeamRecord } from "./records";
+import { EVERY_RECORD, pickHighlights, teamRecord, TeamRecord } from "./records";
 import { liveGameweek, projectTeam, provisionalBonus } from "./live";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
 
@@ -637,15 +637,26 @@ describe("teamRecord and pickHighlights", () => {
     expect(teamRecord("x", league(3, 3, 3), byValue)?.standout).toBe(0);
   });
 
+  const record = (kind: string, standout: number) => ({ kind, teams: ["A"], value: 1, standout });
+
   it("puts the pinned records first, then the rest by standout, up to the limit", () => {
-    const record = (kind: string, standout: number) => ({ kind, teams: ["A"], value: 1, standout });
-    const records = [record("a", 1), record("b", 5), record("pin", 0), record("c", 3)];
+    const records = [record("a", 2), record("b", 5), record("pin", 0), record("c", 3)];
     expect(pickHighlights(records, { pinned: ["pin"], max: 3 }).map((r) => r.kind)).toEqual([
       "pin",
       "b",
       "c",
     ]);
-    expect(pickHighlights(records).map((r) => r.kind)).toEqual(["b", "c", "a", "pin"]);
+    expect(pickHighlights(records).map((r) => r.kind)).toEqual(["b", "c", "a"]);
+  });
+
+  it("gives cards only to records that stand out, but always shows the minimum", () => {
+    const records = [record("a", 1), record("b", 5), record("c", 1.5), record("d", 0.5), record("e", 2)];
+    // b, e and c earn a card; a and d do not.
+    expect(pickHighlights(records).map((r) => r.kind)).toEqual(["b", "e", "c"]);
+    expect(pickHighlights(records, { min: 4 }).map((r) => r.kind)).toEqual(["b", "e", "c", "a"]);
+    // A quiet week: one record stands out, the closest to it make up three.
+    const quiet = [record("a", 1), record("b", 0.2), record("pin", 0), record("c", 1.6)];
+    expect(pickHighlights(quiet, { pinned: ["pin"] }).map((r) => r.kind)).toEqual(["pin", "c", "a"]);
   });
 });
 
@@ -659,19 +670,31 @@ describe("computeGameweekHighlights", () => {
     // fall short of the gap worth noticing (4 points): the most unique
     // points (16 against 13) and Bo's transfer (+3 against none) stand 1.5
     // above the median, the captaincy loss 1 and the swings (8 against 7)
-    // 0.5. The bench is level, and only six records get a card.
-    expect(facts(computeGameweekHighlights(rows))).toEqual([
+    // 0.5. The bench is level.
+    expect(facts(computeGameweekHighlights(rows, EVERY_RECORD))).toEqual([
       { kind: "winner", teams: ["Ann FC"], value: 74 },
       { kind: "lowest", teams: ["Bo United"], value: 50 },
       { kind: "unique", teams: ["Bo United"], value: 16 },
       { kind: "transfers", teams: ["Bo United"], value: 3 },
       { kind: "captaincy", teams: ["Bo United"], value: 2 },
       { kind: "swing", teams: ["Bo United"], value: 8 },
+      { kind: "swingAgainst", teams: ["Ann FC"], value: 8 },
+      { kind: "bench", teams: ["Ann FC", "Bo United"], value: 3 },
+    ]);
+  });
+
+  it("shows only the minimum of cards in a gameweek where nothing stands out", () => {
+    // In a league of two, no record stands out enough to earn a card: the
+    // winner and the two records closest to standing out make up three.
+    expect(computeGameweekHighlights(rows).map((record) => record.kind)).toEqual([
+      "winner",
+      "lowest",
+      "unique",
     ]);
   });
 
   it("names the player behind a swing", () => {
-    const highlights = computeGameweekHighlights(rows);
+    const highlights = computeGameweekHighlights(rows, EVERY_RECORD);
     // Bo's P16, whom Ann did not have.
     expect(highlights.find((h) => h.kind === "swing")?.detail).toBe("P16");
   });
@@ -701,7 +724,7 @@ describe("computeSeasonHighlights", () => {
   const rows = computeTeamStats(snapshot());
 
   it("names the holder of each season record", () => {
-    const highlights = facts(computeSeasonHighlights(rows));
+    const highlights = facts(computeSeasonHighlights(rows, EVERY_RECORD));
     expect(highlights).toHaveLength(6);
     expect(highlights).toEqual(expect.arrayContaining([
       // Ann had the top score in GW1 (alone in the league) and GW3; Bo in GW2.
@@ -1045,7 +1068,7 @@ describe("computeGameweekStats while the gameweek is played", () => {
   });
 
   it("gives the highlight cards the projected scores", () => {
-    const highlights = computeGameweekHighlights([ann, bo, cy]);
+    const highlights = computeGameweekHighlights([ann, bo, cy], EVERY_RECORD);
     const winner = highlights.find((h) => h.kind === "winner");
     const lowest = highlights.find((h) => h.kind === "lowest");
     expect([winner?.teams, winner?.value]).toEqual([["Bo United"], 88]);

@@ -80,7 +80,9 @@ one, add the record to `computeGameweekHighlights()` or
 `computeSeasonHighlights()` with `teamRecord()`, and its card to
 `highlightCards` in the table file. There can be more records than cards:
 `pickHighlights()` shows at most six (three rows on a phone), the ones
-that stand out most from the rest of the league that week or season. Give
+that stand out most from the rest of the league that week or season. A
+record must stand out by `STANDOUT_TO_EARN` to get a card, so a quiet week
+shows fewer; `MIN_HIGHLIGHTS` (three) are always shown. Give
 each record a `scale`, the smallest gap in that stat worth noticing, so
 that a rare stat held by one team does not outrank everything else.
 

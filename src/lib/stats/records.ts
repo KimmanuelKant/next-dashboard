@@ -2,7 +2,8 @@
 // Records: which teams hold the highest value of a statistic. They feed the
 // highlight cards above the tables, so a visitor sees the outliers without
 // having to sort a table to find them. There are more records than cards:
-// the ones that stand out most in the league get the cards.
+// the ones that stand out most in the league get the cards, and a quiet
+// week shows fewer of them.
 
 export interface TeamRecord<Kind extends string> {
   kind: Kind;
@@ -21,6 +22,19 @@ export interface TeamRecord<Kind extends string> {
 
 /** As many cards as fill three rows on a phone, two to a row. */
 export const MAX_HIGHLIGHTS = 6;
+
+/**
+ * The standout a record needs to earn a card. Measured on a real league: a
+ * lone -4 hit or a climb of one place comes to about 1, records worth
+ * telling come to 1.5 and more.
+ */
+export const STANDOUT_TO_EARN = 1.5;
+
+/**
+ * Cards shown however quiet the week: when fewer records earn one, the ones
+ * closest to standing out make up the number, so the row is never empty.
+ */
+export const MIN_HIGHLIGHTS = 3;
 
 export interface RecordOptions {
   /** A best value below this is no record (no team climbed, nobody took a hit): no card. */
@@ -69,16 +83,30 @@ export function teamRecord<Kind extends string, Row extends { teamName: string }
 
 /**
  * The records to show as cards: the pinned kinds first, in the order given
- * (the headline, such as the gameweek's winner), then the others by how far
- * they stand out, up to `max`.
+ * (the headline, such as the gameweek's winner, shown however ordinary),
+ * then the others by how far they stand out. A record must stand out by
+ * STANDOUT_TO_EARN to get a card, except to make up `min` cards; there are
+ * never more than `max`.
  */
+export interface PickOptions {
+  /** Kinds shown first, in this order, whether or not they stand out. */
+  pinned?: string[];
+  min?: number;
+  max?: number;
+}
+
+/** Picking options that keep every record, for checking what each one holds. */
+export const EVERY_RECORD: PickOptions = { min: Infinity, max: Infinity };
+
 export function pickHighlights<R extends TeamRecord<string>>(
   records: R[],
-  { pinned = [], max = MAX_HIGHLIGHTS }: { pinned?: string[]; max?: number } = {}
+  { pinned = [], min = MIN_HIGHLIGHTS, max = MAX_HIGHLIGHTS }: PickOptions = {}
 ): R[] {
   const first = pinned.flatMap((kind) => records.filter((record) => record.kind === kind));
   const rest = records
     .filter((record) => !pinned.includes(record.kind))
     .sort((a, b) => b.standout - a.standout);
-  return [...first, ...rest].slice(0, max);
+  const earned = rest.filter((record) => record.standout >= STANDOUT_TO_EARN).length;
+  const count = Math.min(Math.max(first.length + earned, min), max);
+  return [...first, ...rest].slice(0, count);
 }

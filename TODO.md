@@ -29,7 +29,10 @@ Visitors finding odd stats and posting them in their league's group chat is
 the way to grow without self-promotion.
 - "Copy recap" on the Gameweek tab: a few lines of text for a group chat,
   built from the highlight cards ("GW12: Ali won with 87, Sam's captain
-  scored 2, Jo left 19 on the bench").
+  scored 2, Jo left 19 on the bench"). While the gameweek is played, a
+  "so far" version from the live cards ("GW13 so far: Bo top with 88, 3
+  teams still have their captain to play"): group chats are busiest while
+  matches are on.
 - A preview image per league link (`opengraph-image.tsx` with `next/og`,
   cached): league name, leader, gameweek winner.
 - Later: let visitors pick a stat or an outlier themselves and make a
@@ -39,6 +42,25 @@ the way to grow without self-promotion.
 - Season: seller's remorse.
 - Season: manager of the month, and previous seasons (trim).
 - Scout: upcoming fixtures (fetch `/fixtures/`).
+
+## Live (while a gameweek is played)
+- "Now playing" strip above the table: the matches on now and next, with
+  the score and how many of the league's teams have a player in each
+  ("Arsenal 1–0 Spurs, 7 of 10 teams involved"). Kick-offs and match state
+  are in `LiveFixture` already; the score needs `team_h_score` and
+  `team_a_score` kept from the fixtures response (trim: raise
+  `fpl-live-fixtures-v2`). No new request.
+- Phone columns: check every view on a real phone at about 380px and tune
+  each view's `phoneColumns`. The Live view on the Gameweek tab still
+  scrolls a little sideways at 380px.
+- Highlight cards: tune `STANDOUT_TO_EARN` and `MIN_HIGHLIGHTS` in
+  `records.ts` after a few gameweeks. Maybe a little chance among the
+  records that earn a card when more than six do, so a refresh can show
+  others.
+- Not planned: push notifications or alerts (they need accounts or a store
+  of subscriptions); refreshing more often than once a minute (every
+  refresh is a server render, and live points are cached for a minute);
+  "expected points still to come" (a guess dressed up as a number).
 
 ## Gameweek: stats still to add
 - In finished gameweeks, every starter who did not play and the automatic
@@ -50,7 +72,9 @@ the way to grow without self-promotion.
   The live projection already shows the substitutions while a gameweek is
   played.
 - Against the global average and highest score; captain against the most
-  captained player in the game (trim: `events[]` in bootstrap).
+  captained player in the game (trim: `events[]` in bootstrap). Check first
+  whether FPL updates `average_entry_score` while the gameweek is played, or
+  only once it is finished.
 
 ## Season: stats still to add, by group
 - Standings: form over the last 5 gameweeks, weeks above the league

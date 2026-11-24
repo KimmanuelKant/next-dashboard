@@ -6,7 +6,7 @@ import { LeagueSnapshot, PICK_CAPTAIN, PICK_VICE, Player } from "@/lib/fpl/types
 import { reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
 import { computeLeagueHistory } from "./leagueHistory";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
-import { pickHighlights, teamRecord, TeamRecord } from "./records";
+import { PickOptions, pickHighlights, teamRecord, TeamRecord } from "./records";
 import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
 
 export interface GameweekStats {
@@ -523,7 +523,10 @@ export type GameweekHighlight = TeamRecord<
  * `scale` is the gap worth noticing in each stat (see teamRecord): a few
  * points in a score, a single place in the table.
  */
-export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighlight[] {
+export function computeGameweekHighlights(
+  rows: GameweekStats[],
+  pick: PickOptions = {}
+): GameweekHighlight[] {
   // A manager without a team this gameweek holds no records.
   const played = rows.filter((row) => row.leagueGameweekRank !== null);
   const score = (row: GameweekStats) => row.projectedScore ?? row.netScore;
@@ -566,5 +569,5 @@ export function computeGameweekHighlights(rows: GameweekStats[]): GameweekHighli
       ? { ...lowest, value: -lowest.value }
       : null,
   ].filter((record) => record !== null);
-  return pickHighlights(records, { pinned: ["winner"] });
+  return pickHighlights(records, { pinned: ["winner"], ...pick });
 }
