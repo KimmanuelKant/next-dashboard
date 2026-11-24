@@ -44,12 +44,6 @@ the way to grow without self-promotion.
 - Scout: upcoming fixtures (fetch `/fixtures/`).
 
 ## Live (while a gameweek is played)
-- "Now playing" strip above the table: the matches on now and next, with
-  the score and how many of the league's teams have a player in each
-  ("Arsenal 1–0 Spurs, 7 of 10 teams involved"). Kick-offs and match state
-  are in `LiveFixture` already; the score needs `team_h_score` and
-  `team_a_score` kept from the fixtures response (trim: raise
-  `fpl-live-fixtures-v2`). No new request.
 - Phone columns: check every view on a real phone at about 380px and tune
   each view's `phoneColumns`. The Live view on the Gameweek tab still
   scrolls a little sideways at 380px.
@@ -63,18 +57,10 @@ the way to grow without self-promotion.
   "expected points still to come" (a guess dressed up as a number).
 
 ## Gameweek: stats still to add
-- In finished gameweeks, every starter who did not play and the automatic
-  substitutions FPL made. FPL's final picks put each substitute in the
-  starter's place, so the eleven as first picked is lost; only starters
-  nobody replaced can be told apart ("Not Replaced"). Needs
-  `automatic_subs` from picks (trim), which means raising the picks cache
-  key: every league then reloads the picks of every finished gameweek.
-  The live projection already shows the substitutions while a gameweek is
-  played.
-- Against the global average and highest score; captain against the most
-  captained player in the game (trim: `events[]` in bootstrap). Check first
-  whether FPL updates `average_entry_score` while the gameweek is played, or
-  only once it is finished.
+- Automatic substitutions in finished gameweeks are kept since November
+  2026 (`autoSubs`), but not for gameweeks a league had cached before then
+  (see `getLeaguePicks`). Next season every gameweek has them; then the
+  Season tab can add up points gained from automatic substitutions.
 
 ## Season: stats still to add, by group
 - Standings: form over the last 5 gameweeks, weeks above the league
@@ -100,7 +86,8 @@ the way to grow without self-promotion.
 - Squad habits: template score (how common the squad is in the league),
   players used over the season.
 - Money: team value growth since GW1, average money in the bank.
-- Mishaps: points lost to automatic substitutions (trim).
+- Mishaps: points gained from automatic substitutions (from `autoSubs`;
+  complete from next season, see the Gameweek section).
 - Veterans (trim, `past` in `/entry/{id}/history/`): seasons played, best
   overall rank and best points total in earlier seasons.
 

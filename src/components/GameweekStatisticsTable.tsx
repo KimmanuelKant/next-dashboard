@@ -124,6 +124,12 @@ const columns = [
     cell: ({ getValue }) => formatSigned(getValue()),
     sortUndefined: "last",
   }),
+  columnHelper.accessor((row) => row.vsGlobalAverage ?? undefined, {
+    id: "vsGlobalAverage",
+    header: "Vs FPL Average",
+    cell: ({ getValue }) => formatSigned(getValue()),
+    sortUndefined: "last",
+  }),
   columnHelper.accessor((row) => row.gapToLeader ?? undefined, {
     id: "gapToLeader",
     header: "Gap to Leader",
@@ -151,7 +157,8 @@ const columns = [
     header: "Automatic Subs",
     cell: ({ row }) => {
       const { automaticSubs, automaticSubPoints } = row.original;
-      if (automaticSubs.length === 0) return "–";
+      // Null: not known (see GameweekStats).
+      if (automaticSubs.length === 0) return automaticSubPoints === 0 ? "None" : "–";
       const gain = automaticSubPoints ? ` (+${automaticSubPoints})` : "";
       return automaticSubs.join(", ") + gain;
     },
@@ -206,6 +213,12 @@ const columns = [
     cell: ({ row }) => formatNamed(row.original.bestCaptain),
   }),
   columnHelper.accessor("captaincyPointsLost", { id: "captaincyPointsLost", header: "Captaincy Points Lost" }),
+  columnHelper.accessor((row) => row.vsMostCaptained ?? undefined, {
+    id: "vsMostCaptained",
+    header: "Vs FPL's Top Captain",
+    cell: ({ getValue }) => formatSigned(getValue()),
+    sortUndefined: "last",
+  }),
   columnHelper.accessor((row) => row.chip ?? "", {
     id: "chip",
     header: "Chip",
@@ -332,7 +345,9 @@ const descriptions: Record<string, string> = {
   projectedPosition: "The team's position in this league if the gameweek ended with the projected scores. Teams level on points share a position, marked with =.",
   projectedPositionChange: "Places the team would gain or lose this gameweek if it ended with the projected scores, compared with its position before the gameweek.",
   provisionalBonus: "Bonus points the team's players would get if their matches ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in the score. Doubled for the captain.",
-  automaticSubs: "Substitutes who would come on for starters who did not play, in bench order and keeping a valid formation, as FPL does after the gameweek's last match. Also the armband passing to the vice captain when the captain did not play. In brackets, the points they add.",
+  automaticSubs: "Substitutes who came on for starters who did not play, and the armband passing to the vice captain when the captain did not play. In brackets, the points they added. While the gameweek is played, the ones FPL would make now: in bench order and keeping a valid formation, as FPL does after the last match. Not known for some earlier gameweeks.",
+  vsGlobalAverage: "Points above (+) or below (−) the average score of every FPL team this gameweek, after hits. While the gameweek is played, the projected score against FPL's average so far.",
+  vsMostCaptained: "The armband's points against what FPL's most captained player scored with the same armband. Plus when going against the crowd paid off; 0 for a team that captained him.",
   projectedScore: "This gameweek's score after hits, with the provisional bonus and the automatic substitutions added. It changes while matches are being played; a mark such as +6 shows how it changed at the last update, and teams that changed glow briefly.",
   playersLeft: "Players who count for the team and whose match has not finished: still to kick off, or being played. (C) when the one with the armband is among them; sorting counts him twice (three times with Triple Captain).",
   projectedTotal: "The team's season total with the projected score for this gameweek.",
@@ -369,6 +384,8 @@ const shortHeaders: Record<string, string> = {
   score: "Gross",
   netScore: "Pts",
   vsAverage: "Vs Avg",
+  vsGlobalAverage: "Vs FPL",
+  vsMostCaptained: "Vs Top C",
   gapToLeader: "To 1st",
   gapToAbove: "To Next",
   vsYou: "Vs You",
@@ -409,17 +426,17 @@ const shortHeaders: Record<string, string> = {
 const groups: ColumnGroup[] = [
   {
     name: "Scores",
-    columns: ["position", "positionChange", "score", "hit", "netScore", "vsAverage", "gapToLeader", "gapToAbove", "vsYou", "leagueGameweekRank", "gameweekRank", "overallRank"],
+    columns: ["position", "positionChange", "score", "hit", "netScore", "vsAverage", "vsGlobalAverage", "gapToLeader", "gapToAbove", "vsYou", "leagueGameweekRank", "gameweekRank", "overallRank"],
   },
   {
     name: "Captaincy",
-    columns: ["captain", "viceCaptain", "viceStepIn", "captainPoints", "bestCaptain", "captaincyPointsLost"],
+    columns: ["captain", "viceCaptain", "viceStepIn", "captainPoints", "bestCaptain", "captaincyPointsLost", "vsMostCaptained"],
   },
   {
     name: "Transfers, chips and value",
     columns: ["chip", "transfers", "hit", "transferGain", "transferGainAfterHit", "transferOutcomes", "playersIn", "playersOut", "teamValue", "valueChange"],
   },
-  { name: "Bench and best player", columns: ["benchPoints", "topBenched", "bestPlayer"] },
+  { name: "Bench and best player", columns: ["benchPoints", "topBenched", "automaticSubs", "bestPlayer"] },
   { name: "Blanks and mishaps", columns: ["blanks", "notReplaced", "mishaps"] },
   {
     name: "Swing and differentials",
@@ -443,7 +460,7 @@ const liveGroup: ColumnGroup = {
   name: "Live",
   columns: ["projectedPosition", "projectedPositionChange", "projectedScore", "playersLeft", "vsYou", "gapToLeader", "gapToAbove", "vsAverage", "chip", "netScore", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"],
 };
-const liveOnly = new Set(["projectedPosition", "projectedPositionChange", "projectedScore", "playersLeft", "provisionalBonus", "automaticSubs", "projectedTotal", "stillToPlay"]);
+const liveOnly = new Set(["projectedPosition", "projectedPositionChange", "projectedScore", "playersLeft", "provisionalBonus", "projectedTotal", "stillToPlay"]);
 
 // What each view keeps on a phone besides the team name: enough to read a
 // row without scrolling sideways. The rest is a tap away ("more columns"),

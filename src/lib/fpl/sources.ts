@@ -68,11 +68,15 @@ async function fetchBootstrap(): Promise<Bootstrap> {
       finished: e.finished && e.data_checked,
       isCurrent: e.is_current,
       deadline: e.deadline_time,
+      // FPL sends 0 and nulls for a gameweek that has not started.
+      averageScore: e.average_entry_score || null,
+      highestScore: e.highest_score ?? null,
+      mostCaptained: e.most_captained ?? null,
     })),
   };
 }
 
-export const getBootstrap = unstable_cache(fetchBootstrap, ["fpl-bootstrap-v2"], {
+export const getBootstrap = unstable_cache(fetchBootstrap, ["fpl-bootstrap-v3"], {
   revalidate: 5 * MINUTE,
 });
 
@@ -205,6 +209,9 @@ async function fetchLiveFixtures(gw: number): Promise<LiveFixtures> {
       kickoff: f.kickoff_time ?? null,
       started: f.started ?? false,
       done: f.finished || f.finished_provisional,
+      homeScore: f.team_h_score ?? null,
+      awayScore: f.team_a_score ?? null,
+      minutes: f.minutes,
       bonusAdded,
       bps: bonusAdded ? [] : stat("bps").map((s): [number, number] => [s.element, s.value]),
     };
@@ -220,7 +227,7 @@ async function fetchLiveFixtures(gw: number): Promise<LiveFixtures> {
 export function getLiveFixtures(season: string, gw: number): Promise<LiveFixtures> {
   return unstable_cache(
     () => fetchLiveFixtures(gw),
-    ["fpl-live-fixtures-v2", season, String(gw)],
+    ["fpl-live-fixtures-v3", season, String(gw)],
     { revalidate: MINUTE }
   )();
 }
@@ -247,7 +254,10 @@ async function fetchLeaguePicks(
           p.multiplier,
           p.is_captain ? PICK_CAPTAIN : p.is_vice_captain ? PICK_VICE : PICK_NONE,
         ]);
-      result[entryId] = { chip: raw.active_chip, picks };
+      const autoSubs = (raw.automatic_subs as { element_in: number; element_out: number }[]).map(
+        (sub): [number, number] => [sub.element_in, sub.element_out]
+      );
+      result[entryId] = { chip: raw.active_chip, picks, autoSubs };
     })
   );
   return result;
@@ -262,6 +272,14 @@ function membersKey(entryIds: number[]): string {
   return `${entryIds.length}-${hash.toString(36)}`;
 }
 
+/**
+ * Every team's picks for one gameweek. The key's version was not raised
+ * when `autoSubs` was added: that would have fetched the picks of every
+ * team for every finished gameweek again, two thousand requests for a big
+ * league. Picks cached before then lack the field, and the code reads that
+ * as "not known"; gameweeks finished since, and leagues loaded since, have
+ * it. Raise the version for any change the code cannot read that way.
+ */
 export function getLeaguePicks(
   season: string,
   leagueId: string,

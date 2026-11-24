@@ -34,6 +34,12 @@ export interface GameweekStats {
    * for a manager without a team.
    */
   vsAverage: number | null;
+  /**
+   * The same score against the average of every FPL team (FPL's figure, as
+   * it stands while the gameweek is played). Null for a manager without a
+   * team, or before FPL has an average.
+   */
+  vsGlobalAverage: number | null;
   /** Rank of the net score within this league this gameweek (1 = best). */
   leagueGameweekRank: number | null;
   /** Rank of the gameweek score among all FPL managers. */
@@ -53,6 +59,12 @@ export interface GameweekStats {
   bestCaptain: NamedCount | null;
   /** Points lost by not captaining the best starter. */
   captaincyPointsLost: number;
+  /**
+   * The armband's points against what FPL's most captained player scored
+   * with the same armband: positive when going against the crowd paid off,
+   * 0 for a team that captained him. Null when either is unknown.
+   */
+  vsMostCaptained: number | null;
   chip: string | null;
   /** Squad value including the bank, in millions. */
   teamValue: number | null;
@@ -120,11 +132,16 @@ export interface GameweekStats {
   /** Bonus from matches whose bonus FPL has not added yet, with multipliers. */
   provisionalBonus: number | null;
   /**
-   * Automatic substitutions FPL would make now ("Saka for Haaland"), and the
-   * armband passing to the vice captain.
+   * Automatic substitutions ("Saka for Haaland"), and the armband passing to
+   * the vice captain: the ones FPL would make now while the gameweek is
+   * played, the ones it made once it is finished.
    */
   automaticSubs: string[];
-  /** Points those substitutions and the armband add. */
+  /**
+   * Points those substitutions and the armband add. Null when they are not
+   * known (a finished gameweek whose picks were cached before FPL's
+   * substitutions were kept).
+   */
   automaticSubPoints: number | null;
   /** Players who count and whose club still has a match to finish. */
   playersLeft: number | null;
@@ -235,6 +252,8 @@ export function computeGameweekStats(
   // A player's matches are over: always so in a finished gameweek.
   const done = (id: number) => !live || !live.stillToPlay(id);
   const incidents = snapshot.incidents[gw] ?? {};
+  const fplGameweek = snapshot.bootstrap.gameweeks.find((g) => g.id === gw);
+  const mostCaptained = fplGameweek?.mostCaptained ?? null;
   // Each team's total before this gameweek; null if it had none.
   const totalsBefore = new Map<number, number | null>();
 
@@ -321,6 +340,36 @@ export function computeGameweekStats(
     const vice = team?.picks.find((p) => p[2] === PICK_VICE);
     const viceStepIn =
       vice !== undefined && (vice[1] >= 2 || projection?.armbandTo === vice[0]);
+    const captainPoints = review ? review.armbandPoints * armbandMultiplier : 0;
+
+    // In a finished gameweek, the substitutions FPL made (each substitute is
+    // in the starter's place in the picks), and the armband if it passed.
+    // While it is played, the ones the projection makes.
+    const autoSubs = team?.autoSubs;
+    let automaticSubs: string[] = [];
+    let automaticSubPoints: number | null = null;
+    if (projection) {
+      automaticSubs = [
+        ...projection.subs.map(
+          ([playerIn, playerOut]) => `${name(playerIn) || "Unknown"} for ${name(playerOut) || "Unknown"}`
+        ),
+        ...(projection.armbandTo ? [`Armband to ${name(projection.armbandTo) || "Unknown"}`] : []),
+      ];
+      automaticSubPoints = projection.points - projection.livePoints - projection.bonus;
+    } else if (live) {
+      automaticSubPoints = 0;
+    } else if (team && autoSubs) {
+      const multiplierOf = (id: number) => team.picks.find((p) => p[0] === id)?.[1] ?? 0;
+      automaticSubs = [
+        ...autoSubs.map(
+          ([playerIn, playerOut]) => `${name(playerIn) || "Unknown"} for ${name(playerOut) || "Unknown"}`
+        ),
+        ...(viceStepIn && vice ? [`Armband to ${name(vice[0]) || "Unknown"}`] : []),
+      ];
+      automaticSubPoints =
+        autoSubs.reduce((total, [playerIn]) => total + (points[playerIn] ?? 0) * multiplierOf(playerIn), 0) +
+        (viceStepIn && vice ? (points[vice[0]] ?? 0) * (vice[1] - 1) : 0);
+    }
 
     // The players who count: after the projected substitutions while the
     // gameweek is played, otherwise as FPL's picks have them.
@@ -382,18 +431,26 @@ export function computeGameweekStats(
       hit,
       netScore: score - hit,
       vsAverage: null, // filled in below
+      vsGlobalAverage:
+        team && fplGameweek?.averageScore != null
+          ? (projectedScore ?? score - hit) - fplGameweek.averageScore
+          : null,
       leagueGameweekRank: null, // filled in below
       gameweekRank: week?.rank ?? null,
       overallRank: week?.overallRank ?? null,
       captain: name(team?.picks.find((p) => p[2] === PICK_CAPTAIN)?.[0]),
       viceCaptain: name(vice?.[0]),
       viceStepIn,
-      captainPoints: review ? review.armbandPoints * armbandMultiplier : 0,
+      captainPoints,
       bestCaptain:
         review && review.bestId !== null
           ? { name: name(review.bestId) || "Unknown", count: review.bestPoints }
           : null,
       captaincyPointsLost: review?.pointsLost ?? 0,
+      vsMostCaptained:
+        review?.armbandId != null && mostCaptained !== null
+          ? captainPoints - (points[mostCaptained] ?? 0) * armbandMultiplier
+          : null,
       chip: team?.chip ? chipLabel(team.chip) : null,
       teamValue: week ? week.value / 10 : null,
       valueChange: week && previousWeek ? (week.value - previousWeek.value) / 10 : null,
@@ -425,20 +482,8 @@ export function computeGameweekStats(
       gapToLeader: null, // filled in below
       gapToAbove: null, // filled in below
       provisionalBonus: live ? projection?.bonus ?? 0 : null,
-      automaticSubs: [
-        ...(projection?.subs ?? []).map(
-          ([playerIn, playerOut]) =>
-            `${name(playerIn) || "Unknown"} for ${name(playerOut) || "Unknown"}`
-        ),
-        ...(projection?.armbandTo
-          ? [`Armband to ${name(projection.armbandTo) || "Unknown"}`]
-          : []),
-      ],
-      automaticSubPoints: projection
-        ? projection.points - projection.livePoints - projection.bonus
-        : live
-        ? 0
-        : null,
+      automaticSubs,
+      automaticSubPoints,
       playersLeft: live ? projection?.playersLeft ?? 0 : null,
       multipliedLeft: live
         ? (projection?.left ?? []).reduce(

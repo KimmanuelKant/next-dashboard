@@ -32,6 +32,15 @@ export interface Gameweek {
   finished: boolean;
   isCurrent: boolean;
   deadline: string;
+  /**
+   * The average score of every FPL team this gameweek; null before it
+   * starts. FPL updates it while the gameweek is played.
+   */
+  averageScore: number | null;
+  /** The highest score of any FPL team this gameweek; null before it starts. */
+  highestScore: number | null;
+  /** The player captained by the most FPL teams; null before the deadline. */
+  mostCaptained: number | null;
 }
 
 export interface Bootstrap {
@@ -94,6 +103,14 @@ export type Pick = [playerId: number, multiplier: number, role: number];
 export interface ManagerGameweek {
   chip: string | null;
   picks: Pick[];
+  /**
+   * The automatic substitutions FPL made after the gameweek, [playerIn,
+   * playerOut]: the picks already show each substitute in the starter's
+   * place. Empty while the gameweek is played (FPL makes them at the end).
+   * Missing from picks cached before it was kept: unknown, not none (see
+   * getLeaguePicks).
+   */
+  autoSubs?: [playerIn: number, playerOut: number][];
 }
 
 /** entryId -> that manager's team for one gameweek (null: no team that week). */
@@ -130,6 +147,11 @@ export interface LiveFixture {
   started: boolean;
   /** The final whistle has gone: no player's minutes in it will change. */
   done: boolean;
+  /** Goals; null before kick-off. */
+  homeScore: number | null;
+  awayScore: number | null;
+  /** Minutes played in the match, as FPL counts them. */
+  minutes: number;
   /** FPL has added the match's bonus points to its players' points. */
   bonusAdded: boolean;
   /**

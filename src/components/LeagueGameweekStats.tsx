@@ -5,9 +5,12 @@ import GameweekPicker from "@/components/GameweekPicker";
 import GameweekStatisticsTable from "@/components/GameweekStatisticsTable";
 import LeagueNotices from "@/components/LeagueNotices";
 import LiveStatus from "@/components/LiveStatus";
+import NowPlaying from "@/components/NowPlaying";
 import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
 import { computeGameweekHighlights, computeGameweekStats } from "@/lib/stats/gameweekStats";
+import { leagueGameweek } from "@/lib/stats/leagueGameweek";
 import { matchTimes } from "@/lib/stats/live";
+import { leagueMatches } from "@/lib/stats/matches";
 
 // Errors thrown here are caught by the ErrorBoundary in the page.
 export default async function LeagueGameweekStats({
@@ -34,12 +37,33 @@ export default async function LeagueGameweekStats({
   // The live projection belongs to the current gameweek while FPL has not
   // marked it finished.
   const fixtures = gw === snapshot.currentGw ? snapshot.liveFixtures : null;
-  const status = fixtures ? (
-    <LiveStatus {...matchTimes(fixtures)} updatedAt={snapshot.liveUpdatedAt} />
-  ) : gameweek?.finished ? (
-    "Final scores."
-  ) : (
-    "In progress. Scores can still change."
+  const matches =
+    fixtures && gw !== null ? leagueMatches(snapshot, leagueGameweek(snapshot, gw)) : null;
+  // The whole game's figures, for scale: FPL's average and highest score,
+  // and the player most teams captained.
+  const mostCaptained = snapshot.bootstrap.players.find((p) => p.id === gameweek?.mostCaptained);
+  const fplFigures =
+    gameweek?.averageScore != null
+      ? [
+          `FPL average ${gameweek.finished ? "" : "so far "}${gameweek.averageScore}`,
+          gameweek.highestScore != null ? `highest ${gameweek.highestScore}` : null,
+          mostCaptained ? `most captained ${mostCaptained.name}` : null,
+        ]
+          .filter(Boolean)
+          .join(", ") + "."
+      : null;
+  const status = (
+    <>
+      {fixtures ? (
+        <LiveStatus {...matchTimes(fixtures)} updatedAt={snapshot.liveUpdatedAt} />
+      ) : gameweek?.finished ? (
+        "Final scores."
+      ) : (
+        "In progress. Scores can still change."
+      )}
+      {/* Apart from the line above, which can end in the Refresh button. */}
+      {fplFigures && <span className="ms-2">· {fplFigures}</span>}
+    </>
   );
 
   return (
@@ -48,6 +72,7 @@ export default async function LeagueGameweekStats({
       {gameweek && (
         <GameweekPicker gameweeks={snapshot.gameweekIds} selected={gameweek.id} status={status} />
       )}
+      {matches && <NowPlaying {...matches} />}
       <GameweekStatisticsTable
         stats={stats}
         highlights={computeGameweekHighlights(stats)}

@@ -99,7 +99,11 @@ that a rare stat held by one team does not outrank everything else.
 - Each cache key carries a version (`"fpl-league-v1"`). When you change the
   shape of cached data, raise the version in its key: finished gameweeks are
   cached without expiry, so entries in the old shape would otherwise be
-  served for the rest of the season.
+  served for the rest of the season. The one exception is `autoSubs` in
+  `getLeaguePicks()`: raising the picks key refetches every team's picks
+  for every finished gameweek, so the field was added as optional and the
+  code reads it missing as "not known". Do that only for an optional field
+  the code can show as unknown, and say so where the key is.
 - Cache keys include the season, because FPL reuses league IDs every season.
 - A failed fetch must throw, not return an empty result, so that the failure
   is not cached.

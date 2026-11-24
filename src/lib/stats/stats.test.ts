@@ -24,6 +24,7 @@ import { reviewCaptaincy, transferOutcomes } from "./decisions";
 import { EVERY_RECORD, pickHighlights, teamRecord, TeamRecord } from "./records";
 import { liveGameweek, projectTeam, provisionalBonus } from "./live";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
+import { leagueMatches } from "./matches";
 
 // Players 1-15: 1-2 goalkeepers, 3-7 defenders, 8-12 midfielders, 13-15 forwards.
 const positionOf = (id: number) => (id <= 2 ? 1 : id <= 7 ? 2 : id <= 12 ? 3 : 4);
@@ -119,6 +120,9 @@ function snapshot(): LeagueSnapshot {
         finished: id < 3,
         isCurrent: id === 3,
         deadline: "2026-08-01T00:00:00Z",
+        averageScore: null,
+        highestScore: null,
+        mostCaptained: null,
       })),
     },
     currentGw: 3,
@@ -606,6 +610,57 @@ describe("computeGameweekStats for an earlier gameweek", () => {
   it("returns nothing for a gameweek that has not been played", () => {
     expect(computeGameweekStats(snapshot(), 9)).toEqual([]);
   });
+
+  // In GW2 Ann's captain P13 did not play. FPL's final picks show P7 in his
+  // place and P13 on the bench, with the armband passed to P8.
+  const withSubs = (): LeagueSnapshot => {
+    const base = snapshot();
+    const ann = base.picks[2][100]!;
+    const picks = ann.picks.map(([id, multiplier, role]): Pick =>
+      id === 13 ? [7, 1, PICK_NONE] : id === 7 ? [13, 0, PICK_CAPTAIN] : [id, multiplier, role]
+    );
+    return {
+      ...base,
+      picks: {
+        ...base.picks,
+        2: { ...base.picks[2], 100: { ...ann, picks, autoSubs: [[7, 13]] }, 200: { ...base.picks[2][200]!, autoSubs: [] } },
+      },
+    };
+  };
+
+  it("lists the automatic substitutions FPL made, and what they added", () => {
+    const [ann, bo] = computeGameweekStats(withSubs(), 2);
+    expect(ann.automaticSubs).toEqual(["P7 for P13", "Armband to P8"]);
+    // P7's 7 points, and P8's second 8 with the armband.
+    expect(ann.automaticSubPoints).toBe(7 + 8);
+    expect([bo.automaticSubs, bo.automaticSubPoints]).toEqual([[], 0]);
+  });
+
+  it("does not know the substitutions when the picks were cached without them", () => {
+    const [ann] = computeGameweekStats(snapshot(), 2);
+    expect([ann.automaticSubs, ann.automaticSubPoints]).toEqual([[], null]);
+  });
+
+  it("compares the score with FPL's average and the captain with FPL's most captained", () => {
+    const base = snapshot();
+    const withFpl: LeagueSnapshot = {
+      ...base,
+      bootstrap: {
+        ...base.bootstrap,
+        gameweeks: base.bootstrap.gameweeks.map((g) =>
+          g.id === 2 ? { ...g, averageScore: 50, highestScore: 120, mostCaptained: 14 } : g
+        ),
+      },
+    };
+    const [ann, bo] = computeGameweekStats(withFpl, 2);
+    // Ann 56 after her hit, Bo 80.
+    expect([ann.vsGlobalAverage, bo.vsGlobalAverage]).toEqual([6, 30]);
+    // Ann's armband went to P8 (8 x 2) where P14 scored 14 x 2; Bo captained P14.
+    expect([ann.vsMostCaptained, bo.vsMostCaptained]).toEqual([16 - 28, 0]);
+    // Without FPL's figures, nothing to compare with.
+    expect([computeGameweekStats(base, 2)[0].vsGlobalAverage, computeGameweekStats(base, 2)[0].vsMostCaptained])
+      .toEqual([null, null]);
+  });
 });
 
 /** A record without its standout score, which the tests below check apart. */
@@ -883,6 +938,9 @@ function liveFixture(club: number, state: Partial<LiveFixture>): LiveFixture {
     kickoff: "2026-11-21T15:00:00Z",
     started: true,
     done: true,
+    homeScore: 0,
+    awayScore: 0,
+    minutes: 90,
     bonusAdded: true,
     bps: [],
     ...state,
@@ -1065,6 +1123,34 @@ describe("computeGameweekStats while the gameweek is played", () => {
     // P7 came on for P14, who takes his place on the bench with 0 points.
     expect(ann.benchPoints).toBe(2 + 0 + 12 + 15);
     expect(ann.topBenched).toEqual({ name: "P15", count: 15 });
+  });
+
+  it("lists the matches being played, and how many teams have a player in each", () => {
+    const { fixtures: on, points: onPoints, minutes: onMinutes } = liveSetup({ playing: [5], pending: [13] });
+    const clubs = livePlayers.map((p) => ({ id: p.id, name: p.name, shortName: p.name }));
+    const now: LeagueSnapshot = {
+      ...playing,
+      bootstrap: { ...playing.bootstrap, clubs },
+      points: { ...playing.points, 3: onPoints },
+      minutes: { 1: {}, 2: {}, 3: onMinutes },
+      liveFixtures: on.map((f) => (f.id === 5 ? { ...f, homeScore: 1, awayScore: 0, minutes: 63 } : f)),
+    };
+    const matches = leagueMatches(now, leagueGameweek(now, 3));
+    // Cy has no team this gameweek: two teams to count.
+    expect(matches?.teamCount).toBe(2);
+    expect(matches?.matches).toEqual([
+      expect.objectContaining({ home: "P5", homeScore: 1, awayScore: 0, minutes: 63, playing: true, teams: 2 }),
+    ]);
+  });
+
+  it("lists the next matches to kick off between matches", () => {
+    const clubs = livePlayers.map((p) => ({ id: p.id, name: p.name, shortName: p.name }));
+    const between: LeagueSnapshot = { ...playing, bootstrap: { ...playing.bootstrap, clubs } };
+    // P13's match is still to come; only Ann has P13 (Bo sold him for P16).
+    const matches = leagueMatches(between, leagueGameweek(between, 3))?.matches;
+    expect(matches?.map((m) => [m.home, m.playing, m.teams])).toEqual([["P13", false, 1]]);
+    // Not while the gameweek is finished.
+    expect(leagueMatches(snapshot(), leagueGameweek(snapshot(), 2))).toBeNull();
   });
 
   it("gives the highlight cards the projected scores", () => {
