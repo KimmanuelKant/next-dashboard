@@ -6,6 +6,7 @@ import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
 import { HighlightCard, toHighlight } from "@/components/Highlights";
 import MyTeamButton from "@/components/MyTeamButton";
 import Narrow from "@/components/Narrow";
+import type { ChangeTracking } from "@/lib/liveChanges";
 import type { GameweekHighlight, GameweekStats } from "@/lib/stats/gameweekStats";
 import { useMyTeamId } from "@/lib/myTeam";
 
@@ -332,7 +333,7 @@ const descriptions: Record<string, string> = {
   projectedPositionChange: "Places the team would gain or lose this gameweek if it ended with the projected scores, compared with its position before the gameweek.",
   provisionalBonus: "Bonus points the team's players would get if their matches ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in the score. Doubled for the captain.",
   automaticSubs: "Substitutes who would come on for starters who did not play, in bench order and keeping a valid formation, as FPL does after the gameweek's last match. Also the armband passing to the vice captain when the captain did not play. In brackets, the points they add.",
-  projectedScore: "This gameweek's score after hits, with the provisional bonus and the automatic substitutions added. It changes while matches are being played.",
+  projectedScore: "This gameweek's score after hits, with the provisional bonus and the automatic substitutions added. It changes while matches are being played; a mark such as +6 shows how it changed at the last update, and teams that changed glow briefly.",
   playersLeft: "Players who count for the team and whose match has not finished: still to kick off, or being played. (C) when the one with the armband is among them; sorting counts him twice (three times with Triple Captain).",
   projectedTotal: "The team's season total with the projected score for this gameweek.",
   stillToPlay: "The players counted in Players Left, by name. (C) marks the one with the armband.",
@@ -484,6 +485,15 @@ const live = {
   presets: presetsFor([liveGroup, ...groups]),
 };
 
+// While the gameweek is played the page updates itself every minute. A
+// team whose projected score changed at the last update is marked ("+6");
+// one that only lost its place to another is highlighted.
+const liveChanges: ChangeTracking<GameweekStats> = {
+  rowKey: (row) => row.teamId,
+  marked: { projectedScore: (row) => row.projectedScore },
+  unmarked: { projectedPosition: (row) => row.projectedPosition },
+};
+
 const points = (value: number) => `${value} pts`;
 
 // The card for each of the gameweek's records. `view` must be the name of a
@@ -611,6 +621,7 @@ export default function GameweekStatisticsTable({
       }
       detailAction={(row) => <MyTeamButton teamId={row.teamId} leagueName={leagueName} />}
       highlightRow={(row) => row.teamId === myTeam}
+      trackChanges={isLive ? liveChanges : undefined}
     />
   );
 }

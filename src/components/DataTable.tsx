@@ -16,6 +16,15 @@ import { Dropdown, DropdownButton, Form, Modal, OverlayTrigger, Popover } from "
 import { InfoCircle, InfoCircleFill } from "react-bootstrap-icons";
 import Highlights, { Highlight } from "@/components/Highlights";
 import Narrow from "@/components/Narrow";
+import {
+  ChangeTracking,
+  Changes,
+  changesBetween,
+  formatChange,
+  hasNewRows,
+  mergeReadings,
+  readValues,
+} from "@/lib/liveChanges";
 import { decodeSorting, encodeSorting, viewSlug, withTableState } from "@/lib/tableUrl";
 
 export interface ColumnGroup {
@@ -88,6 +97,24 @@ interface DataTableProps<T> {
   detailHint?: string;
   /** A control shown at the top of a row's panel, such as "This is my team". */
   detailAction?: (row: T) => React.ReactNode;
+  /**
+   * For data that updates itself while the page is open (a gameweek being
+   * played): the values to compare from one update to the next, so that the
+   * rows that changed are marked. See liveChanges.ts.
+   */
+  trackChanges?: ChangeTracking<T>;
+}
+
+/** How a value changed at the last update, shown after it in its cell. */
+function ChangeMark({ difference }: { difference: number }) {
+  return (
+    <span
+      className={`ms-1 small fw-semibold ${difference > 0 ? "text-success" : "text-danger"}`}
+      title={`${difference > 0 ? "Up" : "Down"} ${Math.abs(difference)} at the last update`}
+    >
+      {formatChange(difference)}
+    </span>
+  );
 }
 
 /**
@@ -248,6 +275,7 @@ export default function DataTable<T>({
   detailNoun,
   detailHint,
   detailAction,
+  trackChanges,
 }: DataTableProps<T>) {
   // The address can name the view and sorting to open with (see tableUrl.ts).
   // It is read once: after that the state below leads and the address follows.
@@ -282,6 +310,31 @@ export default function DataTable<T>({
   // On phones, the visitor has asked for every column of the view. Each view
   // starts with its short list again.
   const [allOnPhone, setAllOnPhone] = useState(false);
+
+  // The tracked values as last shown, and what changed at the last update
+  // that changed anything. An update that brings nothing new keeps the
+  // marks, so they say what moved last, not only in the past minute. Values
+  // are compared rather than the data itself, which can be a new array on
+  // every render (a filtered list).
+  const readings = trackChanges ? readValues(data, trackChanges) : null;
+  const [seen, setSeen] = useState(readings);
+  const [changes, setChanges] = useState<Changes>(() => new Map());
+  // The changed rows glow briefly, then the class is taken off again, so
+  // that re-sorting the table (which moves rows) does not replay it.
+  const [glowing, setGlowing] = useState(false);
+  if (trackChanges && readings && seen) {
+    const changed = changesBetween(seen, readings, Object.keys(trackChanges.marked));
+    if (changed.size > 0) {
+      setSeen(mergeReadings(seen, readings));
+      setChanges(changed);
+      setGlowing(true);
+    } else if (hasNewRows(seen, readings)) {
+      // Rows a filter had hidden from the start.
+      setSeen(mergeReadings(seen, readings));
+    }
+  }
+  const changesOf = (row: T) =>
+    trackChanges ? changes.get(String(trackChanges.rowKey(row))) : undefined;
 
   // Writes the view and sorting into the address. replaceState changes the
   // address without asking the server for the page again, and without adding
@@ -569,7 +622,11 @@ export default function DataTable<T>({
               </tr>
             ))}
           </thead>
-          <tbody>
+          <tbody
+            onAnimationEnd={(e) => {
+              if (e.animationName === "row-changed") setGlowing(false);
+            }}
+          >
             {data.length === 0 && (
               <tr>
                 <td
@@ -585,9 +642,11 @@ export default function DataTable<T>({
               const subtitle = foldSubtitle
                 ? cells.find((cell) => cell.column.id === subtitleColumn)
                 : undefined;
+              const rowChanges = changesOf(row.original);
               const rowClass = [
                 highlightRow?.(row.original) ? "my-team" : "",
                 detailNoun ? "row-clickable" : "",
+                glowing && rowChanges ? "row-changed" : "",
               ]
                 .join(" ")
                 .trim();
@@ -608,6 +667,9 @@ export default function DataTable<T>({
                     cell.column.id !== stickyColumn ? (
                       <td key={cell.id} className={cellClass(cell.column.id)}>
                         {renderCell(cell)}
+                        {rowChanges?.has(cell.column.id) && (
+                          <ChangeMark difference={rowChanges.get(cell.column.id)!} />
+                        )}
                       </td>
                     ) : (
                       <td key={cell.id} className="sticky-col">

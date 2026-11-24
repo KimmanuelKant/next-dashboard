@@ -206,6 +206,26 @@ tr.my-team > * {
   font-weight: 600;
 }
 
+/* A row that changed at the last update of a gameweek being played glows,
+   then fades back to its own colour. Bootstrap paints a cell's striping and
+   state with an inset box-shadow; the animation starts from a brighter one
+   and ends on the cell's own. */
+tr.row-changed > * {
+  animation: row-changed 2.5s ease-out;
+}
+
+@keyframes row-changed {
+  from {
+    box-shadow: inset 0 0 0 9999px rgba(var(--bs-warning-rgb), 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tr.row-changed > * {
+    animation: none;
+  }
+}
+
 th[data-sortable="true"] {
   cursor: pointer;
   user-select: none;

@@ -5,6 +5,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { Form } from "react-bootstrap";
 import DataTable, { Preset } from "@/components/DataTable";
 import Narrow from "@/components/Narrow";
+import type { ChangeTracking } from "@/lib/liveChanges";
 import type { PlayerStats } from "@/lib/stats/playerStats";
 
 const columnHelper = createColumnHelper<PlayerStats>();
@@ -117,7 +118,7 @@ const descriptions: Record<string, string> = {
   leagueStartingCount: "Number of managers in this league with the player in their starting eleven.",
   effectiveOwnership: "Ownership weighted by points multiplier: a captain counts twice, a benched player not at all. While the gameweek is played, after the automatic substitutions and the armband passing FPL would make now.",
   nonStarterCost: "How many points a team without the player in its eleven falls behind the league's average team because of him this gameweek: his points times his effective ownership in the league. A team that captains him gains back his points above that. While the gameweek is played, with the provisional bonus.",
-  livePoints: "Points the player has scored in the current gameweek, with the provisional bonus.",
+  livePoints: "Points the player has scored in the current gameweek, with the provisional bonus. A mark such as +3 shows how they changed at the last update.",
   provisionalBonus: "Bonus points the player would get if his match ended now, from FPL's bonus points system. FPL adds the bonus shortly after each match; until then it is not in his points.",
   liveStatus: "Played (his match is over), Playing, To play (his match has not started), or Did not play.",
   leagueCaptainCount: "Number of managers in this league who captained the player.",
@@ -164,6 +165,13 @@ const liveView: Preset = {
   phoneColumns: ["livePoints", "effectiveOwnership", "nonStarterCost"],
 };
 const liveOnly = new Set(["livePoints", "provisionalBonus", "liveStatus"]);
+
+// While the gameweek is played the page updates itself every minute; a
+// player whose points changed at the last update is marked ("+3").
+const liveChanges: ChangeTracking<PlayerStats> = {
+  rowKey: (row) => row.id,
+  marked: { livePoints: (row) => row.gameweekPoints + (row.provisionalBonus ?? 0) },
+};
 
 const presets: Preset[] = [
   differentials,
@@ -424,6 +432,7 @@ export default function PlayerStatisticsTable({
         subtitleColumn="club"
         wrapColumns={["owners"]}
         detailNoun="player"
+        trackChanges={isLive ? liveChanges : undefined}
       />
     </>
   );

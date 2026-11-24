@@ -17,7 +17,8 @@ and get sortable, customisable tables the official site does not offer:
   team, and points from players nobody else in the league started. Earlier gameweeks can be opened as well. While a
   gameweek is played, a Live view projects each score and the league table
   with provisional bonus and automatic substitutions, and the page
-  refreshes itself during matches.
+  refreshes itself during matches, marking the scores that changed at
+  the last update.
 - **Season**: per-manager transfers, hits (and how many paid off), chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.
@@ -83,7 +84,11 @@ only while the current gameweek is unfinished. It adds the bonus as the
 bonus points system stands in matches whose bonus FPL has not yet added,
 and makes the automatic substitutions FPL will make after the last match.
 `LiveStatus` shows when the scores were fetched, offers a refresh, and
-refreshes the page every minute while a match is played.
+refreshes the page every minute while a match is played. The browser
+compares each update with the one before (`src/lib/liveChanges.ts`, given
+to `DataTable` as `trackChanges`): a changed score is marked "+6" until
+the next update that changes anything, and the rows that changed glow
+briefly. The server is not involved, so this costs no requests.
 
 `src/lib/stats/leagueGameweek.ts` works out what each team counts on in a
 gameweek: every player's multiplier, after the projected substitutions
