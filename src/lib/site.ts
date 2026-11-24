@@ -15,6 +15,18 @@ export const SITE_DESCRIPTION =
   "Free Fantasy Premier League mini-league stats: find differentials, see who owns whom, compare captains, chips and transfers, and chart your league's race.";
 
 /**
+ * The site's own classic league in FPL, which visitors are invited to join
+ * from the front page. Once it has enough teams to show the site at its
+ * best, it becomes the example league linked from the front page too. The
+ * code is also for typing in the FPL phone app (Leagues, Join a league).
+ */
+export const MYFPL_LEAGUE = {
+  id: "2504598",
+  code: "sfcd6q",
+  joinUrl: "https://fantasy.premierleague.com/leagues/auto-join/sfcd6q",
+};
+
+/**
  * Image shown when a link to the site is shared: the logo on the site's dark
  * background, at the 1200x630 size chat apps and social sites show large.
  */

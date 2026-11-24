@@ -17,10 +17,10 @@ team name where the league ID goes.
 - League History chart on a phone: its own height and text size (it is drawn
   at a fixed size and scaled down), highlighting your team and the leader.
 - An example league linked from the front page, so a visitor without their
-  ID to hand can see what the site does. Best a MyFPL.net league of our own
-  (it does not exist yet); the top 100 of a big public league would do as a
-  stand-in, but its teams change from week to week and it does not show
-  the site at its best.
+  ID to hand can see what the site does. The MyFPL.net league
+  (`MYFPL_LEAGUE` in `site.ts`, created November 2026) is linked from the
+  front page for visitors to join; once it has ten or so teams, link it as
+  the example too.
 
 ## Sharing (how the site grows)
 Visitors finding odd stats and posting them in their league's group chat is

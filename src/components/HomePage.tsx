@@ -10,6 +10,7 @@ import { Accordion } from 'react-bootstrap';
 import { parseLeagueId, parseLeagueUrl, MAX_MANAGERS } from "@/lib/leagueId";
 import { parseTeamId, parseTeamUrl } from "@/lib/teamId";
 import { idInputError, idInputProblem } from "@/lib/idInput";
+import { MYFPL_LEAGUE } from "@/lib/site";
 
 // Accordion sections, by event key.
 const LEAGUE_HELP = "0";
@@ -216,6 +217,13 @@ export default function HomePage() {
               </Accordion>
             </div>
             <div className="card-footer text-center">
+              <p className="small mb-2">
+                Play in the{" "}
+                <a href={MYFPL_LEAGUE.joinUrl} target="_blank" rel="noreferrer">
+                  MyFPL.net league
+                </a>
+                {" "}on FPL (code <strong>{MYFPL_LEAGUE.code}</strong>).
+              </p>
               <p className="mb-0">© {new Date().getFullYear()} - MyFPL.net</p>
             </div>
           </div>
