@@ -9,6 +9,11 @@ import { forgetLeague, useRememberedLeague } from "@/lib/rememberedLeague";
 import { Accordion } from 'react-bootstrap';
 import { parseLeagueId, parseLeagueUrl, MAX_MANAGERS } from "@/lib/leagueId";
 import { parseTeamId, parseTeamUrl } from "@/lib/teamId";
+import { idInputError, idInputProblem } from "@/lib/idInput";
+
+// Accordion sections, by event key.
+const LEAGUE_HELP = "0";
+const TEAM_HELP = "2";
 
 export default function HomePage() {
   const [leagueId, setLeagueId] = useState("");
@@ -22,6 +27,9 @@ export default function HomePage() {
   const remembered = useRememberedLeague();
   const [teamId, setTeamId] = useState("");
   const [teamError, setTeamError] = useState("");
+  // The open help section. A visitor who typed a name instead of a number is
+  // shown the section that says where the number is.
+  const [openHelp, setOpenHelp] = useState<string | null>(LEAGUE_HELP);
 
   // A URL pasted into the wrong box still goes to the right place.
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,7 +46,8 @@ export default function HomePage() {
       startOpeningLeague(() => router.push(`/team/${team}`));
       return;
     }
-    setError("Enter the league number, or paste the league URL from the FPL site.");
+    setError(idInputError(leagueId, "league"));
+    if (idInputProblem(leagueId) === "name") setOpenHelp(LEAGUE_HELP);
   };
 
   const handleTeamSubmit = (e: React.FormEvent) => {
@@ -55,7 +64,8 @@ export default function HomePage() {
       startOpeningTeam(() => router.push(`/dashboard/${league}/gameweek`));
       return;
     }
-    setTeamError("Enter the team number, or paste your team URL from the FPL site.");
+    setTeamError(idInputError(teamId, "team"));
+    if (idInputProblem(teamId) === "name") setOpenHelp(TEAM_HELP);
   };
 
   return (
@@ -161,8 +171,12 @@ export default function HomePage() {
                 )}
               </form>
 
-              <Accordion defaultActiveKey="0" flush>
-                <Accordion.Item eventKey="0">
+              <Accordion
+                activeKey={openHelp}
+                onSelect={(key) => setOpenHelp(typeof key === "string" ? key : null)}
+                flush
+              >
+                <Accordion.Item eventKey={LEAGUE_HELP}>
                   <Accordion.Header>How to find your League ID</Accordion.Header>
                   <Accordion.Body>
                     <p>
@@ -179,7 +193,7 @@ export default function HomePage() {
                     />
                   </Accordion.Body>
                 </Accordion.Item>
-                <Accordion.Item eventKey="2">
+                <Accordion.Item eventKey={TEAM_HELP}>
                   <Accordion.Header>How to find your Team ID</Accordion.Header>
                   <Accordion.Body>
                     <p>

@@ -21,8 +21,6 @@ team name where the league ID goes.
   (it does not exist yet); the top 100 of a big public league would do as a
   stand-in, but its teams change from week to week and it does not show
   the site at its best.
-- When letters are typed into an ID box, say that FPL cannot search by team
-  name and point to where the number is, instead of the generic error.
 
 ## Sharing (how the site grows)
 Visitors finding odd stats and posting them in their league's group chat is
