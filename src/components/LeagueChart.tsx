@@ -1,10 +1,11 @@
 // src/components/LeagueChart.tsx
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Form } from "react-bootstrap";
 import { useSearchParams } from "next/navigation";
 import { useMyTeamId } from "@/lib/myTeam";
 import { withTableState } from "@/lib/tableUrl";
+import { useBoxSize } from "@/lib/useBoxSize";
 import { useCentredActive } from "@/lib/useCentredActive";
 import {
   CHART_SERIES,
@@ -123,22 +124,6 @@ function formatValue(series: ChartSeries, value: number): string {
     return rounded > 0 ? `+${rounded}` : rounded < 0 ? `−${-rounded}` : "0";
   }
   return whole.format(rounded);
-}
-
-/** The size the chart's box has on the page; null until the browser has laid it out. */
-function useBoxSize(ref: React.RefObject<HTMLDivElement | null>) {
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
-  useEffect(() => {
-    const box = ref.current;
-    if (!box) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      setSize({ width: Math.round(width), height: Math.round(height) });
-    });
-    observer.observe(box);
-    return () => observer.disconnect();
-  }, [ref]);
-  return size;
 }
 
 export default function LeagueChart({ history }: { history: LeagueHistory }) {

@@ -18,7 +18,12 @@ import {
   effectiveCaptain,
 } from "./teamStats";
 import { computePlayerStats } from "./playerStats";
-import { CHART_SERIES, computeLeagueHistory, DEFAULT_SERIES } from "./leagueHistory";
+import {
+  CHART_SERIES,
+  computeLeagueHistory,
+  DEFAULT_SERIES,
+  scoresAgainstWeekAverage,
+} from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
 import { reviewCaptaincy, transferOutcomes } from "./decisions";
 import { EVERY_RECORD, pickHighlights, teamRecord, TeamRecord } from "./records";
@@ -296,9 +301,22 @@ describe("league history and squad habits", () => {
       [null, null, null],
     ]);
     // Ids are names in the page address: unique, and in its alphabet.
+    expect(history.rows[0].chips).toEqual(["3xc", "wildcard", "3xc"]);
+    expect(history.rows[1].chips).toEqual([null, "bboost", "freehit"]);
     const ids = CHART_SERIES.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
     ids.forEach((id) => expect(id).toMatch(/^[a-z]+(-[a-z]+)*$/));
+  });
+
+  it("measures every score against the league's average that week", () => {
+    const { averages, against } = scoresAgainstWeekAverage(history);
+    // GW1: only Ann had joined, so the average is her score alone.
+    expect(averages).toEqual([70, 68, 62]);
+    expect(against).toEqual([
+      [0, -12, 12],
+      [null, 12, -12],
+      [null, null, null],
+    ]);
   });
 
   it("counts weeks at top, weeks at bottom and gameweek wins", () => {

@@ -17,6 +17,8 @@ export interface LeagueHistoryRow {
   totals: (number | null)[];
   /** Rank among all FPL managers after each gameweek; null when FPL gives none. */
   overallRanks: (number | null)[];
+  /** The chip played in each gameweek, by FPL's name ("bboost"); null for none. */
+  chips: (string | null)[];
   weeksAtTop: number;
   weeksAtBottom: number;
   /** Gameweeks with the highest score in the league (ties count for everyone tied). */
@@ -40,6 +42,7 @@ export function computeLeagueHistory(snapshot: LeagueSnapshot): LeagueHistory {
     scores: [],
     totals: [],
     overallRanks: [],
+    chips: [],
     weeksAtTop: 0,
     weeksAtBottom: 0,
     gameweekWins: 0,
@@ -73,6 +76,9 @@ export function computeLeagueHistory(snapshot: LeagueSnapshot): LeagueHistory {
       row.scores.push(score);
       row.totals.push(totals[i]);
       row.overallRanks.push(weeks[i]?.overallRank ?? null);
+      row.chips.push(
+        snapshot.histories[row.teamId]?.chips.find((chip) => chip.gw === gw)?.name ?? null
+      );
       if (position === null) return;
       if (position === 1) row.weeksAtTop++;
       // "Bottom" only means something when at least two teams are ranked.
@@ -194,3 +200,31 @@ export const CHART_SERIES: ChartSeries[] = [
 ];
 
 export const DEFAULT_SERIES = CHART_SERIES[0];
+
+export interface WeekAverages {
+  /** The league's average score in each gameweek, over the teams that played it; null if none did. */
+  averages: (number | null)[];
+  /** Each score minus that week's average, one array per row; null before the manager joined. */
+  against: (number | null)[][];
+}
+
+/**
+ * Every score against the league's average that week: the heatmap on the
+ * Charts tab. Managers who had not joined yet do not count towards the
+ * average, so a late joiner does not drag down the weeks before.
+ */
+export function scoresAgainstWeekAverage(history: LeagueHistory): WeekAverages {
+  const averages = history.gameweeks.map((_, i) => {
+    const scores = history.rows
+      .map((row) => row.scores[i])
+      .filter((s): s is number => s !== null);
+    return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+  });
+  const against = history.rows.map((row) =>
+    row.scores.map((score, i) => {
+      const average = averages[i];
+      return score === null || average === null ? null : score - average;
+    })
+  );
+  return { averages, against };
+}

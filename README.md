@@ -33,7 +33,9 @@ and get sortable, customisable tables the official site does not offer:
   league average, total points, gameweek score and overall rank, gameweek
   by gameweek. The chart and highlighted teams are in the address
   (`?chart=gap-to-leader&teams=1,2`); the series are `CHART_SERIES` in
-  `src/lib/stats/leagueHistory.ts`. A table of positions and scores below.
+  `src/lib/stats/leagueHistory.ts`. Below it a heatmap of every score
+  against the league's average that week, with the chips marked
+  (`LeagueHeatmap`), and a table of positions and scores.
 
 Leagues of up to 100 teams are loaded in full; larger leagues show the top 100.
 

@@ -115,9 +115,9 @@ chart is a link. Keep the `/history` address so old links work.
   unique points.
 - One stat against another: one dot per team (hits against total points,
   bench points against position).
-- Heatmap: a row per team, a square per gameweek, coloured by the score
-  against the league average. Streaks, collapses and chip weeks at a
-  glance.
+- Heatmap: check it on a phone once a league has 20 or more gameweeks
+  (the squares then scroll sideways, starting at the latest week). Maybe
+  a switch to FPL's overall average instead of the league's.
 - Records from the series for `computeSeasonHighlights()`: lead changes,
   biggest climb and fall, longest run at the top, average position.
 

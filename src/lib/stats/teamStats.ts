@@ -10,6 +10,7 @@ import {
   PICK_CAPTAIN,
   Player,
 } from "@/lib/fpl/types";
+import { chipLabel } from "@/lib/chips";
 import { computeLeagueHistory } from "./leagueHistory";
 import { reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
 import { PickOptions, pickHighlights, teamRecord, TeamRecord } from "./records";
@@ -116,17 +117,6 @@ export interface LabelledValue {
   value: number;
 }
 
-const CHIP_NAMES: Record<string, string> = {
-  wildcard: "Wildcard",
-  "3xc": "Triple Captain",
-  bboost: "Bench Boost",
-  freehit: "Free Hit",
-  manager: "Assistant Manager",
-};
-
-export function chipLabel(name: string): string {
-  return CHIP_NAMES[name] ?? name;
-}
 
 /**
  * The pick whose points were actually multiplied: the captain, or the vice

@@ -20,7 +20,7 @@ const features = [
   },
   {
     title: "Charts: the race for the title",
-    text: "Every team's league position, gap to the leader, total points, gameweek score and overall rank, gameweek by gameweek, with your rivals highlighted. Pick a chart and the teams to compare, and share the link.",
+    text: "Every team's league position, gap to the leader, total points, gameweek score and overall rank, gameweek by gameweek, with your rivals highlighted, and a heatmap of every team's hot and cold weeks against the league average. Pick a chart and the teams to compare, and share the link.",
   },
 ];
 

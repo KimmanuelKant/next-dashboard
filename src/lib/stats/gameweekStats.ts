@@ -7,7 +7,8 @@ import { reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
 import { computeLeagueHistory } from "./leagueHistory";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
 import { PickOptions, pickHighlights, teamRecord, TeamRecord } from "./records";
-import { chipLabel, NamedCount, sharedRanks } from "./teamStats";
+import { chipLabel } from "@/lib/chips";
+import { NamedCount, sharedRanks } from "./teamStats";
 
 export interface GameweekStats {
   teamId: number;
