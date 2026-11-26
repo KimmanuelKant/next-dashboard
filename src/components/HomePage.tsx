@@ -179,19 +179,32 @@ export default function HomePage() {
               >
                 <Accordion.Item eventKey={LEAGUE_HELP}>
                   <Accordion.Header>How to find your League ID</Accordion.Header>
+                  {/* The FPL app shows no web addresses, so the ID cannot be
+                      read in it; most visitors are on phones, so the steps
+                      go through the phone's browser. */}
                   <Accordion.Body>
+                    <ol className="ps-3">
+                      <li>
+                        Open the <a href="https://fantasy.premierleague.com/leagues" target="_blank" rel="noreferrer">FPL leagues page</a> in a browser and sign in. The FPL app does not show the League ID; if the link opens the app, go to <code>fantasy.premierleague.com</code> in Chrome or Safari instead.
+                      </li>
+                      <li>Tap or click your league.</li>
+                      <li>
+                        Copy the address from the address bar (on a phone, tap it to see the whole address) and paste it above.
+                      </li>
+                    </ol>
                     <p>
-                      Head to the <a href="https://fantasy.premierleague.com/leagues" target="_blank" rel="noreferrer">Fantasy Premier Leagues</a> page and click on your league. The League ID is the number at the end of the URL.
-                      <br />
-                      For example, in <code>fantasy.premierleague.com/leagues/123456/standings/c</code> the League ID is <strong>123456</strong>. You can also paste the whole URL.
+                      The League ID is the number after <code>leagues</code>: in <code>fantasy.premierleague.com/leagues/123456/standings/c</code> it is <strong>123456</strong>.
                     </p>
                     <Image
                       src="/findleagueid.PNG"
                       alt="Screenshot showing where to find the League ID"
                       width={450}
                       height={40}
-                      className="img-fluid mt-3"
+                      className="img-fluid mb-3"
                     />
+                    <p className="small text-body-secondary mb-0">
+                      An invite code such as <code>{MYFPL_LEAGUE.code}</code> is for joining a league, not its ID. Join first, then follow the steps.
+                    </p>
                   </Accordion.Body>
                 </Accordion.Item>
                 <Accordion.Item eventKey={TEAM_HELP}>
@@ -201,6 +214,9 @@ export default function HomePage() {
                       On the <a href="https://fantasy.premierleague.com" target="_blank" rel="noreferrer">FPL site</a>, open the <strong>Points</strong> page. The Team ID is the number after <code>entry</code> in the URL.
                       <br />
                       For example, in <code>fantasy.premierleague.com/entry/123456/event/12</code> the Team ID is <strong>123456</strong>. You can also paste the whole URL.
+                    </p>
+                    <p className="small text-body-secondary mb-0">
+                      The FPL app shows no addresses: on a phone, open the FPL site in your browser for this step.
                     </p>
                   </Accordion.Body>
                 </Accordion.Item>

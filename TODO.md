@@ -12,8 +12,6 @@ discards: keep it and raise the cache key's version. Those marked
 ## Getting into a league (first priority)
 Most visitors land on the front page and never reach a league. Some type a
 team name where the league ID goes.
-- Instructions for finding the ID in the FPL phone app, where there is no
-  URL to read it from. A large share of visitors are on Android.
 - An example league linked from the front page, so a visitor without their
   ID to hand can see what the site does. The MyFPL.net league
   (`MYFPL_LEAGUE` in `site.ts`, created November 2026) is linked from the
