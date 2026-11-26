@@ -69,6 +69,8 @@ interface DataTableProps<T> {
   initialSorting?: SortingState;
   /** Cards shown above the table. Selecting one opens its view and sorting. */
   highlights?: Highlight[];
+  /** Shown between the cards and the view buttons: the Gameweek tab's score spread. */
+  afterHighlights?: React.ReactNode;
   /** Headings for the column picker. Columns in no group are listed first. */
   groups?: ColumnGroup[];
   /** Hide the per-column picker (for tables whose presets cover every useful view). */
@@ -266,6 +268,7 @@ export default function DataTable<T>({
   initialPreset,
   initialSorting = [],
   highlights,
+  afterHighlights,
   groups,
   hideColumnPicker = false,
   emptyMessage = "Nothing to show.",
@@ -454,6 +457,7 @@ export default function DataTable<T>({
       {highlights && (
         <Highlights items={highlights} onSelect={(item) => showView(item.preset, item.sorting)} />
       )}
+      {afterHighlights}
 
       <div className="d-flex align-items-start gap-2 mb-3">
         {/* Every view as a button, so none is hidden behind a menu. On phones

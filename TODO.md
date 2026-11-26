@@ -48,8 +48,8 @@ the way to grow without self-promotion.
   "expected points still to come" (a guess dressed up as a number).
 
 ## Gameweek: stats still to add
-- Score spread: every team's score this gameweek as dots on one line, yours
-  marked ("4th of 20, 12 above the middle"). Also as a share card.
+- Score spread as a share card: the strip and its sentence ("You scored 66:
+  4th of 20") as an image for a group chat.
 - Automatic substitutions in finished gameweeks are kept since November
   2026 (`autoSubs`), but not for gameweeks a league had cached before then
   (see `getLeaguePicks`). Next season every gameweek has them; then the

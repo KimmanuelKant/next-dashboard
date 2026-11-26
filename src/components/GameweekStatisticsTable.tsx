@@ -6,6 +6,7 @@ import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
 import { HighlightCard, toHighlight } from "@/components/Highlights";
 import MyTeamButton from "@/components/MyTeamButton";
 import Narrow from "@/components/Narrow";
+import ScoreSpread from "@/components/ScoreSpread";
 import type { ChangeTracking } from "@/lib/liveChanges";
 import type { GameweekHighlight, GameweekStats } from "@/lib/stats/gameweekStats";
 import { useMyTeamId } from "@/lib/myTeam";
@@ -584,12 +585,15 @@ export default function GameweekStatisticsTable({
   highlights,
   leagueName,
   isLive,
+  fplAverage,
 }: {
   stats: GameweekStats[];
   highlights: GameweekHighlight[];
   leagueName: string;
   /** The gameweek is being played: the live projection is shown, and opens first. */
   isLive: boolean;
+  /** FPL's average score over every team, as it stands; null before FPL has one. */
+  fplAverage: number | null;
 }) {
   const myTeam = useMyTeamId();
   const myTotal = stats.find((row) => row.teamId === myTeam)?.total ?? null;
@@ -613,6 +617,20 @@ export default function GameweekStatisticsTable({
     }),
     [base, myTotal, myTeam]
   );
+  // Every team that had a team this gameweek, at the score the table shows
+  // first: the projected one while it is played.
+  const spreadTeams = stats.flatMap((row) =>
+    row.vsAverage === null
+      ? []
+      : [
+          {
+            teamId: row.teamId,
+            teamName: row.teamName,
+            score: row.projectedScore ?? row.netScore,
+            chip: row.chip,
+          },
+        ]
+  );
   return (
     <DataTable
       // A new table when the gameweek goes from live to finished (or the
@@ -626,6 +644,9 @@ export default function GameweekStatisticsTable({
       highlights={highlights.map((record) =>
         toHighlight(record, (isLive ? liveHighlightCards : highlightCards)[record.kind])
       )}
+      afterHighlights={
+        <ScoreSpread teams={spreadTeams} myTeam={myTeam} fplAverage={fplAverage} live={isLive} />
+      }
       initialPreset={isLive ? "Live" : "Overview"}
       initialSorting={[{ id: isLive ? "projectedPosition" : "position", desc: false }]}
       shortHeaders={shortHeaders}

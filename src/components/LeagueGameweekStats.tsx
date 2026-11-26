@@ -102,6 +102,7 @@ export default async function LeagueGameweekStats({
         highlights={highlights}
         leagueName={snapshot.league.name}
         isLive={fixtures !== null}
+        fplAverage={gameweek?.averageScore ?? null}
       />
     </>
   );

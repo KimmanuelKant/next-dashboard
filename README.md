@@ -9,7 +9,9 @@ and get sortable, customisable tables the official site does not offer:
   Filter by name, position, club, owner, price and number of owners. While
   a gameweek is played, a Live view shows each player's points with
   provisional bonus and what he costs the teams that do not start him.
-- **This Gameweek**: each manager's score and how far it is from the league
+- **This Gameweek**: a strip of every team's score as dots, with the league
+  and FPL averages and your own team marked (`ScoreSpread`, between the
+  highlight cards and the table); each manager's score and how far it is from the league
   average, the gap to the leader, the team above and your own team,
   captain (and whether the vice captain stepped in), chip, transfers in
   and out and what each gained that week, bench, points lost to the captaincy choice, the blanks, cards
