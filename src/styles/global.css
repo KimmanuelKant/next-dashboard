@@ -168,6 +168,19 @@ summary.detail-stat::-webkit-details-marker {
   padding: 0.25rem;
 }
 
+/* The box the Charts tab draws into. The chart is drawn at the box's
+   measured size (not a desktop drawing scaled down, which made the text tiny
+   on phones), so the box needs its height before the chart is drawn, or the
+   page would jump. */
+.league-chart {
+  height: 320px;
+}
+@media (min-width: 576px) {
+  .league-chart {
+    height: 420px;
+  }
+}
+
 /* A highlight card's heading: the same small capitals as the panel's. */
 .highlight-title {
   font-size: 0.75rem;

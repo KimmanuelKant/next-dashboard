@@ -18,7 +18,7 @@ import {
   effectiveCaptain,
 } from "./teamStats";
 import { computePlayerStats } from "./playerStats";
-import { computeLeagueHistory } from "./leagueHistory";
+import { CHART_SERIES, computeLeagueHistory, DEFAULT_SERIES } from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
 import { reviewCaptaincy, transferOutcomes } from "./decisions";
 import { EVERY_RECORD, pickHighlights, teamRecord, TeamRecord } from "./records";
@@ -273,6 +273,32 @@ describe("league history and squad habits", () => {
     expect(cyRow.positions).toEqual([null, null, null]);
     // Ann's GW2 score is 60 minus a 4-point hit.
     expect(annRow.scores).toEqual([70, 56, 74]);
+    expect(annRow.totals).toEqual([70, 126, 200]);
+    expect(boRow.totals).toEqual([null, 130, 180]);
+    expect(annRow.overallRanks).toEqual([4999, 4998, 4997]);
+    expect(boRow.overallRanks).toEqual([null, 4998, 4997]);
+  });
+
+  it("draws the chart series from the history", () => {
+    const series = (id: string) => CHART_SERIES.find((s) => s.id === id)!.values(history);
+    expect(DEFAULT_SERIES.id).toBe("position");
+    expect(series("position")).toEqual(history.rows.map((row) => row.positions));
+    // GW2: Bo leads Ann by 4. GW3: Ann leads Bo by 20.
+    expect(series("gap-to-leader")).toEqual([
+      [0, -4, 0],
+      [null, 0, -20],
+      [null, null, null],
+    ]);
+    // Averages over the teams with a total that week: 70, 128, 190.
+    expect(series("vs-average")).toEqual([
+      [0, -2, 10],
+      [null, 2, -10],
+      [null, null, null],
+    ]);
+    // Ids are names in the page address: unique, and in its alphabet.
+    const ids = CHART_SERIES.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    ids.forEach((id) => expect(id).toMatch(/^[a-z]+(-[a-z]+)*$/));
   });
 
   it("counts weeks at top, weeks at bottom and gameweek wins", () => {

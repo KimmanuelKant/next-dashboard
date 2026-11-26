@@ -35,17 +35,18 @@ export function decodeSorting(
 }
 
 /**
- * The page's query string with the view and sorting set. A value equal to
- * the table's default is left out, to keep the address short. Other
- * parameters (the visitor's team) are kept.
+ * The page's query string with the given parameters set: a table's view and
+ * sorting, or the chart and its teams on the Charts tab. A value equal to
+ * its default is left out, to keep the address short. Other parameters (the
+ * visitor's team, another component's state) are kept.
  */
-export function withTableState(
+export function withTableState<K extends string>(
   search: string,
-  state: { view: string; sort: string },
-  defaults: { view: string; sort: string }
+  state: Record<K, string>,
+  defaults: Record<K, string>
 ): string {
   const params = new URLSearchParams(search);
-  for (const key of ["view", "sort"] as const) {
+  for (const key of Object.keys(state) as K[]) {
     if (state[key] && state[key] !== defaults[key]) {
       params.set(key, state[key]);
     } else {

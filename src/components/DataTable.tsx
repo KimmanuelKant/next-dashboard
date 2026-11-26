@@ -1,6 +1,6 @@
 // src/components/DataTable.tsx
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Cell,
   ColumnDef,
@@ -26,6 +26,7 @@ import {
   readValues,
 } from "@/lib/liveChanges";
 import { decodeSorting, encodeSorting, viewSlug, withTableState } from "@/lib/tableUrl";
+import { useCentredActive } from "@/lib/useCentredActive";
 
 export interface ColumnGroup {
   name: string;
@@ -348,20 +349,7 @@ export default function DataTable<T>({
     window.history.replaceState(null, "", window.location.pathname + query + window.location.hash);
   };
 
-  // On phones the row of view buttons scrolls sideways, and a view opened from
-  // a highlight card or the address can be out of sight. Bring its button to
-  // the middle. Only the row is scrolled: scrollIntoView would move the page
-  // too, which on a page with a chart above the table means a jump on load.
-  const pillRow = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const row = pillRow.current;
-    const active = row?.querySelector('[aria-pressed="true"]');
-    if (row && active) {
-      const rowBox = row.getBoundingClientRect();
-      const activeBox = active.getBoundingClientRect();
-      row.scrollLeft += activeBox.left - rowBox.left - (rowBox.width - activeBox.width) / 2;
-    }
-  }, [presetName]);
+  const pillRow = useCentredActive<HTMLDivElement>(presetName);
 
   const showView = (name: string, requestedSorting?: SortingState) => {
     const preset = presets.find((p) => p.name === name);

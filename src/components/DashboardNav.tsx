@@ -10,7 +10,9 @@ const tabs = [
   { segment: "gameweek", label: "This Gameweek", short: "Gameweek" },
   { segment: "season", label: "Season" },
   { segment: "scout", label: "Scout" },
-  { segment: "history", label: "League History", short: "History" },
+  // The segment stays "history" from when the tab was League History, so old
+  // links work.
+  { segment: "history", label: "Charts" },
 ];
 
 export default function DashboardNav({ leagueId }: { leagueId: string }) {

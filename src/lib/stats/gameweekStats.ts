@@ -176,7 +176,7 @@ interface Standing {
  * Each manager's league position after a gameweek, by team ID. For the
  * current gameweek these are FPL's own standings. FPL does not keep the
  * standings of earlier gameweeks, so those are worked out from the managers'
- * running totals, as on the League History tab. A manager who had not joined
+ * running totals, as on the Charts tab. A manager who had not joined
  * the game by then has no standing.
  */
 function standingsAfter(snapshot: LeagueSnapshot, gw: number): Map<number, Standing> {

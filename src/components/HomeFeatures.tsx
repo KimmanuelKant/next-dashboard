@@ -19,8 +19,8 @@ const features = [
     text: "Transfers and hits, chips, captaincy, ranks, points by position, weeks at the top and bottom of the league, favourite club, most-held player, cards and own goals, for every manager.",
   },
   {
-    title: "League History",
-    text: "A chart and a table of every team's league position and score, gameweek by gameweek: the whole race for your mini-league title.",
+    title: "Charts: the race for the title",
+    text: "Every team's league position, gap to the leader, total points, gameweek score and overall rank, gameweek by gameweek, with your rivals highlighted. Pick a chart and the teams to compare, and share the link.",
   },
 ];
 

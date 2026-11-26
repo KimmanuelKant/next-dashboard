@@ -28,8 +28,12 @@ and get sortable, customisable tables the official site does not offer:
 - **Season**: per-manager transfers, hits (and how many paid off), chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.
-- **League History**: a chart and table of every team's league position and
-  score, gameweek by gameweek.
+- **Charts** (the `history` route, once League History): line charts of
+  every team's league position, gap to the leader, points against the
+  league average, total points, gameweek score and overall rank, gameweek
+  by gameweek. The chart and highlighted teams are in the address
+  (`?chart=gap-to-leader&teams=1,2`); the series are `CHART_SERIES` in
+  `src/lib/stats/leagueHistory.ts`. A table of positions and scores below.
 
 Leagues of up to 100 teams are loaded in full; larger leagues show the top 100.
 
@@ -65,11 +69,11 @@ src/lib/fpl/snapshot.ts   getLeagueSnapshot(): everything known about a league
 src/lib/stats/            Pure functions that turn a snapshot into table rows
 src/types/fpl/            Shapes of the raw FPL API responses
 src/components/           DataTable (shared), one table definition per tab,
-                          and the League History chart
+                          and the chart on the Charts tab
 src/app/page.tsx          Front page: the league ID and team ID boxes
 src/app/team/[teamId]/    A team's leagues, for visitors who only know
                           their team ID
-src/app/dashboard/[leagueId]/   The tabs: gameweek, season, scout, history
+src/app/dashboard/[leagueId]/   The tabs: gameweek, season, scout, history (Charts)
 ```
 
 A tab is three small pieces. The route (`season/page.tsx`) renders a server
