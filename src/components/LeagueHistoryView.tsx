@@ -2,7 +2,7 @@
 
 import { notFound } from "next/navigation";
 import LeagueNotices from "@/components/LeagueNotices";
-import LeaguePositionChart from "@/components/LeaguePositionChart";
+import LeagueChart from "@/components/LeagueChart";
 import LeagueHistoryTable from "@/components/LeagueHistoryTable";
 import { getLeagueSnapshot } from "@/lib/fpl/snapshot";
 import { computeLeagueHistory } from "@/lib/stats/leagueHistory";
@@ -18,7 +18,7 @@ export default async function LeagueHistoryView({ leagueId }: { leagueId: string
   return (
     <>
       <LeagueNotices snapshot={snapshot} />
-      <LeaguePositionChart history={history} />
+      <LeagueChart history={history} />
       <h2 className="h5">Week by week</h2>
       <LeagueHistoryTable history={history} />
     </>

@@ -1,4 +1,4 @@
-// src/components/LeaguePositionChart.tsx
+// src/components/LeagueChart.tsx
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Form } from "react-bootstrap";
@@ -141,7 +141,7 @@ function useBoxSize(ref: React.RefObject<HTMLDivElement | null>) {
   return size;
 }
 
-export default function LeaguePositionChart({ history }: { history: LeagueHistory }) {
+export default function LeagueChart({ history }: { history: LeagueHistory }) {
   const { gameweeks, rows } = history;
   const teamCount = rows.length;
   const myTeam = useMyTeamId();
