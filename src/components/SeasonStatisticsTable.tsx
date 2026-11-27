@@ -4,6 +4,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import DataTable, { ColumnGroup, Preset } from "@/components/DataTable";
 import { HighlightCard, toHighlight } from "@/components/Highlights";
 import MyTeamButton from "@/components/MyTeamButton";
+import Narrow from "@/components/Narrow";
 import { useMyTeamId } from "@/lib/myTeam";
 import type {
   ChipUse,
@@ -102,7 +103,13 @@ const columns = [
     header: "Seller's Remorse",
     cell: ({ row }) => {
       const sold = row.original.sellersRemorse;
-      return sold ? `${sold.points} (${sold.name}, sold GW${sold.gw})` : "–";
+      if (!sold) return "–";
+      // On a phone the points and the name, on one line; the gameweek is in the team panel.
+      return (
+        <Narrow short={`${sold.points} ${sold.name}`}>
+          {sold.points} ({sold.name}, sold GW{sold.gw})
+        </Narrow>
+      );
     },
     sortUndefined: "last",
   }),
@@ -409,8 +416,9 @@ const viewNames: Record<string, string> = {
 // narrow enough to show whole. Keyed by the view's name.
 const phoneColumns: Record<string, string[]> = {
   Standings: ["rank", "totalPoints", "gapToLeader"],
-  // Net Gain already has the hits taken off, so Hits waits behind "more columns".
-  Transfers: ["totalTransfers", "transferGainAfterHits", "sellersRemorse", "teamValue"],
+  // Net Gain already has the hits taken off; Hits and Value make room for
+  // Seller's Remorse.
+  Transfers: ["totalTransfers", "transferGainAfterHits", "sellersRemorse"],
   Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "mostCaptained"],
 };
 
@@ -501,7 +509,7 @@ export default function SeasonStatisticsTable({
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["bestTransfer", "worstTransfer", "sellersRemorse", "biggestProfitSale", "chipsUsed"]}
+      wrapColumns={["bestTransfer", "worstTransfer", "biggestProfitSale", "chipsUsed"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined
