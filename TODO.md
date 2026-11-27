@@ -9,18 +9,12 @@ marked **(trim)** need a field that FPL already sends but `sources.ts`
 discards: keep it and raise the cache key's version. Those marked
 **(fetch)** need a new request; see "Data to fetch" at the end.
 
-## Getting into a league (first priority)
-Most visitors land on the front page and never reach a league. Some type a
-team name where the league ID goes.
-- An example league linked from the front page, so a visitor without their
-  ID to hand can see what the site does. The MyFPL.net league
-  (`MYFPL_LEAGUE` in `site.ts`, created November 2026) is linked from the
-  front page for visitors to join; once it has ten or so teams, link it as
-  the example too.
-
 ## Sharing (how the site grows)
 Visitors finding odd stats and posting them in their league's group chat is
 the way to grow without self-promotion.
+- The MyFPL.net league (`MYFPL_LEAGUE` in `site.ts`) is linked from the
+  front page for visitors to join. Once it has ten or so teams, link it
+  as an example league too, for visitors without their own ID to hand.
 - Later: let visitors pick a stat or an outlier themselves and make a
   highlight card from it to share. A chart from the Charts tab is already a
   link (see Charts); the next step is a preview image that draws the chart,
