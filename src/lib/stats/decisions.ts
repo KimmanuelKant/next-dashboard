@@ -46,6 +46,34 @@ export function transferOutcomes(
     }));
 }
 
+export interface SquadMove {
+  /** The gameweek the move took effect. */
+  gw: number;
+  playerIn: number;
+  playerOut: number;
+}
+
+/**
+ * Every lasting change to the squad over the season, oldest first: the
+ * transfers as `transferOutcomes()` joins them, without the Free Hit weeks,
+ * whose transfers are undone a week later.
+ */
+export function squadMoves(
+  transfers: ManagerHistory["transfers"],
+  gameweekIds: number[],
+  freeHitWeeks: Set<number>
+): SquadMove[] {
+  return gameweekIds
+    .filter((gw) => !freeHitWeeks.has(gw))
+    .flatMap((gw) =>
+      transferOutcomes(transfers, gw, () => 0).map(({ playerIn, playerOut }) => ({
+        gw,
+        playerIn,
+        playerOut,
+      }))
+    );
+}
+
 export interface SaleAftermath {
   playerId: number;
   /** The gameweek the sale took effect. */
@@ -74,9 +102,7 @@ export function pointsAfterSale(
   score: (gw: number, playerId: number) => number,
   inSquad: (gw: number, playerId: number) => boolean
 ): SaleAftermath[] {
-  const moves = gameweekIds
-    .filter((gw) => !freeHitWeeks.has(gw))
-    .flatMap((gw) => transferOutcomes(transfers, gw, () => 0).map((move) => ({ gw, ...move })));
+  const moves = squadMoves(transfers, gameweekIds, freeHitWeeks);
   return moves.map(({ gw, playerOut }) => {
     const boughtBack =
       moves.find((move) => move.gw > gw && move.playerIn === playerOut)?.gw ?? Infinity;
@@ -87,6 +113,57 @@ export function pointsAfterSale(
       }
     }
     return { playerId: playerOut, gw, points };
+  });
+}
+
+export interface PurchaseLead {
+  playerId: number;
+  /** The gameweek the purchase took effect. */
+  gw: number;
+  /** What the player had scored while out of the squad before he was bought. */
+  points: number;
+}
+
+/**
+ * What every player bought had already scored while the team did not have
+ * him: the mirror of `pointsAfterSale()`, for "bought too late". Counting
+ * runs from the team's first gameweek, or from the gameweek he was last
+ * sold, to the gameweek before he was bought; weeks he was in the squad
+ * anyway (a Free Hit) are left out. Moves are read as `squadMoves()` gives
+ * them, so Free Hit transfers are no purchase.
+ */
+export function pointsBeforePurchase(
+  moves: SquadMove[],
+  gameweekIds: number[],
+  firstGw: number,
+  score: (gw: number, playerId: number) => number,
+  inSquad: (gw: number, playerId: number) => boolean
+): PurchaseLead[] {
+  return moves.map(({ gw, playerIn }) => {
+    const lastSold =
+      moves.findLast((move) => move.gw < gw && move.playerOut === playerIn)?.gw ?? firstGw;
+    let points = 0;
+    for (const week of gameweekIds) {
+      if (week >= lastSold && week < gw && !inSquad(week, playerIn)) {
+        points += score(week, playerIn);
+      }
+    }
+    return { playerId: playerIn, gw, points };
+  });
+}
+
+/** A sale this many gameweeks or fewer after the purchase is a knee-jerk one. */
+export const KNEE_JERK_WEEKS = 2;
+
+/**
+ * The moves that sold a player within `KNEE_JERK_WEEKS` gameweeks of
+ * buying him: bought for GW5 and sold for GW7 or sooner. A player in the
+ * squad from the start was never bought, so his sale is never one.
+ */
+export function kneeJerkSales(moves: SquadMove[]): SquadMove[] {
+  return moves.filter(({ gw, playerOut }) => {
+    const bought = moves.findLast((move) => move.gw < gw && move.playerIn === playerOut);
+    return bought !== undefined && gw - bought.gw <= KNEE_JERK_WEEKS;
   });
 }
 

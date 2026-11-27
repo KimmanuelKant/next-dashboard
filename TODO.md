@@ -47,24 +47,23 @@ the way to grow without self-promotion.
   Season tab can add up points gained from automatic substitutions.
 
 ## Season: stats still to add, by group
-- Chips: chip timing against the league average. Chip timeline: a dot per
-  chip per team along the gameweeks (who still holds what, who copied whom).
+- Chips: chip timeline, a dot per chip per team along the gameweeks (who
+  still holds what, who copied whom). Chip timing against the league is a
+  column (`chipTiming()` in `habits.ts`).
 - Free transfers are worked out from FPL's rules in `deadline.ts`, since
   FPL does not publish other teams'. Check them against a real team now
   and then; a one-off top-up for everyone (as for AFCON in 2025/26) would
   need adding there.
-- Captaincy: captain blanks (armband returned 2 points or fewer), vice
-  captain saves.
-- Transfers: bought too late (points a player scored before being bought),
-  knee-jerk transfers (sold within 1-2 gameweeks of buying). Seller's
-  remorse shows the one player who got away; a total over every sale would
-  need the replacements' points set against it to mean anything.
-- Points breakdown: by club, share of points from the top 3 players.
+- Transfers: seller's remorse and bought too late each show one player;
+  a total over every sale or purchase would need the other side's points
+  set against it to mean anything. Bought too late is large for most
+  teams (any in-form player bought mid-season has scored before); watch
+  whether it reads as a story or as noise.
 - Points breakdown (trim, `/event/{gw}/live/`): bonus points, goals and
   clean sheets by the starting eleven, actual points against xGI ("luck").
-- Squad habits: template score (how common the squad is in the league),
-  players used over the season.
-- Money: team value growth since GW1, average money in the bank.
+- Money: team value growth since GW1 is left out: every team starts on
+  £100m, so it would only repeat the team value less 100. Average money in
+  the bank is a column.
 - Mishaps: points gained from automatic substitutions (from `autoSubs`;
   complete from next season, see the Gameweek section).
 - Veterans (trim, `past` in `/entry/{id}/history/`): seasons played, best

@@ -26,7 +26,15 @@ import {
   scoresAgainstWeekAverage,
 } from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
-import { pointsAfterSale, reviewCaptaincy, transferOutcomes } from "./decisions";
+import {
+  kneeJerkSales,
+  pointsAfterSale,
+  pointsBeforePurchase,
+  reviewCaptaincy,
+  squadMoves,
+  transferOutcomes,
+} from "./decisions";
+import { chipTiming, templateScores } from "./habits";
 import { EVERY_RECORD, pickHighlights, teamRecord, TeamRecord } from "./records";
 import { liveGameweek, projectTeam, provisionalBonus } from "./live";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
@@ -587,8 +595,154 @@ describe("pointsAfterSale", () => {
   });
 });
 
+describe("pointsBeforePurchase and kneeJerkSales", () => {
+  const transfer = (gw: number, playerIn: number, playerOut: number) => ({
+    gw, playerIn, playerOut, inCost: 50, outCost: 50,
+  });
+  const gameweeks = [1, 2, 3, 4, 5, 6, 7, 8];
+  const score = (_gw: number, id: number) => id;
+  const nowhere = () => false;
+
+  it("joins wildcard chains and leaves out Free Hit weeks", () => {
+    const moves = squadMoves(
+      [transfer(2, 8, 3), transfer(2, 12, 8), transfer(4, 3, 5)],
+      gameweeks,
+      new Set([4])
+    );
+    expect(moves).toEqual([{ gw: 2, playerIn: 12, playerOut: 3 }]);
+  });
+
+  it("counts a bought player's points from the team's first gameweek, or from his last sale", () => {
+    const moves = squadMoves(
+      [transfer(3, 9, 2), transfer(5, 10, 9), transfer(7, 9, 10)],
+      gameweeks,
+      new Set()
+    );
+    expect(pointsBeforePurchase(moves, gameweeks, 2, score, nowhere)).toEqual([
+      { playerId: 9, gw: 3, points: 9 * 1 }, // GW2 (the team's first), not GW1
+      { playerId: 10, gw: 5, points: 10 * 3 }, // GW2-4
+      { playerId: 9, gw: 7, points: 9 * 2 }, // GW5-6, since he was sold for GW5
+    ]);
+  });
+
+  it("leaves out weeks the player was in the squad anyway", () => {
+    const moves = squadMoves([transfer(5, 9, 2)], gameweeks, new Set());
+    const onFreeHit = (gw: number, id: number) => gw === 3 && id === 9;
+    expect(pointsBeforePurchase(moves, gameweeks, 1, score, onFreeHit)).toEqual([
+      { playerId: 9, gw: 5, points: 9 * 3 }, // GW1, 2 and 4
+    ]);
+  });
+
+  it("finds players sold within two gameweeks of being bought", () => {
+    const moves = squadMoves(
+      // P9 in for GW2, out for GW4: knee-jerk. P10 in for GW4, out for GW7: not.
+      // P3 was in the squad from the start: never bought.
+      [transfer(2, 9, 3), transfer(4, 10, 9), transfer(7, 11, 10), transfer(8, 12, 4)],
+      gameweeks,
+      new Set()
+    );
+    expect(kneeJerkSales(moves)).toEqual([{ gw: 4, playerIn: 10, playerOut: 9 }]);
+  });
+});
+
+describe("templateScores", () => {
+  const squad = (...ids: number[]): ManagerGameweek => ({
+    chip: null,
+    picks: ids.map((id): Pick => [id, 1, PICK_NONE]),
+  });
+
+  it("averages the share of other teams owning each player, over the weeks", () => {
+    const scores = templateScores(
+      [
+        // Alone in the league: nothing to compare.
+        { 1: squad(1, 2), 2: null, 3: null },
+        // 1 and 2 own the same two players; 3 shares one of them.
+        { 1: squad(1, 2), 2: squad(1, 2), 3: squad(1, 9) },
+      ],
+      [1, 2, 3, 4]
+    );
+    // Team 1: P1 owned by both others, P2 by one of two: (1 + 0.5) / 2.
+    expect(scores.get(1)).toBeCloseTo(75);
+    expect(scores.get(2)).toBeCloseTo(75);
+    // Team 3: P1 owned by both others, P9 by none.
+    expect(scores.get(3)).toBeCloseTo(50);
+    expect(scores.get(4)).toBeNull();
+  });
+});
+
+describe("chipTiming", () => {
+  const windows = [
+    { name: "wildcard", number: 1, start: 2, stop: 19 },
+    { name: "wildcard", number: 1, start: 20, stop: 38 },
+    { name: "bboost", number: 1, start: 1, stop: 19 },
+  ];
+
+  it("sets each chip against the league's average gameweek for it in the same half", () => {
+    const timing = chipTiming(
+      new Map([
+        [1, [{ name: "wildcard", gw: 4 }, { name: "wildcard", gw: 22 }]],
+        [2, [{ name: "wildcard", gw: 8 }, { name: "wildcard", gw: 26 }, { name: "bboost", gw: 10 }]],
+        [3, []],
+      ]),
+      windows
+    );
+    // Wildcards average GW6 and GW24; the Bench Boost was played once and says nothing.
+    expect(timing.get(1)).toBe(-2);
+    expect(timing.get(2)).toBe(2);
+    expect(timing.get(3)).toBeNull();
+  });
+});
+
 describe("decisions", () => {
   const [ann, bo, cy] = computeTeamStats(snapshot());
+
+  it("counts captain blanks and vice captain saves", () => {
+    // GW2: Ann's captain did not play and vice P8 doubled his 8.
+    expect([ann.viceSaves, ann.viceSavePoints, ann.captainBlanks]).toEqual([1, 8, 0]);
+    expect([bo.viceSaves, bo.captainBlanks]).toEqual([0, 0]);
+    // Neither captain nor vice played: a blank, and no save.
+    const noArmband = snapshot();
+    noArmband.picks[2][100] = team({ captainMultiplier: 0 });
+    const annNow = computeTeamStats(noArmband)[0];
+    expect([annNow.viceSaves, annNow.captainBlanks]).toEqual([0, 1]);
+    // A captain scoring 2 or fewer blanks.
+    const lowScore = snapshot();
+    lowScore.points[3] = { ...points, 14: 2 };
+    expect(computeTeamStats(lowScore)[0].captainBlanks).toBe(1);
+  });
+
+  it("finds the player bought too late and counts knee-jerk sales", () => {
+    // Bo's first gameweek was GW2, when P16 scored 16 for others.
+    expect(bo.boughtTooLate).toEqual({ name: "P16", gw: 3, points: 16 });
+    expect(ann.boughtTooLate).toBeNull();
+    expect(cy.boughtTooLate).toBeNull();
+    expect(bo.kneeJerkSales).toBe(0);
+  });
+
+  it("finds the club and the three players who brought the most points", () => {
+    // Ann counted 110 + 79 + 112 points: P14 70, P13 52 and P11 33 the most.
+    expect(ann.topThree?.names).toEqual(["P14", "P13", "P11"]);
+    expect(ann.topThree?.share).toBeCloseTo((155 / 301) * 100);
+    expect(ann.topClub).toEqual({ name: "Club", count: 301 });
+    expect(cy.topThree).toBeNull();
+    expect(cy.topClub).toBeNull();
+  });
+
+  it("scores how common each squad was in the league", () => {
+    // GW1 had one team only. GW2: identical squads. GW3: Bo swapped P13 for P16.
+    expect(ann.templateScore).toBeCloseTo(((1 + 14 / 15) / 2) * 100);
+    expect(bo.templateScore).toBeCloseTo(((1 + 14 / 15) / 2) * 100);
+    expect(cy.templateScore).toBeNull();
+    expect([ann.playersUsed, bo.playersUsed, cy.playersUsed]).toEqual([15, 16, 0]);
+  });
+
+  it("averages the money in the bank and times the chips against the league", () => {
+    expect(ann.averageBank).toBe(0.5);
+    expect(cy.averageBank).toBeNull();
+    // Ann's Triple Captains in GW1 and GW3 average GW2: on time. Bo's chips were the only ones of their kind.
+    expect(ann.chipTiming).toBe(0);
+    expect(bo.chipTiming).toBeNull();
+  });
 
   it("measures points lost by not captaining the best starter", () => {
     // Normal captain: P13 (13) captained, P14 (14) was the best starter.
@@ -1041,7 +1195,7 @@ describe("computeSeasonHighlights", () => {
 
   it("names the holder of each season record", () => {
     const highlights = facts(computeSeasonHighlights(rows, EVERY_RECORD));
-    expect(highlights).toHaveLength(12);
+    expect(highlights).toHaveLength(13);
     expect(highlights).toEqual(expect.arrayContaining([
       // Ann had the top score in GW1 (alone in the league) and GW3; Bo in GW2.
       { kind: "gameweekWins", teams: ["Ann FC"], value: 2 },
@@ -1058,6 +1212,8 @@ describe("computeSeasonHighlights", () => {
       { kind: "transfers", teams: ["Bo United"], value: 3 },
       // P13 scored 13 for GW3 after Bo sold him.
       { kind: "sellersRemorse", teams: ["Bo United"], value: 13 },
+      // P16 had scored 16 in GW2 before Bo bought him.
+      { kind: "boughtTooLate", teams: ["Bo United"], value: 16 },
       // Ann lost 8 to her captain choices over the season, Bo 3.
       { kind: "captaincy", teams: ["Ann FC"], value: 8 },
       { kind: "bench", teams: ["Ann FC"], value: 9 },

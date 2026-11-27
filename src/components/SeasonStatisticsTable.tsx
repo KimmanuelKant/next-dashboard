@@ -12,6 +12,7 @@ import type {
   NamedCount,
   SeasonHighlight,
   TeamStats,
+  TradedPlayer,
 } from "@/lib/stats/teamStats";
 import type { PositionMove } from "@/lib/stats/leagueHistory";
 import { chipCode, chipLabel } from "@/lib/chips";
@@ -41,6 +42,28 @@ const formatMove = (move: PositionMove | null, arrow: string) =>
   ) : (
     "–"
   );
+// "51 (Wirtz, sold GW4)", or "51 Wirtz" on one line on a phone, where the
+// gameweek waits in the team panel.
+const formatTraded = (traded: TradedPlayer | null, verb: string) =>
+  traded ? (
+    <Narrow short={`${traded.points} ${traded.name}`}>
+      {traded.points} ({traded.name}, {verb} GW{traded.gw})
+    </Narrow>
+  ) : (
+    "–"
+  );
+// "1.5 GW early", or "-1.5" on a phone.
+const formatTiming = (value: number | null) => {
+  if (value === null) return "–";
+  const rounded = Math.round(value * 10) / 10;
+  if (rounded === 0) return "On time";
+  const weeks = Math.abs(rounded).toFixed(1);
+  return (
+    <Narrow short={`${rounded < 0 ? "−" : "+"}${weeks}`}>
+      {weeks} GW {rounded < 0 ? "early" : "late"}
+    </Narrow>
+  );
+};
 const formatLabelled = (item: LabelledValue | null, signed = false) =>
   item ? `${signed ? formatSigned(item.value) : item.value} (${item.label})` : "–";
 
@@ -167,18 +190,16 @@ const columns = [
   columnHelper.accessor((row) => row.sellersRemorse?.points, {
     id: "sellersRemorse",
     header: "Seller's Remorse",
-    cell: ({ row }) => {
-      const sold = row.original.sellersRemorse;
-      if (!sold) return "–";
-      // On a phone the points and the name, on one line; the gameweek is in the team panel.
-      return (
-        <Narrow short={`${sold.points} ${sold.name}`}>
-          {sold.points} ({sold.name}, sold GW{sold.gw})
-        </Narrow>
-      );
-    },
+    cell: ({ row }) => formatTraded(row.original.sellersRemorse, "sold"),
     sortUndefined: "last",
   }),
+  columnHelper.accessor((row) => row.boughtTooLate?.points, {
+    id: "boughtTooLate",
+    header: "Bought Too Late",
+    cell: ({ row }) => formatTraded(row.original.boughtTooLate, "bought"),
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor("kneeJerkSales", { id: "kneeJerkSales", header: "Knee-Jerk Sales" }),
   columnHelper.accessor((row) => row.biggestProfitSale?.value ?? 0, {
     id: "biggestProfitSale",
     header: "Biggest Profit Sale",
@@ -204,6 +225,12 @@ const columns = [
     id: "bank",
     header: "Bank",
     cell: ({ getValue }) => formatMoney(getValue()),
+  }),
+  columnHelper.accessor((row) => row.averageBank ?? undefined, {
+    id: "averageBank",
+    header: "Average Bank",
+    cell: ({ row }) => formatMoney(row.original.averageBank),
+    sortUndefined: "last",
   }),
 
   // Chips. Chip columns sort on total points; "Not used" sorts last. Chips
@@ -242,6 +269,13 @@ const columns = [
     header: "Chips Used",
     cell: ({ row }) => row.original.chipsUsed.join(", ") || "None",
   }),
+  // Early first, as gameweeks run; a team with no chip to compare goes last.
+  columnHelper.accessor((row) => row.chipTiming ?? undefined, {
+    id: "chipTiming",
+    header: "Chip Timing",
+    cell: ({ row }) => formatTiming(row.original.chipTiming),
+    sortUndefined: "last",
+  }),
   columnHelper.accessor("chipPointsGained", { id: "chipPointsGained", header: "Chip Points Gained" }),
 
   // Captaincy
@@ -262,6 +296,19 @@ const columns = [
     },
   }),
   columnHelper.accessor("captainDiversity", { id: "captainDiversity", header: "Different Captains" }),
+  columnHelper.accessor("captainBlanks", { id: "captainBlanks", header: "Captain Blanks" }),
+  columnHelper.accessor("viceSaves", {
+    id: "viceSaves",
+    header: "Vice-Captain Saves",
+    cell: ({ row }) =>
+      row.original.viceSaves ? (
+        <Narrow short={String(row.original.viceSaves)}>
+          {row.original.viceSaves} ({formatSigned(row.original.viceSavePoints)} pts)
+        </Narrow>
+      ) : (
+        "0"
+      ),
+  }),
 
   // Points breakdown
   columnHelper.accessor("totalGKPoints", { id: "totalGKPoints", header: "GK Points" }),
@@ -274,8 +321,40 @@ const columns = [
     header: "Biggest Benched Haul",
     cell: ({ row }) => formatLabelled(row.original.biggestBenchedHaul),
   }),
+  columnHelper.accessor((row) => row.topClub?.count, {
+    id: "topClub",
+    header: "Top Club for Points",
+    cell: ({ row }) => {
+      const club = row.original.topClub;
+      return club ? `${club.name} (${club.count})` : "–";
+    },
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.topThree?.share, {
+    id: "topThree",
+    header: "Top 3 Players' Share",
+    cell: ({ row }) => {
+      const top = row.original.topThree;
+      if (!top) return "–";
+      const share = `${Math.round(top.share)}%`;
+      return (
+        <Narrow short={share}>
+          {share} ({top.names.join(", ")})
+        </Narrow>
+      );
+    },
+    sortUndefined: "last",
+  }),
 
   // Squad habits
+  columnHelper.accessor((row) => row.templateScore ?? undefined, {
+    id: "templateScore",
+    header: "Template Score",
+    cell: ({ row }) =>
+      row.original.templateScore === null ? "–" : `${Math.round(row.original.templateScore)}%`,
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor("playersUsed", { id: "playersUsed", header: "Players Used" }),
   columnHelper.accessor((row) => row.favouriteClub?.count ?? 0, {
     id: "favouriteClub",
     header: "Favourite Club",
@@ -365,17 +444,21 @@ const descriptions: Record<string, string> = {
   hitsPaidOff: "Of the gameweeks in which the manager took a hit, those whose transfers gained more than the hit cost that same gameweek.",
   bestTransfer: "The single transfer with the biggest first-week gain.",
   worstTransfer: "The single transfer with the biggest first-week loss.",
+  boughtTooLate: "The player bought who had already scored the most points while the team did not have him: from the team's first gameweek, or from the gameweek he was last sold, until he was bought. Counts his points whether or not he would have started. Free Hit transfers are left out.",
+  kneeJerkSales: "Players sold within two gameweeks of being bought: bought for GW5 and sold again by GW7. Free Hit transfers are left out.",
   sellersRemorse: "The player sold who has scored the most points since, while out of the squad: from the gameweek he was sold until he was bought back, or until now. Counts his points whether or not he would have started. Free Hit transfers are left out.",
   biggestProfitSale: "The sale that made the most money: selling price minus buying price, with the player and the gameweek he was sold. For a player in the squad from the start, the buying price is his start-of-season price.",
   totalSaleProfit: "Profit and loss on every player sold this season, added up. Free Hit weeks are left out.",
   teamValue: "Squad value including money in the bank.",
   bank: "Money in the bank.",
+  averageBank: "Money in the bank on average over the gameweeks played. High means money left unspent in the squad.",
   wildcardsUsed: "Number of Wildcards played.",
   tripleCaptain: "Points the tripled player scored, and the gameweek. That is the extra gained by playing the chip.",
   benchBoost: "Points the four bench players scored, and the gameweek.",
   freeHit: "The team's score in the Free Hit gameweek.",
   chipsUsed: "Every chip played, with the gameweek.",
   chipsLeft: "Chips the team can still play in this half of the season. Each chip can be played once before the turn of the year and once after.",
+  chipTiming: "How many gameweeks before or after the rest of the league the team plays its chips, on average over the chips played. Each chip is set against the average gameweek in which this league's teams played it in the same half of the season. Only teams that have played the chip count, so the first to play one look early until others follow.",
   chipPointsGained: "Extra points from Triple Captain and Bench Boost. Free Hit and Wildcard are not included, since their gain cannot be measured.",
   totalCaptainPoints: "Points from the player who wore the armband each week (the vice captain when the captain did not play), including the multiplier.",
   captainPointsPercentage: "Captain points as a share of all points scored before hits.",
@@ -383,12 +466,18 @@ const descriptions: Record<string, string> = {
   perfectCaptainWeeks: "Gameweeks where the armband was on the highest-scoring player in the starting eleven.",
   mostCaptained: "The player most often chosen as captain, with the number of times.",
   captainDiversity: "Number of different players chosen as captain this season.",
+  captainBlanks: "Gameweeks in which the armband returned 2 points or fewer, before doubling: a captain without a goal, an assist or a clean sheet. A week in which neither captain nor vice captain played counts too.",
+  viceSaves: "Gameweeks in which the captain did not play and the vice captain took the armband, with the extra points the armband brought.",
   totalGKPoints: "Points from goalkeepers, including captaincy.",
   totalDEFPoints: "Points from defenders, including captaincy.",
   totalMIDPoints: "Points from midfielders, including captaincy.",
   totalFWDPoints: "Points from forwards, including captaincy.",
   pointsOnBench: "Points left on the bench this season.",
   biggestBenchedHaul: "The highest score by a single player left on the bench, with the player and gameweek.",
+  topClub: "The club whose players brought the team the most points this season, including captaincy, with the points. Only players who counted (the starting eleven, or the bench on a Bench Boost).",
+  topThree: "The share of the team's points, before hits, that came from its three highest-scoring players this season, including captaincy, with the players. High means a team carried by a few.",
+  templateScore: "How much the squad looked like the rest of the league: for each player in the squad, the share of the other teams that owned him too, averaged over the squad and over the gameweeks played. 100% is a squad every other team owned; low is a team of differentials.",
+  playersUsed: "Different players who have been in the squad this season, Free Hit squads included.",
   favouriteClub: "The club whose players have filled the most squad places over the season, with its share of all squad places.",
   mostHeld: "The player who has been in the squad for the most gameweeks in total.",
   longestSquadStreak: "The longest unbroken run of gameweeks any player has spent in the squad. Being left out of a Free Hit squad does not break a run.",
@@ -439,6 +528,16 @@ const shortHeaders: Record<string, string> = {
   bestTransfer: "Best Trf",
   worstTransfer: "Worst Trf",
   sellersRemorse: "Remorse",
+  boughtTooLate: "Too Late",
+  kneeJerkSales: "Knee-Jerk",
+  averageBank: "Avg Bank",
+  chipTiming: "Timing",
+  captainBlanks: "Blanks",
+  viceSaves: "VC Saves",
+  topClub: "Top Club",
+  topThree: "Top 3",
+  templateScore: "Template",
+  playersUsed: "Used",
   biggestProfitSale: "Best Sale",
   totalSaleProfit: "Sale Profit",
   teamValue: "Value",
@@ -487,23 +586,23 @@ const groups: ColumnGroup[] = [
   },
   {
     name: "Transfers and value",
-    columns: ["totalTransfers", "freeTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "hitsPaidOff", "bestTransfer", "worstTransfer", "sellersRemorse", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
+    columns: ["totalTransfers", "freeTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "hitsPaidOff", "bestTransfer", "worstTransfer", "sellersRemorse", "boughtTooLate", "kneeJerkSales", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank", "averageBank"],
   },
   {
     name: "Chips",
-    columns: ["chipsLeft", "wildcardsUsed", "tripleCaptain", "benchBoost", "freeHit", "chipsUsed", "chipPointsGained"],
+    columns: ["chipsLeft", "wildcardsUsed", "tripleCaptain", "benchBoost", "freeHit", "chipsUsed", "chipTiming", "chipPointsGained"],
   },
   {
     name: "Captaincy",
-    columns: ["totalCaptainPoints", "captainPointsPercentage", "captaincyPointsLost", "perfectCaptainWeeks", "mostCaptained", "captainDiversity"],
+    columns: ["totalCaptainPoints", "captainPointsPercentage", "captaincyPointsLost", "perfectCaptainWeeks", "mostCaptained", "captainDiversity", "captainBlanks", "viceSaves"],
   },
   {
     name: "Points breakdown",
-    columns: ["totalGKPoints", "totalDEFPoints", "totalMIDPoints", "totalFWDPoints", "pointsOnBench", "biggestBenchedHaul"],
+    columns: ["totalGKPoints", "totalDEFPoints", "totalMIDPoints", "totalFWDPoints", "pointsOnBench", "biggestBenchedHaul", "topClub", "topThree"],
   },
   {
     name: "Squad habits",
-    columns: ["favouriteClub", "mostHeld", "longestSquadStreak", "longestServingStarter"],
+    columns: ["templateScore", "playersUsed", "favouriteClub", "mostHeld", "longestSquadStreak", "longestServingStarter"],
   },
   { name: "Mishaps", columns: ["yellowCards", "redCards", "ownGoals", "penaltiesMissed"] },
   {
@@ -530,7 +629,12 @@ const phoneColumns: Record<string, string[]> = {
   // make room for Seller's Remorse.
   Transfers: ["freeTransfers", "transferGainAfterHits", "sellersRemorse"],
   Chips: ["chipsLeft", "wildcardsUsed", "chipPointsGained"],
-  Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "mostCaptained"],
+  // Blanks rather than the most captained player, who is the same in most
+  // teams and too wide for a phone.
+  Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "captainBlanks"],
+  // Club names are too wide for a phone next to the rest: a tap away.
+  Points: ["totalDEFPoints", "totalMIDPoints", "totalFWDPoints", "topThree"],
+  "Squad habits": ["templateScore", "playersUsed"],
 };
 
 const presets: Preset[] = [
@@ -614,6 +718,27 @@ const highlightCards: Record<SeasonHighlight["kind"], HighlightCard> = {
     value: (value, player) => (player ? `${player}, ${points(value)}` : points(value)),
     view: "Transfers",
     column: "sellersRemorse",
+    desc: true,
+  },
+  boughtTooLate: {
+    title: "Bought too late",
+    value: (value, player) => (player ? `${player}, ${points(value)} before` : points(value)),
+    view: "Transfers",
+    column: "boughtTooLate",
+    desc: true,
+  },
+  kneeJerk: {
+    title: "Most knee-jerk sales",
+    value: (value) => `${value} ${value === 1 ? "player" : "players"} sold fast`,
+    view: "Transfers",
+    column: "kneeJerkSales",
+    desc: true,
+  },
+  captainBlanks: {
+    title: "Captain blanks",
+    value: (value) => `${value} ${value === 1 ? "blank" : "blanks"}`,
+    view: "Captaincy",
+    column: "captainBlanks",
     desc: true,
   },
   captaincy: {

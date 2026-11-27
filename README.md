@@ -31,10 +31,15 @@ and get sortable, customisable tables the official site does not offer:
 - **Season**: per-manager form, "boom or bust" swing, climbs and falls in
   the table, runs at the top, months won (manager of the month), free
   transfers and chips left for the next deadline, transfers, hits (and how
-  many paid off), seller's
-  remorse (the player sold who has scored most since), chips, captaincy, ranks,
-  points by position, weeks at the top and bottom, favourite club,
+  many paid off), seller's remorse (the player sold who has scored most
+  since) and its mirror, bought too late, knee-jerk sales, chips and when
+  they were played against the league, captaincy with blanks and vice
+  captain saves, ranks, points by position and by club, the share of the
+  top three players, weeks at the top and bottom, template score (how
+  common the squad is in the league), players used, favourite club,
   most-held player and squad streaks, cards and own goals.
+  `src/lib/stats/habits.ts` holds the stats that set a team against the
+  whole league (template score, chip timing).
 - **Charts** (the `history` route, once League History): line charts of
   every team's league position, gap to the leader, points against the
   league average, total points, gameweek score and overall rank, gameweek

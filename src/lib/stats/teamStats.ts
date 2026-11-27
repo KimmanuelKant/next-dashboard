@@ -8,13 +8,23 @@ import {
   ManagerHistory,
   Pick,
   PICK_CAPTAIN,
+  PICK_VICE,
   Player,
 } from "@/lib/fpl/types";
 import { chipLabel } from "@/lib/chips";
 import { computeLeagueHistory, PositionMove } from "./leagueHistory";
 import { MonthResult, monthlyResults } from "./months";
 import { chipsLeft, freeTransfers } from "./deadline";
-import { pointsAfterSale, reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
+import {
+  kneeJerkSales,
+  pointsAfterSale,
+  pointsBeforePurchase,
+  reviewCaptaincy,
+  squadMoves,
+  topBenched,
+  transferOutcomes,
+} from "./decisions";
+import { chipTiming, templateScores } from "./habits";
 import { PickOptions, pickHighlights, RecordOptions, teamRecord, TeamRecord } from "./records";
 
 export interface ChipUse {
@@ -57,6 +67,12 @@ export interface TeamStats {
   captainPointsPercentage: number;
   mostCaptained: NamedCount | null;
   captainDiversity: number;
+  /** Gameweeks in which the armband returned CAPTAIN_BLANK points or fewer (before the multiplier). */
+  captainBlanks: number;
+  /** Gameweeks in which the captain did not play and the vice captain took the armband. */
+  viceSaves: number;
+  /** The extra points the vice captain's armband brought in those weeks. */
+  viceSavePoints: number;
   pointsOnBench: number;
   totalTransferPointsDeducted: number;
   highestGameweekScore: number;
@@ -68,6 +84,10 @@ export interface TeamStats {
   totalDEFPoints: number;
   totalMIDPoints: number;
   totalFWDPoints: number;
+  /** The club whose players brought the most points (multiplied, starters only); count is the points. */
+  topClub: NamedCount | null;
+  /** The three players who brought the most points, and their share of all points before hits, in percent. */
+  topThree: { names: string[]; share: number } | null;
   /** Gameweeks spent in first place in this league. */
   weeksAtTop: number;
   /** Gameweeks spent in last place in this league. */
@@ -99,6 +119,10 @@ export interface TeamStats {
   longestSquadStreak: NamedCount | null;
   /** Of the current starting eleven, the player who has started the most gameweeks in a row. */
   longestServingStarter: NamedCount | null;
+  /** How common the squad was in the league, in percent (see templateScores); null with no week to compare. */
+  templateScore: number | null;
+  /** Different players who have been in the squad this season, Free Hit squads included. */
+  playersUsed: number;
   /** Cards, own goals and missed penalties by players who were in the starting eleven. */
   yellowCards: number;
   redCards: number;
@@ -132,7 +156,18 @@ export interface TeamStats {
    * squad afterwards (see pointsAfterSale). Null when no player sold has
    * scored since.
    */
-  sellersRemorse: SoldPlayer | null;
+  sellersRemorse: TradedPlayer | null;
+  /**
+   * Bought too late: the player bought who had scored the most while out of
+   * the squad before (see pointsBeforePurchase). Null when none had scored.
+   */
+  boughtTooLate: TradedPlayer | null;
+  /** Players sold within KNEE_JERK_WEEKS gameweeks of being bought. */
+  kneeJerkSales: number;
+  /** Money in the bank on average over the gameweeks played, in millions. */
+  averageBank: number | null;
+  /** Gameweeks before (negative) or after the league the team plays its chips (see chipTiming). */
+  chipTiming: number | null;
   /** Every month of FPL's monthly standings that has started, in order. */
   months: MonthResult[];
   /** Free transfers for the next gameweek (see freeTransfers); null when there is none. */
@@ -141,13 +176,16 @@ export interface TeamStats {
   chipsLeft: string[] | null;
 }
 
-export interface SoldPlayer {
+/** A player sold or bought, the gameweek it took effect, and the points that make it a story. */
+export interface TradedPlayer {
   name: string;
-  /** The gameweek he was sold. */
   gw: number;
-  /** Points scored since, while out of the squad. */
+  /** Points scored while out of the squad: since the sale, or before the purchase. */
   points: number;
 }
+
+/** An armband that returned this many points or fewer is a blank (a goalless appearance). */
+export const CAPTAIN_BLANK = 2;
 
 export interface LabelledValue {
   label: string;
@@ -323,6 +361,15 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     });
     return top;
   };
+  const teamIds = snapshot.league.managers.map((manager) => manager.entryId);
+  const templates = templateScores(
+    snapshot.gameweekIds.map((gw) => snapshot.picks[gw] ?? {}),
+    teamIds
+  );
+  const timings = chipTiming(
+    new Map(teamIds.map((id) => [id, snapshot.histories[id]?.chips ?? []])),
+    snapshot.bootstrap.chips
+  );
   const leaderTotal = Math.max(...snapshot.league.managers.map((manager) => manager.total));
 
   return snapshot.league.managers.map((manager) => {
@@ -348,20 +395,30 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
     let perfectCaptainWeeks = 0;
     let biggestBenchedHaul: LabelledValue | null = null;
     const freeHitWeeks = new Set<number>();
+    let captainBlanks = 0;
+    let viceSaves = 0;
+    let viceSavePoints = 0;
+    const playerPoints = new Map<number, number>();
+    const clubPoints = new Map<number, number>();
+    let firstGw: number | null = null;
 
     for (const gw of snapshot.gameweekIds) {
       const team = snapshot.picks[gw]?.[manager.entryId];
       const points = snapshot.points[gw];
       if (!team || !points) continue;
       teamsInOrder.push(team);
+      firstGw ??= gw;
 
       const incidents = snapshot.incidents[gw] ?? {};
       for (const [playerId, multiplier] of team.picks) {
         const player = players.get(playerId);
+        const scored = (points[playerId] ?? 0) * multiplier;
         if (player) {
-          positionPoints[player.position] += (points[playerId] ?? 0) * multiplier;
+          positionPoints[player.position] += scored;
           clubSlots.set(player.clubId, (clubSlots.get(player.clubId) ?? 0) + 1);
+          if (multiplier > 0) clubPoints.set(player.clubId, (clubPoints.get(player.clubId) ?? 0) + scored);
         }
+        if (multiplier > 0) playerPoints.set(playerId, (playerPoints.get(playerId) ?? 0) + scored);
         squadSlots++;
         weeksOwned.set(playerId, (weeksOwned.get(playerId) ?? 0) + 1);
         const playerIncidents = incidents[playerId];
@@ -378,6 +435,12 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       const armband = effectiveCaptain(team);
       if (armband) {
         totalCaptainPoints += (points[armband[0]] ?? 0) * armband[1];
+      }
+      // With neither captain nor vice playing, the armband returned nothing.
+      if ((armband ? points[armband[0]] ?? 0 : 0) <= CAPTAIN_BLANK) captainBlanks++;
+      if (armband && armband[2] === PICK_VICE) {
+        viceSaves++;
+        viceSavePoints += (points[armband[0]] ?? 0) * (armband[1] - 1);
       }
 
       const review = reviewCaptaincy(team, points);
@@ -465,24 +528,39 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       }
     }
 
-    let sellersRemorse: SoldPlayer | null = null;
-    const aftermath = pointsAfterSale(
-      history.transfers,
-      snapshot.gameweekIds,
-      freeHitWeeks,
-      (gw, id) => snapshot.points[gw]?.[id] ?? 0,
-      (gw, id) =>
-        snapshot.picks[gw]?.[manager.entryId]?.picks.some((pick) => pick[0] === id) ?? false
-    );
-    for (const sale of aftermath) {
-      if (sale.points > 0 && (!sellersRemorse || sale.points > sellersRemorse.points)) {
-        sellersRemorse = {
-          name: playerName(sale.playerId) || "Unknown",
-          gw: sale.gw,
-          points: sale.points,
-        };
+    const scoreIn = (gw: number, id: number) => snapshot.points[gw]?.[id] ?? 0;
+    const inSquad = (gw: number, id: number) =>
+      snapshot.picks[gw]?.[manager.entryId]?.picks.some((pick) => pick[0] === id) ?? false;
+    // The one with the most points, named; null when none scored.
+    const mostPoints = (traded: { playerId: number; gw: number; points: number }[]) => {
+      let top: TradedPlayer | null = null;
+      for (const { playerId, gw, points } of traded) {
+        if (points > 0 && (!top || points > top.points)) {
+          top = { name: playerName(playerId) || "Unknown", gw, points };
+        }
       }
-    }
+      return top;
+    };
+    const sellersRemorse = mostPoints(
+      pointsAfterSale(history.transfers, snapshot.gameweekIds, freeHitWeeks, scoreIn, inSquad)
+    );
+    const moves = squadMoves(history.transfers, snapshot.gameweekIds, freeHitWeeks);
+    const boughtTooLate =
+      firstGw === null
+        ? null
+        : mostPoints(pointsBeforePurchase(moves, snapshot.gameweekIds, firstGw, scoreIn, inSquad));
+
+    const scorers = [...playerPoints].sort((a, b) => b[1] - a[1]);
+    const scoredInAll = scorers.reduce((total, [, scored]) => total + scored, 0);
+    const topThree =
+      scoredInAll > 0
+        ? {
+            names: scorers.slice(0, 3).map(([id]) => playerName(id) || "Unknown"),
+            share:
+              (scorers.slice(0, 3).reduce((total, [, scored]) => total + scored, 0) / scoredInAll) * 100,
+          }
+        : null;
+    const topScoringClub = topOf(clubPoints);
 
     const topClub = topOf(clubSlots);
     const topPlayer = topOf(weeksOwned);
@@ -521,6 +599,9 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
         grossPoints > 0 ? (totalCaptainPoints / grossPoints) * 100 : 0,
       mostCaptained,
       captainDiversity: captainCounts.size,
+      captainBlanks,
+      viceSaves,
+      viceSavePoints,
       pointsOnBench: weeks.reduce((sum, w) => sum + w.benchPoints, 0),
       totalTransferPointsDeducted: hits,
       highestGameweekScore: weeks.reduce((max, w) => Math.max(max, w.points), 0),
@@ -532,6 +613,10 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       totalDEFPoints: positionPoints[2],
       totalMIDPoints: positionPoints[3],
       totalFWDPoints: positionPoints[4],
+      topClub: topScoringClub
+        ? { name: clubNames.get(topScoringClub[0]) ?? "Unknown", count: topScoringClub[1] }
+        : null,
+      topThree,
       weeksAtTop: leagueRow?.weeksAtTop ?? 0,
       weeksAtBottom: leagueRow?.weeksAtBottom ?? 0,
       gameweekWins: leagueRow?.gameweekWins ?? 0,
@@ -554,6 +639,8 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       mostHeld: named(topPlayer),
       longestSquadStreak: named(streaks.longestSquad),
       longestServingStarter: named(streaks.currentStarter),
+      templateScore: templates.get(manager.entryId) ?? null,
+      playersUsed: weeksOwned.size,
       yellowCards: incidentTotals[0],
       redCards: incidentTotals[1],
       ownGoals: incidentTotals[2],
@@ -570,6 +657,12 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       biggestProfitSale,
       totalSaleProfit: sales.reduce((sum, sale) => sum + sale.profit, 0) / 10,
       sellersRemorse,
+      boughtTooLate,
+      kneeJerkSales: kneeJerkSales(moves).length,
+      averageBank: weeks.length
+        ? weeks.reduce((total, week) => total + week.bank, 0) / weeks.length / 10
+        : null,
+      chipTiming: timings.get(manager.entryId) ?? null,
       months: monthsByTeam.get(manager.entryId) ?? [],
       freeTransfers:
         nextGw === null ? null : freeTransfers(history, snapshot.bootstrap.maxFreeTransfers),
@@ -588,8 +681,11 @@ export type SeasonHighlight = TeamRecord<
   | "boomOrBust"
   | "transfers"
   | "sellersRemorse"
+  | "boughtTooLate"
+  | "kneeJerk"
   | "monthWinner"
   | "captaincy"
+  | "captainBlanks"
   | "bench"
   | "yellowCards"
 >;
@@ -651,7 +747,15 @@ export function computeSeasonHighlights(
       (row) => row.sellersRemorse?.name,
       { minimum: 1, scale: 10 }
     ),
+    withDetail(
+      "boughtTooLate",
+      (row) => row.boughtTooLate?.points ?? 0,
+      (row) => row.boughtTooLate?.name,
+      { minimum: 1, scale: 10 }
+    ),
+    teamRecord("kneeJerk", rows, (row) => row.kneeJerkSales, { minimum: 1, scale: 2 }),
     teamRecord("captaincy", rows, (row) => row.captaincyPointsLost, { minimum: 1, scale: 10 }),
+    teamRecord("captainBlanks", rows, (row) => row.captainBlanks, { minimum: 1, scale: 2 }),
     teamRecord("bench", rows, (row) => row.pointsOnBench, { minimum: 1, scale: 10 }),
     teamRecord("yellowCards", rows, (row) => row.yellowCards, { minimum: 1, scale: 2 }),
   ].filter((record) => record !== null);
