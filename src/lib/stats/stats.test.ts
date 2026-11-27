@@ -332,6 +332,49 @@ describe("league history and squad habits", () => {
     expect(cy.bestLeaguePosition).toBeNull();
   });
 
+  it("sums up each team's race: moves, runs at the top, form and swing", () => {
+    // Ann: 1st, 2nd, 1st; scores 70, 56, 74. Bo joined in GW2: 1st, 2nd; 80, 50.
+    expect(ann.biggestClimb).toEqual({ places: 1, gw: 3 });
+    expect(ann.biggestFall).toEqual({ places: 1, gw: 2 });
+    expect(ann.longestRunAtTop).toBe(1);
+    expect(ann.leadsTaken).toBe(1);
+    expect(ann.averageLeaguePosition).toBeCloseTo(4 / 3);
+    expect(ann.formLast5).toBe(200);
+    // Week averages are 70, 68 and 62: Ann is level in GW1, above in GW3.
+    expect(ann.weeksAboveAverage).toBe(1);
+    expect(ann.scoreSpread).toBeCloseTo(Math.sqrt((10 / 3) ** 2 / 3 + (32 / 3) ** 2 / 3 + (22 / 3) ** 2 / 3));
+    // Joining at the top is not taking the lead, and there is no week before to climb from.
+    expect(bo.biggestClimb).toBeNull();
+    expect(bo.biggestFall).toEqual({ places: 1, gw: 3 });
+    expect(bo.leadsTaken).toBe(0);
+    expect(bo.scoreSpread).toBe(15);
+    expect([cy.biggestClimb, cy.averageLeaguePosition, cy.scoreSpread]).toEqual([null, null, null]);
+    expect([cy.formLast5, cy.longestRunAtTop]).toEqual([0, 0]);
+  });
+
+  it("counts runs at the top and form over the last five weeks of a longer race", () => {
+    const race = snapshot();
+    race.gameweekIds = [1, 2, 3, 4, 5, 6, 7];
+    race.league.managers = race.league.managers.slice(0, 2);
+    const weeks = (scores: number[]) => {
+      let total = 0;
+      return scores.map((points, i) => week(i + 1, points, { totalPoints: (total += points) }));
+    };
+    // Ann leads GW1-2, falls behind in GW3, leads GW4-6, and is caught in GW7.
+    race.histories[100] = { gameweeks: weeks([50, 50, 10, 90, 50, 50, 10]), chips: [], transfers: [] };
+    race.histories[200] = { gameweeks: weeks([40, 40, 80, 0, 40, 40, 100]), chips: [], transfers: [] };
+    const [ann, bo] = computeLeagueHistory(race).rows;
+    expect(ann.positions).toEqual([1, 1, 2, 1, 1, 1, 2]);
+    expect(ann.longestRunAtTop).toBe(3);
+    expect(ann.leadsTaken).toBe(1);
+    // Fell one place in GW3 and in GW7: the later one is kept.
+    expect(ann.biggestFall).toEqual({ places: 1, gw: 7 });
+    expect(ann.formLast5).toBe(10 + 90 + 50 + 50 + 10);
+    expect(bo.leadsTaken).toBe(2);
+    // Averages are 45 a week, then 55 in GW7.
+    expect([ann.weeksAboveAverage, bo.weeksAboveAverage]).toEqual([5, 2]);
+  });
+
   it("finds the longest-held player and favourite club", () => {
     expect(ann.mostHeld?.count).toBe(3);
     expect(bo.mostHeld?.count).toBe(2);
@@ -879,11 +922,17 @@ describe("computeSeasonHighlights", () => {
 
   it("names the holder of each season record", () => {
     const highlights = facts(computeSeasonHighlights(rows, EVERY_RECORD));
-    expect(highlights).toHaveLength(7);
+    expect(highlights).toHaveLength(11);
     expect(highlights).toEqual(expect.arrayContaining([
       // Ann had the top score in GW1 (alone in the league) and GW3; Bo in GW2.
       { kind: "gameweekWins", teams: ["Ann FC"], value: 2 },
       { kind: "highestScore", teams: ["Bo United"], value: 80 },
+      // Ann climbed back to 1st in GW3; both fell a place once; both led one week at a time.
+      { kind: "climb", teams: ["Ann FC"], value: 1 },
+      { kind: "fall", teams: ["Ann FC", "Bo United"], value: 1 },
+      { kind: "runAtTop", teams: ["Ann FC", "Bo United"], value: 1 },
+      // Bo's 80 and 50 swing 15 either side of his average.
+      { kind: "boomOrBust", teams: ["Bo United"], value: 15 },
       // Bo's one transfer, P13 out for P16, gained 3. Ann made none and paid a hit.
       { kind: "transfers", teams: ["Bo United"], value: 3 },
       // P13 scored 13 for GW3 after Bo sold him.
@@ -907,6 +956,13 @@ describe("computeSeasonHighlights", () => {
   it("names the player behind seller's remorse", () => {
     const highlights = computeSeasonHighlights(rows, EVERY_RECORD);
     expect(highlights.find((h) => h.kind === "sellersRemorse")?.detail).toBe("P13");
+  });
+
+  it("names the gameweek of the biggest climb and fall", () => {
+    const highlights = computeSeasonHighlights(rows, EVERY_RECORD);
+    expect(highlights.find((h) => h.kind === "climb")?.detail).toBe("GW3");
+    // Ann holds the fall record first in league order: hers was in GW2.
+    expect(highlights.find((h) => h.kind === "fall")?.detail).toBe("GW2");
   });
 
   it("returns nothing for a league without teams", () => {

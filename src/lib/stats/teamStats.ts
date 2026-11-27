@@ -11,9 +11,9 @@ import {
   Player,
 } from "@/lib/fpl/types";
 import { chipLabel } from "@/lib/chips";
-import { computeLeagueHistory } from "./leagueHistory";
+import { computeLeagueHistory, PositionMove } from "./leagueHistory";
 import { pointsAfterSale, reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
-import { PickOptions, pickHighlights, teamRecord, TeamRecord } from "./records";
+import { PickOptions, pickHighlights, RecordOptions, teamRecord, TeamRecord } from "./records";
 
 export interface ChipUse {
   gw: number;
@@ -74,6 +74,21 @@ export interface TeamStats {
   gameweekWins: number;
   bestLeaguePosition: number | null;
   worstLeaguePosition: number | null;
+  averageLeaguePosition: number | null;
+  /** Most league places gained in one gameweek, and the gameweek. */
+  biggestClimb: PositionMove | null;
+  /** Most league places lost in one gameweek (a positive number), and the gameweek. */
+  biggestFall: PositionMove | null;
+  /** Most gameweeks in a row in first place. */
+  longestRunAtTop: number;
+  /** Gameweeks in which the team went top of the league from a lower place. */
+  leadsTaken: number;
+  /** Points over the last five gameweeks, after hits. */
+  formLast5: number;
+  /** Gameweeks with a score above the league's average that week. */
+  weeksAboveAverage: number;
+  /** Standard deviation of the gameweek scores: high is boom or bust. */
+  scoreSpread: number | null;
   /** Club that has filled the most squad places over the season; count is the percent of all squad places. */
   favouriteClub: NamedCount | null;
   /** Player who has been in the squad for the most gameweeks in total. */
@@ -502,6 +517,14 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       gameweekWins: leagueRow?.gameweekWins ?? 0,
       bestLeaguePosition: leagueRow?.bestPosition ?? null,
       worstLeaguePosition: leagueRow?.worstPosition ?? null,
+      averageLeaguePosition: leagueRow?.averagePosition ?? null,
+      biggestClimb: leagueRow?.biggestClimb ?? null,
+      biggestFall: leagueRow?.biggestFall ?? null,
+      longestRunAtTop: leagueRow?.longestRunAtTop ?? 0,
+      leadsTaken: leagueRow?.leadsTaken ?? 0,
+      formLast5: leagueRow?.formLast5 ?? 0,
+      weeksAboveAverage: leagueRow?.weeksAboveAverage ?? 0,
+      scoreSpread: leagueRow?.scoreSpread ?? null,
       favouriteClub: topClub
         ? {
             name: clubNames.get(topClub[0]) ?? "Unknown",
@@ -535,6 +558,10 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
 export type SeasonHighlight = TeamRecord<
   | "gameweekWins"
   | "highestScore"
+  | "climb"
+  | "fall"
+  | "runAtTop"
+  | "boomOrBust"
   | "transfers"
   | "sellersRemorse"
   | "captaincy"
@@ -551,16 +578,44 @@ export function computeSeasonHighlights(
   rows: TeamStats[],
   pick: PickOptions = {}
 ): SeasonHighlight[] {
-  // The card names the player who got away, from the first team holding the record.
-  const remorsePoints = (row: TeamStats) => row.sellersRemorse?.points ?? 0;
-  const remorse = teamRecord("sellersRemorse", rows, remorsePoints, { minimum: 1, scale: 10 });
-  const remorseHolder = remorse && rows.find((row) => remorsePoints(row) === remorse.value);
+  // A record whose card names something more (the gameweek of a climb, the
+  // player sold), taken from the first team holding it.
+  const withDetail = <Kind extends SeasonHighlight["kind"]>(
+    kind: Kind,
+    stat: (row: TeamStats) => number,
+    detail: (row: TeamStats) => string | undefined,
+    options: RecordOptions
+  ) => {
+    const record = teamRecord(kind, rows, stat, options);
+    const holder = record && rows.find((row) => stat(row) === record.value);
+    return record && holder ? { ...record, detail: detail(holder) } : null;
+  };
   const records = [
     teamRecord("gameweekWins", rows, (row) => row.gameweekWins, { minimum: 1, scale: 1 }),
     teamRecord("highestScore", rows, (row) => row.highestGameweekScore, { minimum: 1, scale: 5 }),
+    withDetail(
+      "climb",
+      (row) => row.biggestClimb?.places ?? 0,
+      (row) => (row.biggestClimb ? `GW${row.biggestClimb.gw}` : undefined),
+      { minimum: 1, scale: 2 }
+    ),
+    withDetail(
+      "fall",
+      (row) => row.biggestFall?.places ?? 0,
+      (row) => (row.biggestFall ? `GW${row.biggestFall.gw}` : undefined),
+      { minimum: 1, scale: 2 }
+    ),
+    teamRecord("runAtTop", rows, (row) => row.longestRunAtTop, { minimum: 1, scale: 2 }),
+    // A typical team's scores swing by 12-20 points; 3 is a gap worth noticing.
+    teamRecord("boomOrBust", rows, (row) => row.scoreSpread ?? 0, { minimum: 1, scale: 3 }),
     // Only a gain is a record: with every team at a loss, nobody's transfers were "best".
     teamRecord("transfers", rows, (row) => row.transferGainAfterHits, { minimum: 1, scale: 10 }),
-    remorse && { ...remorse, detail: remorseHolder?.sellersRemorse?.name },
+    withDetail(
+      "sellersRemorse",
+      (row) => row.sellersRemorse?.points ?? 0,
+      (row) => row.sellersRemorse?.name,
+      { minimum: 1, scale: 10 }
+    ),
     teamRecord("captaincy", rows, (row) => row.captaincyPointsLost, { minimum: 1, scale: 10 }),
     teamRecord("bench", rows, (row) => row.pointsOnBench, { minimum: 1, scale: 10 }),
     teamRecord("yellowCards", rows, (row) => row.yellowCards, { minimum: 1, scale: 2 }),

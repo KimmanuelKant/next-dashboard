@@ -13,6 +13,7 @@ import type {
   SeasonHighlight,
   TeamStats,
 } from "@/lib/stats/teamStats";
+import type { PositionMove } from "@/lib/stats/leagueHistory";
 
 const columnHelper = createColumnHelper<TeamStats>();
 
@@ -29,6 +30,16 @@ const chipTotal = (uses: ChipUse[]) =>
   uses.length ? uses.reduce((sum, use) => sum + use.points, 0) : -1;
 const formatHeld = (held: NamedCount | null) =>
   held ? `${held.name} (${held.count} GW)` : "–";
+// "▲3 (GW7)", or "▲3" on a phone, where the gameweek waits in the team panel.
+const formatMove = (move: PositionMove | null, arrow: string) =>
+  move ? (
+    <Narrow short={`${arrow}${move.places}`}>
+      {arrow}
+      {move.places} (GW{move.gw})
+    </Narrow>
+  ) : (
+    "–"
+  );
 const formatLabelled = (item: LabelledValue | null, signed = false) =>
   item ? `${signed ? formatSigned(item.value) : item.value} (${item.label})` : "–";
 
@@ -50,11 +61,34 @@ const columns = [
     cell: ({ getValue }) => getValue() || "–",
   }),
   columnHelper.accessor("highestGameweekScore", { id: "highestGameweekScore", header: "Highest GW Score" }),
+  columnHelper.accessor("formLast5", { id: "formLast5", header: "Form (Last 5)" }),
+  columnHelper.accessor("weeksAboveAverage", { id: "weeksAboveAverage", header: "Weeks Above Average" }),
+  columnHelper.accessor((row) => row.scoreSpread ?? undefined, {
+    id: "scoreSpread",
+    header: "Boom or Bust",
+    cell: ({ row }) => row.original.scoreSpread?.toFixed(1) ?? "–",
+    sortUndefined: "last",
+  }),
 
   // League race
   columnHelper.accessor("weeksAtTop", { id: "weeksAtTop", header: "Weeks at Top" }),
+  columnHelper.accessor("longestRunAtTop", { id: "longestRunAtTop", header: "Longest Run at Top" }),
+  columnHelper.accessor("leadsTaken", { id: "leadsTaken", header: "Times Took the Lead" }),
   columnHelper.accessor("weeksAtBottom", { id: "weeksAtBottom", header: "Weeks at Bottom" }),
   columnHelper.accessor("gameweekWins", { id: "gameweekWins", header: "GW Wins" }),
+  // Moves sort on the places; a team that never climbed (or fell) goes last.
+  columnHelper.accessor((row) => row.biggestClimb?.places, {
+    id: "biggestClimb",
+    header: "Biggest Climb",
+    cell: ({ row }) => formatMove(row.original.biggestClimb, "▲"),
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor((row) => row.biggestFall?.places, {
+    id: "biggestFall",
+    header: "Biggest Fall",
+    cell: ({ row }) => formatMove(row.original.biggestFall, "▼"),
+    sortUndefined: "last",
+  }),
   columnHelper.accessor("bestLeaguePosition", {
     id: "bestLeaguePosition",
     header: "Best League Position",
@@ -64,6 +98,12 @@ const columns = [
     id: "worstLeaguePosition",
     header: "Worst League Position",
     cell: ({ getValue }) => formatNumber(getValue()),
+  }),
+  columnHelper.accessor((row) => row.averageLeaguePosition ?? undefined, {
+    id: "averageLeaguePosition",
+    header: "Average Position",
+    cell: ({ row }) => row.original.averageLeaguePosition?.toFixed(1) ?? "–",
+    sortUndefined: "last",
   }),
 
   // Transfers and value
@@ -262,11 +302,19 @@ const descriptions: Record<string, string> = {
   totalPoints: "Total points this season, after transfer hits.",
   gapToLeader: "Points behind the league's leader on the season total.",
   highestGameweekScore: "The best single gameweek score.",
+  formLast5: "Points scored over the last five gameweeks, after transfer hits.",
+  weeksAboveAverage: "Gameweeks with a score above the league's average that week, after hits. The average counts only the teams that had a team that week.",
+  scoreSpread: "How far the gameweek scores swing either side of the team's own average: their standard deviation, after hits. High is boom or bust, low is steady.",
   weeksAtTop: "Gameweeks spent in first place in this league.",
+  longestRunAtTop: "The most gameweeks in a row in first place in this league. Teams level at the top all count as first.",
+  leadsTaken: "Gameweeks in which the team went top of the league from a lower place.",
   weeksAtBottom: "Gameweeks spent in last place in this league.",
   gameweekWins: "Gameweeks with the highest score in this league, after hits. Ties count for everyone tied.",
   bestLeaguePosition: "The highest position reached in this league.",
   worstLeaguePosition: "The lowest position in this league.",
+  averageLeaguePosition: "The average position in this league over the gameweeks the team played.",
+  biggestClimb: "The most places gained in this league in one gameweek, and the gameweek.",
+  biggestFall: "The most places lost in this league in one gameweek, and the gameweek.",
   totalTransfers: "Transfers made this season.",
   totalTransferPointsDeducted: "Points deducted for extra transfers.",
   transferGain: "What the players bought scored in their first gameweek, minus what the players sold scored that same week. Counts points whether or not the player was in the starting eleven. Free Hit weeks are left out.",
@@ -319,11 +367,20 @@ const shortHeaders: Record<string, string> = {
   managerName: "Manager",
   teamName: "Team",
   teamId: "ID",
-  totalPoints: "Total",
+  totalPoints: "Pts",
   gapToLeader: "To 1st",
   highestGameweekScore: "Best GW",
+  formLast5: "Form",
+  weeksAboveAverage: "Wks > Avg",
+  scoreSpread: "Swing",
   weeksAtTop: "Wks 1st",
+  longestRunAtTop: "Run 1st",
+  leadsTaken: "Leads",
+  biggestClimb: "Climb",
+  biggestFall: "Fall",
+  averageLeaguePosition: "Avg Pos",
   weeksAtBottom: "Wks Last",
+  gameweekWins: "Wins",
   bestLeaguePosition: "Best Pos",
   worstLeaguePosition: "Worst Pos",
   totalTransfers: "Trfs",
@@ -372,10 +429,13 @@ const shortHeaders: Record<string, string> = {
 
 // Each group is both a heading in the column picker and a view.
 const groups: ColumnGroup[] = [
-  { name: "Standings", columns: ["rank", "totalPoints", "gapToLeader", "highestGameweekScore"] },
+  {
+    name: "Standings",
+    columns: ["rank", "totalPoints", "gapToLeader", "highestGameweekScore", "formLast5", "weeksAboveAverage", "scoreSpread"],
+  },
   {
     name: "League race",
-    columns: ["weeksAtTop", "weeksAtBottom", "gameweekWins", "bestLeaguePosition", "worstLeaguePosition"],
+    columns: ["weeksAtTop", "longestRunAtTop", "leadsTaken", "weeksAtBottom", "gameweekWins", "biggestClimb", "biggestFall", "bestLeaguePosition", "worstLeaguePosition", "averageLeaguePosition"],
   },
   {
     name: "Transfers and value",
@@ -415,7 +475,8 @@ const viewNames: Record<string, string> = {
 // a tap away ("more columns"), and in the team panel. Views left out are
 // narrow enough to show whole. Keyed by the view's name.
 const phoneColumns: Record<string, string[]> = {
-  Standings: ["rank", "totalPoints", "gapToLeader"],
+  Standings: ["rank", "totalPoints", "gapToLeader", "formLast5", "scoreSpread"],
+  "League race": ["gameweekWins", "longestRunAtTop", "biggestClimb", "biggestFall"],
   // Net Gain already has the hits taken off; Hits and Value make room for
   // Seller's Remorse.
   Transfers: ["totalTransfers", "transferGainAfterHits", "sellersRemorse"],
@@ -429,7 +490,7 @@ const presets: Preset[] = [
       name,
       columns:
         group.name === "Standings"
-          ? ["rank", "managerName", "teamName", "totalPoints", "gapToLeader", "highestGameweekScore"]
+          ? ["rank", "managerName", "teamName", "totalPoints", "gapToLeader", "highestGameweekScore", "formLast5", "weeksAboveAverage", "scoreSpread"]
           : ["teamName", ...group.columns],
       phoneColumns: phoneColumns[name],
     };
@@ -454,6 +515,34 @@ const highlightCards: Record<SeasonHighlight["kind"], HighlightCard> = {
     value: points,
     view: "Standings",
     column: "highestGameweekScore",
+    desc: true,
+  },
+  climb: {
+    title: "Biggest climb",
+    value: (value, gw) => `▲${value} ${value === 1 ? "place" : "places"}${gw ? `, ${gw}` : ""}`,
+    view: "League race",
+    column: "biggestClimb",
+    desc: true,
+  },
+  fall: {
+    title: "Biggest fall",
+    value: (value, gw) => `▼${value} ${value === 1 ? "place" : "places"}${gw ? `, ${gw}` : ""}`,
+    view: "League race",
+    column: "biggestFall",
+    desc: true,
+  },
+  runAtTop: {
+    title: "Longest run at top",
+    value: (value) => `${value} ${value === 1 ? "week" : "weeks"} in a row`,
+    view: "League race",
+    column: "longestRunAtTop",
+    desc: true,
+  },
+  boomOrBust: {
+    title: "Most boom or bust",
+    value: (value) => `Swings ±${value.toFixed(1)} pts`,
+    view: "Standings",
+    column: "scoreSpread",
     desc: true,
   },
   transfers: {

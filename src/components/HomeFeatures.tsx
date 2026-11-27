@@ -16,7 +16,7 @@ const features = [
   },
   {
     title: "Season",
-    text: "Transfers and hits, chips, captaincy, ranks, points by position, weeks at the top and bottom of the league, favourite club, most-held player, cards and own goals, for every manager.",
+    text: "Form over the last five gameweeks, the biggest climbs and falls in the table, longest runs at the top, who is boom or bust, transfers and hits, seller's remorse, chips, captaincy, ranks, points by position, favourite club, cards and own goals, for every manager.",
   },
   {
     title: "Charts: the race for the title",

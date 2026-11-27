@@ -27,7 +27,8 @@ and get sortable, customisable tables the official site does not offer:
   "Copy recap" gives the gameweek in a few lines for a group chat, built
   from the highlight cards, with a link back (a "so far" version while it
   is played; `src/lib/stats/recap.ts`).
-- **Season**: per-manager transfers, hits (and how many paid off), seller's
+- **Season**: per-manager form, "boom or bust" swing, climbs and falls in
+  the table, runs at the top, transfers, hits (and how many paid off), seller's
   remorse (the player sold who has scored most since), chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.

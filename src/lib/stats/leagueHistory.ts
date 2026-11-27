@@ -25,7 +25,35 @@ export interface LeagueHistoryRow {
   gameweekWins: number;
   bestPosition: number | null;
   worstPosition: number | null;
+  /** Mean league position over the gameweeks the manager had a team. */
+  averagePosition: number | null;
+  /** Most places gained from one gameweek to the next. */
+  biggestClimb: PositionMove | null;
+  /** Most places lost from one gameweek to the next, as a positive number. */
+  biggestFall: PositionMove | null;
+  /** Most gameweeks in a row in first place (level at the top counts). */
+  longestRunAtTop: number;
+  /** Gameweeks in which the team went top from a lower place. */
+  leadsTaken: number;
+  /** Points over the last five gameweeks, after hits (fewer weeks for a late joiner). */
+  formLast5: number;
+  /** Gameweeks with a score above the league's average that week. */
+  weeksAboveAverage: number;
+  /**
+   * How far the gameweek scores swing: their standard deviation, after hits.
+   * Null with fewer than two gameweeks.
+   */
+  scoreSpread: number | null;
 }
+
+/** A move in the league table between two gameweeks: places, and the gameweek it ended in. */
+export interface PositionMove {
+  places: number;
+  gw: number;
+}
+
+/** Weeks of form, for the form column. */
+export const FORM_WEEKS = 5;
 
 export interface LeagueHistory {
   gameweeks: number[];
@@ -48,6 +76,14 @@ export function computeLeagueHistory(snapshot: LeagueSnapshot): LeagueHistory {
     gameweekWins: 0,
     bestPosition: null,
     worstPosition: null,
+    averagePosition: null,
+    biggestClimb: null,
+    biggestFall: null,
+    longestRunAtTop: 0,
+    leadsTaken: 0,
+    formLast5: 0,
+    weeksAboveAverage: 0,
+    scoreSpread: null,
   }));
 
   gameweeks.forEach((gw) => {
@@ -93,7 +129,49 @@ export function computeLeagueHistory(snapshot: LeagueSnapshot): LeagueHistory {
     });
   });
 
-  return { gameweeks, rows };
+  const history = { gameweeks, rows };
+  const { against } = scoresAgainstWeekAverage(history);
+  rows.forEach((row, i) => summariseRace(row, gameweeks, against[i]));
+  return history;
+}
+
+/**
+ * The stats a row's week-by-week series add up to: moves in the table, runs
+ * at the top, form and how steady the scores are. `against` is each score
+ * minus the league's average that week.
+ */
+function summariseRace(row: LeagueHistoryRow, gameweeks: number[], against: (number | null)[]) {
+  let run = 0;
+  row.positions.forEach((position, i) => {
+    run = position === 1 ? run + 1 : 0;
+    row.longestRunAtTop = Math.max(row.longestRunAtTop, run);
+    const before = i > 0 ? row.positions[i - 1] : null;
+    if (position === null || before === null) return;
+    if (position === 1 && before > 1) row.leadsTaken++;
+    // On a tie, the later move: the one more visitors remember.
+    const move = before - position;
+    if (move > 0 && move >= (row.biggestClimb?.places ?? 0)) {
+      row.biggestClimb = { places: move, gw: gameweeks[i] };
+    }
+    if (move < 0 && -move >= (row.biggestFall?.places ?? 0)) {
+      row.biggestFall = { places: -move, gw: gameweeks[i] };
+    }
+  });
+
+  const positions = row.positions.filter((p): p is number => p !== null);
+  row.averagePosition = positions.length
+    ? positions.reduce((a, b) => a + b, 0) / positions.length
+    : null;
+
+  row.formLast5 = row.scores.slice(-FORM_WEEKS).reduce<number>((sum, s) => sum + (s ?? 0), 0);
+  row.weeksAboveAverage = against.filter((gap) => gap !== null && gap > 0).length;
+
+  const scores = row.scores.filter((s): s is number => s !== null);
+  if (scores.length >= 2) {
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const variance = scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
+    row.scoreSpread = Math.sqrt(variance);
+  }
 }
 
 /**

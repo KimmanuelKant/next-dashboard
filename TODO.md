@@ -47,10 +47,6 @@ the way to grow without self-promotion.
   Season tab can add up points gained from automatic substitutions.
 
 ## Season: stats still to add, by group
-- Standings: form over the last 5 gameweeks, weeks above the league
-  average.
-- League race: biggest climb and fall, consistency (standard deviation of
-  gameweek scores: "boom or bust").
 - League race: manager of the month, from the month ranges in
   `bootstrap.phases` (trim). Monthly wins as a column and a highlight card.
 - Chips: chip timing against the league average. Chip timeline: a dot per
@@ -110,8 +106,10 @@ chart is a link. Keep the `/history` address so old links work.
 - Heatmap: check it on a phone once a league has 20 or more gameweeks
   (the squares then scroll sideways, starting at the latest week). Maybe
   a switch to FPL's overall average instead of the league's.
-- Records from the series for `computeSeasonHighlights()`: lead changes,
-  biggest climb and fall, longest run at the top, average position.
+- Climbs and falls, runs at the top, form and "boom or bust" are on the
+  Season tab (`summariseRace()` in `leagueHistory.ts`). Lead changes and
+  average position are columns, not cards: they mostly repeat weeks at the
+  top and the rank.
 
 ## Manager vs manager
 - Compare two teams: shared players, each side's unique players, and where
