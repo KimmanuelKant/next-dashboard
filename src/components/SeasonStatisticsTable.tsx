@@ -409,7 +409,8 @@ const viewNames: Record<string, string> = {
 // narrow enough to show whole. Keyed by the view's name.
 const phoneColumns: Record<string, string[]> = {
   Standings: ["rank", "totalPoints", "gapToLeader"],
-  Transfers: ["totalTransfers", "totalTransferPointsDeducted", "transferGainAfterHits", "sellersRemorse", "teamValue"],
+  // Net Gain already has the hits taken off, so Hits waits behind "more columns".
+  Transfers: ["totalTransfers", "transferGainAfterHits", "sellersRemorse", "teamValue"],
   Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "mostCaptained"],
 };
 
