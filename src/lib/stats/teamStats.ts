@@ -12,7 +12,7 @@ import {
 } from "@/lib/fpl/types";
 import { chipLabel } from "@/lib/chips";
 import { computeLeagueHistory } from "./leagueHistory";
-import { reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
+import { pointsAfterSale, reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
 import { PickOptions, pickHighlights, teamRecord, TeamRecord } from "./records";
 
 export interface ChipUse {
@@ -110,6 +110,20 @@ export interface TeamStats {
   biggestProfitSale: LabelledValue | null;
   /** Profit and loss on every sale this season added up, in millions. */
   totalSaleProfit: number;
+  /**
+   * Seller's remorse: the player sold who scored the most while out of the
+   * squad afterwards (see pointsAfterSale). Null when no player sold has
+   * scored since.
+   */
+  sellersRemorse: SoldPlayer | null;
+}
+
+export interface SoldPlayer {
+  name: string;
+  /** The gameweek he was sold. */
+  gw: number;
+  /** Points scored since, while out of the squad. */
+  points: number;
 }
 
 export interface LabelledValue {
@@ -416,6 +430,25 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       }
     }
 
+    let sellersRemorse: SoldPlayer | null = null;
+    const aftermath = pointsAfterSale(
+      history.transfers,
+      snapshot.gameweekIds,
+      freeHitWeeks,
+      (gw, id) => snapshot.points[gw]?.[id] ?? 0,
+      (gw, id) =>
+        snapshot.picks[gw]?.[manager.entryId]?.picks.some((pick) => pick[0] === id) ?? false
+    );
+    for (const sale of aftermath) {
+      if (sale.points > 0 && (!sellersRemorse || sale.points > sellersRemorse.points)) {
+        sellersRemorse = {
+          name: playerName(sale.playerId) || "Unknown",
+          gw: sale.gw,
+          points: sale.points,
+        };
+      }
+    }
+
     const topClub = topOf(clubSlots);
     const topPlayer = topOf(weeksOwned);
     const streaks = computeStreaks(teamsInOrder);
@@ -493,13 +526,20 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       worstTransfer,
       biggestProfitSale,
       totalSaleProfit: sales.reduce((sum, sale) => sum + sale.profit, 0) / 10,
+      sellersRemorse,
     };
   });
 }
 
 /** One of the season's records, for the cards above the table. */
 export type SeasonHighlight = TeamRecord<
-  "gameweekWins" | "highestScore" | "transfers" | "captaincy" | "bench" | "yellowCards"
+  | "gameweekWins"
+  | "highestScore"
+  | "transfers"
+  | "sellersRemorse"
+  | "captaincy"
+  | "bench"
+  | "yellowCards"
 >;
 
 /**
@@ -511,11 +551,16 @@ export function computeSeasonHighlights(
   rows: TeamStats[],
   pick: PickOptions = {}
 ): SeasonHighlight[] {
+  // The card names the player who got away, from the first team holding the record.
+  const remorsePoints = (row: TeamStats) => row.sellersRemorse?.points ?? 0;
+  const remorse = teamRecord("sellersRemorse", rows, remorsePoints, { minimum: 1, scale: 10 });
+  const remorseHolder = remorse && rows.find((row) => remorsePoints(row) === remorse.value);
   const records = [
     teamRecord("gameweekWins", rows, (row) => row.gameweekWins, { minimum: 1, scale: 1 }),
     teamRecord("highestScore", rows, (row) => row.highestGameweekScore, { minimum: 1, scale: 5 }),
     // Only a gain is a record: with every team at a loss, nobody's transfers were "best".
     teamRecord("transfers", rows, (row) => row.transferGainAfterHits, { minimum: 1, scale: 10 }),
+    remorse && { ...remorse, detail: remorseHolder?.sellersRemorse?.name },
     teamRecord("captaincy", rows, (row) => row.captaincyPointsLost, { minimum: 1, scale: 10 }),
     teamRecord("bench", rows, (row) => row.pointsOnBench, { minimum: 1, scale: 10 }),
     teamRecord("yellowCards", rows, (row) => row.yellowCards, { minimum: 1, scale: 2 }),

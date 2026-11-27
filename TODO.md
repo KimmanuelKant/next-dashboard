@@ -28,7 +28,6 @@ the way to grow without self-promotion.
   server render: cache it by address.
 
 ## Next stats (best value for the effort)
-- Season: seller's remorse.
 - Season: manager of the month, and previous seasons (trim).
 - Scout: upcoming fixtures (fetch `/fixtures/`).
 
@@ -69,9 +68,10 @@ the way to grow without self-promotion.
   transfers, and at most `max_extra_free_transfers` can be saved.
 - Captaincy: captain blanks (armband returned 2 points or fewer), vice
   captain saves.
-- Transfers: seller's remorse (points scored by players after they were
-  sold), bought too late (points a player scored before being bought),
-  knee-jerk transfers (sold within 1-2 gameweeks of buying).
+- Transfers: bought too late (points a player scored before being bought),
+  knee-jerk transfers (sold within 1-2 gameweeks of buying). Seller's
+  remorse shows the one player who got away; a total over every sale would
+  need the replacements' points set against it to mean anything.
 - Points breakdown: by club, share of points from the top 3 players.
 - Points breakdown (trim, `/event/{gw}/live/`): bonus points, goals and
   clean sheets by the starting eleven, actual points against xGI ("luck").

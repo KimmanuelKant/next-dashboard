@@ -46,6 +46,50 @@ export function transferOutcomes(
     }));
 }
 
+export interface SaleAftermath {
+  playerId: number;
+  /** The gameweek the sale took effect. */
+  gw: number;
+  /** What the player scored while out of the squad, from that gameweek on. */
+  points: number;
+}
+
+/**
+ * What every player sold went on to score while he was out of the squad:
+ * seller's remorse. Counting runs from the gameweek of the sale until the
+ * gameweek he was bought back, or to the latest gameweek; a player sold
+ * again later starts a new count, so no week is counted twice.
+ *
+ * Sales are read as `transferOutcomes()` joins them, so a player bought and
+ * sold again before one deadline was never in the squad and is no sale.
+ * Free Hit transfers are undone a week later and are left out; a sold
+ * player picked again for a Free Hit week scored for the team that week, so
+ * that week is left out of his count (`inSquad`). Points count whether or
+ * not he would have started, as in `transferOutcomes()`.
+ */
+export function pointsAfterSale(
+  transfers: ManagerHistory["transfers"],
+  gameweekIds: number[],
+  freeHitWeeks: Set<number>,
+  score: (gw: number, playerId: number) => number,
+  inSquad: (gw: number, playerId: number) => boolean
+): SaleAftermath[] {
+  const moves = gameweekIds
+    .filter((gw) => !freeHitWeeks.has(gw))
+    .flatMap((gw) => transferOutcomes(transfers, gw, () => 0).map((move) => ({ gw, ...move })));
+  return moves.map(({ gw, playerOut }) => {
+    const boughtBack =
+      moves.find((move) => move.gw > gw && move.playerIn === playerOut)?.gw ?? Infinity;
+    let points = 0;
+    for (const week of gameweekIds) {
+      if (week >= gw && week < boughtBack && !inSquad(week, playerOut)) {
+        points += score(week, playerOut);
+      }
+    }
+    return { playerId: playerOut, gw, points };
+  });
+}
+
 export interface CaptaincyReview {
   /** Player whose points were multiplied (vice captain if the captain did not play); null if neither played. */
   armbandId: number | null;

@@ -25,7 +25,7 @@ import {
   scoresAgainstWeekAverage,
 } from "./leagueHistory";
 import { computeGameweekHighlights, computeGameweekStats } from "./gameweekStats";
-import { reviewCaptaincy, transferOutcomes } from "./decisions";
+import { pointsAfterSale, reviewCaptaincy, transferOutcomes } from "./decisions";
 import { EVERY_RECORD, pickHighlights, teamRecord, TeamRecord } from "./records";
 import { liveGameweek, projectTeam, provisionalBonus } from "./live";
 import { leagueGameweek, playerSwings } from "./leagueGameweek";
@@ -377,6 +377,54 @@ describe("transferOutcomes", () => {
   });
 });
 
+describe("pointsAfterSale", () => {
+  const transfer = (gw: number, playerIn: number, playerOut: number) => ({
+    gw, playerIn, playerOut, inCost: 50, outCost: 50,
+  });
+  const gameweeks = [1, 2, 3, 4, 5, 6, 7, 8];
+  // A player scores his id each gameweek; the squad is never checked unless a test says so.
+  const score = (_gw: number, id: number) => id;
+  const nowhere = () => false;
+
+  it("counts a sold player's points from the sale to the latest gameweek", () => {
+    expect(pointsAfterSale([transfer(6, 9, 3)], gameweeks, new Set(), score, nowhere)).toEqual([
+      { playerId: 3, gw: 6, points: 3 * 3 }, // GW6, 7 and 8
+    ]);
+  });
+
+  it("stops counting when the player is bought back, and counts a second sale afresh", () => {
+    const sales = pointsAfterSale(
+      [transfer(2, 9, 3), transfer(5, 3, 9), transfer(7, 10, 3)],
+      gameweeks,
+      new Set(),
+      score,
+      nowhere
+    );
+    expect(sales).toEqual([
+      { playerId: 3, gw: 2, points: 3 * 3 }, // GW2-4, back for GW5
+      { playerId: 9, gw: 5, points: 9 * 4 }, // GW5-8
+      { playerId: 3, gw: 7, points: 3 * 2 }, // GW7-8
+    ]);
+  });
+
+  it("leaves out Free Hit transfers, wildcard chains and weeks the player was back on a Free Hit", () => {
+    const sales = pointsAfterSale(
+      [
+        // Wildcard for GW2: P8 in for P3, then P12 in for P8. P8 was never in the squad.
+        transfer(2, 8, 3),
+        transfer(2, 12, 8),
+        // Free Hit in GW4: P3 back for the week, P5 out for the week.
+        transfer(4, 3, 5),
+      ],
+      gameweeks,
+      new Set([4]),
+      score,
+      (gw, id) => gw === 4 && id === 3
+    );
+    expect(sales).toEqual([{ playerId: 3, gw: 2, points: 3 * 6 }]); // GW2-8 but GW4
+  });
+});
+
 describe("decisions", () => {
   const [ann, bo, cy] = computeTeamStats(snapshot());
 
@@ -461,6 +509,13 @@ describe("decisions", () => {
       { gw: 5, playerId: 7, profit: 4 }, // bought 6.0, sold 6.4
       { gw: 8, playerId: 9, profit: -2 }, // bought 5.5, sold 5.3
     ]);
+  });
+
+  it("finds the sold player who scored most since: seller's remorse", () => {
+    // Bo sold P13 for GW3, where he scored 13.
+    expect(bo.sellersRemorse).toEqual({ name: "P13", gw: 3, points: 13 });
+    expect(ann.sellersRemorse).toBeNull();
+    expect(cy.sellersRemorse).toBeNull();
   });
 
   it("leaves Free Hit transfers out of transfer outcomes", () => {
@@ -824,13 +879,15 @@ describe("computeSeasonHighlights", () => {
 
   it("names the holder of each season record", () => {
     const highlights = facts(computeSeasonHighlights(rows, EVERY_RECORD));
-    expect(highlights).toHaveLength(6);
+    expect(highlights).toHaveLength(7);
     expect(highlights).toEqual(expect.arrayContaining([
       // Ann had the top score in GW1 (alone in the league) and GW3; Bo in GW2.
       { kind: "gameweekWins", teams: ["Ann FC"], value: 2 },
       { kind: "highestScore", teams: ["Bo United"], value: 80 },
       // Bo's one transfer, P13 out for P16, gained 3. Ann made none and paid a hit.
       { kind: "transfers", teams: ["Bo United"], value: 3 },
+      // P13 scored 13 for GW3 after Bo sold him.
+      { kind: "sellersRemorse", teams: ["Bo United"], value: 13 },
       // Ann lost 8 to her captain choices over the season, Bo 3.
       { kind: "captaincy", teams: ["Ann FC"], value: 8 },
       { kind: "bench", teams: ["Ann FC"], value: 9 },
@@ -845,6 +902,11 @@ describe("computeSeasonHighlights", () => {
     expect(kinds).not.toContain("transfers");
     expect(kinds).not.toContain("yellowCards");
     expect(kinds).toContain("gameweekWins");
+  });
+
+  it("names the player behind seller's remorse", () => {
+    const highlights = computeSeasonHighlights(rows, EVERY_RECORD);
+    expect(highlights.find((h) => h.kind === "sellersRemorse")?.detail).toBe("P13");
   });
 
   it("returns nothing for a league without teams", () => {

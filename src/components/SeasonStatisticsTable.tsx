@@ -96,6 +96,16 @@ const columns = [
     header: "Worst Transfer",
     cell: ({ row }) => formatLabelled(row.original.worstTransfer, true),
   }),
+  // Sorted on the points; a team with no such player goes last.
+  columnHelper.accessor((row) => row.sellersRemorse?.points, {
+    id: "sellersRemorse",
+    header: "Seller's Remorse",
+    cell: ({ row }) => {
+      const sold = row.original.sellersRemorse;
+      return sold ? `${sold.points} (${sold.name}, sold GW${sold.gw})` : "–";
+    },
+    sortUndefined: "last",
+  }),
   columnHelper.accessor((row) => row.biggestProfitSale?.value ?? 0, {
     id: "biggestProfitSale",
     header: "Biggest Profit Sale",
@@ -257,6 +267,7 @@ const descriptions: Record<string, string> = {
   hitsPaidOff: "Of the gameweeks in which the manager took a hit, those whose transfers gained more than the hit cost that same gameweek.",
   bestTransfer: "The single transfer with the biggest first-week gain.",
   worstTransfer: "The single transfer with the biggest first-week loss.",
+  sellersRemorse: "The player sold who has scored the most points since, while out of the squad: from the gameweek he was sold until he was bought back, or until now. Counts his points whether or not he would have started. Free Hit transfers are left out.",
   biggestProfitSale: "The sale that made the most money: selling price minus buying price, with the player and the gameweek he was sold. For a player in the squad from the start, the buying price is his start-of-season price.",
   totalSaleProfit: "Profit and loss on every player sold this season, added up. Free Hit weeks are left out.",
   teamValue: "Squad value including money in the bank.",
@@ -315,6 +326,7 @@ const shortHeaders: Record<string, string> = {
   hitsPaidOff: "Hits Paid",
   bestTransfer: "Best Trf",
   worstTransfer: "Worst Trf",
+  sellersRemorse: "Remorse",
   biggestProfitSale: "Best Sale",
   totalSaleProfit: "Sale Profit",
   teamValue: "Value",
@@ -360,7 +372,7 @@ const groups: ColumnGroup[] = [
   },
   {
     name: "Transfers and value",
-    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "hitsPaidOff", "bestTransfer", "worstTransfer", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
+    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "hitsPaidOff", "bestTransfer", "worstTransfer", "sellersRemorse", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
   },
   {
     name: "Chips",
@@ -397,7 +409,7 @@ const viewNames: Record<string, string> = {
 // narrow enough to show whole. Keyed by the view's name.
 const phoneColumns: Record<string, string[]> = {
   Standings: ["rank", "totalPoints", "gapToLeader"],
-  Transfers: ["totalTransfers", "totalTransferPointsDeducted", "transferGainAfterHits", "teamValue"],
+  Transfers: ["totalTransfers", "totalTransferPointsDeducted", "transferGainAfterHits", "sellersRemorse", "teamValue"],
   Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "mostCaptained"],
 };
 
@@ -442,6 +454,13 @@ const highlightCards: Record<SeasonHighlight["kind"], HighlightCard> = {
     column: "transferGainAfterHits",
     desc: true,
   },
+  sellersRemorse: {
+    title: "Seller's remorse",
+    value: (value, player) => (player ? `${player}, ${points(value)}` : points(value)),
+    view: "Transfers",
+    column: "sellersRemorse",
+    desc: true,
+  },
   captaincy: {
     title: "Worst captaincy",
     value: (value) => `${points(value)} lost`,
@@ -481,7 +500,7 @@ export default function SeasonStatisticsTable({
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["bestTransfer", "worstTransfer", "biggestProfitSale", "chipsUsed"]}
+      wrapColumns={["bestTransfer", "worstTransfer", "sellersRemorse", "biggestProfitSale", "chipsUsed"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined
