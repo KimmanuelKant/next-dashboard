@@ -4,7 +4,8 @@ A dashboard for Fantasy Premier League mini-leagues. Enter a classic league ID
 and get sortable, customisable tables the official site does not offer:
 
 - **Scout**: every player, owned in the league or not, with league vs
-  global ownership, effective ownership, captaincy counts and who owns whom.
+  global ownership, effective ownership, captaincy counts and who owns whom,
+  and a mark on injured, doubtful and suspended players with FPL's news.
   Built for finding differentials and making informed transfers.
   Filter by name, position, club, owner, price and number of owners. While
   a gameweek is played, a Live view shows each player's points with
@@ -28,7 +29,9 @@ and get sortable, customisable tables the official site does not offer:
   from the highlight cards, with a link back (a "so far" version while it
   is played; `src/lib/stats/recap.ts`).
 - **Season**: per-manager form, "boom or bust" swing, climbs and falls in
-  the table, runs at the top, transfers, hits (and how many paid off), seller's
+  the table, runs at the top, months won (manager of the month), free
+  transfers and chips left for the next deadline, transfers, hits (and how
+  many paid off), seller's
   remorse (the player sold who has scored most since), chips, captaincy, ranks,
   points by position, weeks at the top and bottom, favourite club,
   most-held player and squad streaks, cards and own goals.

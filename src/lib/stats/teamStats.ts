@@ -12,6 +12,8 @@ import {
 } from "@/lib/fpl/types";
 import { chipLabel } from "@/lib/chips";
 import { computeLeagueHistory, PositionMove } from "./leagueHistory";
+import { MonthResult, monthlyResults } from "./months";
+import { chipsLeft, freeTransfers } from "./deadline";
 import { pointsAfterSale, reviewCaptaincy, topBenched, transferOutcomes } from "./decisions";
 import { PickOptions, pickHighlights, RecordOptions, teamRecord, TeamRecord } from "./records";
 
@@ -131,6 +133,12 @@ export interface TeamStats {
    * scored since.
    */
   sellersRemorse: SoldPlayer | null;
+  /** Every month of FPL's monthly standings that has started, in order. */
+  months: MonthResult[];
+  /** Free transfers for the next gameweek (see freeTransfers); null when there is none. */
+  freeTransfers: number | null;
+  /** Chips that can still be played in the next gameweek's half of the season; null when there is no next gameweek. */
+  chipsLeft: string[] | null;
 }
 
 export interface SoldPlayer {
@@ -293,9 +301,21 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
   const playerName = (id: number | undefined) =>
     (id !== undefined && players.get(id)?.name) || "";
   const clubNames = new Map(snapshot.bootstrap.clubs.map((c) => [c.id, c.name]));
-  const leagueHistory = new Map(
-    computeLeagueHistory(snapshot).rows.map((row) => [row.teamId, row])
+  // The league's week-by-week race (not one manager's history, below).
+  const race = computeLeagueHistory(snapshot);
+  const leagueHistory = new Map(race.rows.map((row) => [row.teamId, row]));
+  const finishedGameweeks = new Set(
+    snapshot.bootstrap.gameweeks.filter((gw) => gw.finished).map((gw) => gw.id)
   );
+  const monthsByTeam = new Map(
+    monthlyResults(race, snapshot.bootstrap.months, finishedGameweeks).map((months, i) => [
+      race.rows[i].teamId,
+      months,
+    ])
+  );
+  // The gameweek whose deadline is next; null once the season's last has passed.
+  const lastGw = snapshot.gameweekIds.at(-1) ?? 0;
+  const nextGw = snapshot.bootstrap.gameweeks.some((gw) => gw.id === lastGw + 1) ? lastGw + 1 : null;
   const topOf = (counts: Map<number, number>): [number, number] | null => {
     let top: [number, number] | null = null;
     counts.forEach((count, id) => {
@@ -550,6 +570,10 @@ export function computeTeamStats(snapshot: LeagueSnapshot): TeamStats[] {
       biggestProfitSale,
       totalSaleProfit: sales.reduce((sum, sale) => sum + sale.profit, 0) / 10,
       sellersRemorse,
+      months: monthsByTeam.get(manager.entryId) ?? [],
+      freeTransfers:
+        nextGw === null ? null : freeTransfers(history, snapshot.bootstrap.maxFreeTransfers),
+      chipsLeft: nextGw === null ? null : chipsLeft(history.chips, snapshot.bootstrap.chips, nextGw),
     };
   });
 }
@@ -564,6 +588,7 @@ export type SeasonHighlight = TeamRecord<
   | "boomOrBust"
   | "transfers"
   | "sellersRemorse"
+  | "monthWinner"
   | "captaincy"
   | "bench"
   | "yellowCards"
@@ -590,7 +615,17 @@ export function computeSeasonHighlights(
     const holder = record && rows.find((row) => stat(row) === record.value);
     return record && holder ? { ...record, detail: detail(holder) } : null;
   };
+  // The latest month that is over: its winner is the manager of the month.
+  const lastMonth = rows[0]?.months.findLastIndex((month) => month.finished) ?? -1;
   const records = [
+    lastMonth >= 0
+      ? withDetail(
+          "monthWinner",
+          (row) => row.months[lastMonth]?.points ?? 0,
+          (row) => row.months[lastMonth]?.name,
+          { scale: 10 }
+        )
+      : null,
     teamRecord("gameweekWins", rows, (row) => row.gameweekWins, { minimum: 1, scale: 1 }),
     teamRecord("highestScore", rows, (row) => row.highestGameweekScore, { minimum: 1, scale: 5 }),
     withDetail(

@@ -14,6 +14,7 @@ import type {
   TeamStats,
 } from "@/lib/stats/teamStats";
 import type { PositionMove } from "@/lib/stats/leagueHistory";
+import { chipCode, chipLabel } from "@/lib/chips";
 
 const columnHelper = createColumnHelper<TeamStats>();
 
@@ -76,6 +77,25 @@ const columns = [
   columnHelper.accessor("leadsTaken", { id: "leadsTaken", header: "Times Took the Lead" }),
   columnHelper.accessor("weeksAtBottom", { id: "weeksAtBottom", header: "Weeks at Bottom" }),
   columnHelper.accessor("gameweekWins", { id: "gameweekWins", header: "GW Wins" }),
+  columnHelper.accessor((row) => row.months.filter((month) => month.won).length, {
+    id: "monthsWon",
+    header: "Months Won",
+    cell: ({ row, getValue }) => {
+      const won = row.original.months.filter((month) => month.won);
+      if (won.length === 0) return "0";
+      return (
+        <Narrow short={String(getValue())}>
+          {getValue()} ({won.map((month) => month.name.slice(0, 3)).join(", ")})
+        </Narrow>
+      );
+    },
+  }),
+  columnHelper.accessor((row) => row.months.at(-1)?.points, {
+    id: "monthPoints",
+    header: "This Month",
+    cell: ({ getValue }) => getValue() ?? "–",
+    sortUndefined: "last",
+  }),
   // Moves sort on the places; a team that never climbed (or fell) goes last.
   columnHelper.accessor((row) => row.biggestClimb?.places, {
     id: "biggestClimb",
@@ -108,6 +128,12 @@ const columns = [
 
   // Transfers and value
   columnHelper.accessor("totalTransfers", { id: "totalTransfers", header: "Total Transfers" }),
+  columnHelper.accessor((row) => row.freeTransfers ?? undefined, {
+    id: "freeTransfers",
+    header: "Free Transfers",
+    cell: ({ getValue }) => getValue() ?? "–",
+    sortUndefined: "last",
+  }),
   columnHelper.accessor("totalTransferPointsDeducted", { id: "totalTransferPointsDeducted", header: "Total Hits" }),
   columnHelper.accessor("transferGain", {
     id: "transferGain",
@@ -180,7 +206,21 @@ const columns = [
     cell: ({ getValue }) => formatMoney(getValue()),
   }),
 
-  // Chips. Chip columns sort on total points; "Not used" sorts last.
+  // Chips. Chip columns sort on total points; "Not used" sorts last. Chips
+  // left come first: what to expect from a rival at the next deadline.
+  columnHelper.accessor((row) => row.chipsLeft?.length, {
+    id: "chipsLeft",
+    header: "Chips Left",
+    cell: ({ row }) => {
+      const left = row.original.chipsLeft;
+      if (left === null) return "–";
+      if (left.length === 0) return "None";
+      return (
+        <Narrow short={left.map(chipCode).join(" ")}>{left.map(chipLabel).join(", ")}</Narrow>
+      );
+    },
+    sortUndefined: "last",
+  }),
   columnHelper.accessor("wildcardsUsed", { id: "wildcardsUsed", header: "Wildcards Used" }),
   columnHelper.accessor((row) => chipTotal(row.tripleCaptain), {
     id: "tripleCaptain",
@@ -309,6 +349,8 @@ const descriptions: Record<string, string> = {
   longestRunAtTop: "The most gameweeks in a row in first place in this league. Teams level at the top all count as first.",
   leadsTaken: "Gameweeks in which the team went top of the league from a lower place.",
   weeksAtBottom: "Gameweeks spent in last place in this league.",
+  monthsWon: "Months of FPL's monthly standings in which the team scored the most points in this league, after hits, with the months. A month counts once all its gameweeks are finished; ties count for everyone tied.",
+  monthPoints: "Points in the latest month of FPL's monthly standings, after hits: so far, while the month is played.",
   gameweekWins: "Gameweeks with the highest score in this league, after hits. Ties count for everyone tied.",
   bestLeaguePosition: "The highest position reached in this league.",
   worstLeaguePosition: "The lowest position in this league.",
@@ -316,6 +358,7 @@ const descriptions: Record<string, string> = {
   biggestClimb: "The most places gained in this league in one gameweek, and the gameweek.",
   biggestFall: "The most places lost in this league in one gameweek, and the gameweek.",
   totalTransfers: "Transfers made this season.",
+  freeTransfers: "Free transfers for the next gameweek, worked out from the team's season with FPL's rules: one more after each deadline, at most five saved, none used on a Wildcard or Free Hit week. Transfers already made for the next gameweek are not taken off.",
   totalTransferPointsDeducted: "Points deducted for extra transfers.",
   transferGain: "What the players bought scored in their first gameweek, minus what the players sold scored that same week. Counts points whether or not the player was in the starting eleven. Free Hit weeks are left out.",
   transferGainAfterHits: "Transfer gain minus the points paid in hits.",
@@ -332,6 +375,7 @@ const descriptions: Record<string, string> = {
   benchBoost: "Points the four bench players scored, and the gameweek.",
   freeHit: "The team's score in the Free Hit gameweek.",
   chipsUsed: "Every chip played, with the gameweek.",
+  chipsLeft: "Chips the team can still play in this half of the season. Each chip can be played once before the turn of the year and once after.",
   chipPointsGained: "Extra points from Triple Captain and Bench Boost. Free Hit and Wildcard are not included, since their gain cannot be measured.",
   totalCaptainPoints: "Points from the player who wore the armband each week (the vice captain when the captain did not play), including the multiplier.",
   captainPointsPercentage: "Captain points as a share of all points scored before hits.",
@@ -381,6 +425,10 @@ const shortHeaders: Record<string, string> = {
   averageLeaguePosition: "Avg Pos",
   weeksAtBottom: "Wks Last",
   gameweekWins: "Wins",
+  monthsWon: "Months",
+  monthPoints: "Month",
+  freeTransfers: "FTs",
+  chipsLeft: "Left",
   bestLeaguePosition: "Best Pos",
   worstLeaguePosition: "Worst Pos",
   totalTransfers: "Trfs",
@@ -435,15 +483,15 @@ const groups: ColumnGroup[] = [
   },
   {
     name: "League race",
-    columns: ["weeksAtTop", "longestRunAtTop", "leadsTaken", "weeksAtBottom", "gameweekWins", "biggestClimb", "biggestFall", "bestLeaguePosition", "worstLeaguePosition", "averageLeaguePosition"],
+    columns: ["weeksAtTop", "longestRunAtTop", "leadsTaken", "weeksAtBottom", "gameweekWins", "monthsWon", "monthPoints", "biggestClimb", "biggestFall", "bestLeaguePosition", "worstLeaguePosition", "averageLeaguePosition"],
   },
   {
     name: "Transfers and value",
-    columns: ["totalTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "hitsPaidOff", "bestTransfer", "worstTransfer", "sellersRemorse", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
+    columns: ["totalTransfers", "freeTransfers", "totalTransferPointsDeducted", "transferGain", "transferGainAfterHits", "hitsPaidOff", "bestTransfer", "worstTransfer", "sellersRemorse", "biggestProfitSale", "totalSaleProfit", "teamValue", "bank"],
   },
   {
     name: "Chips",
-    columns: ["wildcardsUsed", "tripleCaptain", "benchBoost", "freeHit", "chipsUsed", "chipPointsGained"],
+    columns: ["chipsLeft", "wildcardsUsed", "tripleCaptain", "benchBoost", "freeHit", "chipsUsed", "chipPointsGained"],
   },
   {
     name: "Captaincy",
@@ -477,9 +525,11 @@ const viewNames: Record<string, string> = {
 const phoneColumns: Record<string, string[]> = {
   Standings: ["rank", "totalPoints", "gapToLeader", "formLast5", "scoreSpread"],
   "League race": ["gameweekWins", "longestRunAtTop", "biggestClimb", "biggestFall"],
-  // Net Gain already has the hits taken off; Hits and Value make room for
-  // Seller's Remorse.
-  Transfers: ["totalTransfers", "transferGainAfterHits", "sellersRemorse"],
+  // Free transfers rather than the season's total: what to expect at the
+  // next deadline. Net Gain already has the hits taken off; Hits and Value
+  // make room for Seller's Remorse.
+  Transfers: ["freeTransfers", "transferGainAfterHits", "sellersRemorse"],
+  Chips: ["chipsLeft", "wildcardsUsed", "chipPointsGained"],
   Captaincy: ["totalCaptainPoints", "captaincyPointsLost", "mostCaptained"],
 };
 
@@ -515,6 +565,13 @@ const highlightCards: Record<SeasonHighlight["kind"], HighlightCard> = {
     value: points,
     view: "Standings",
     column: "highestGameweekScore",
+    desc: true,
+  },
+  monthWinner: {
+    title: "Manager of the month",
+    value: (value, month) => (month ? `${month}, ${points(value)}` : points(value)),
+    view: "League race",
+    column: "monthsWon",
     desc: true,
   },
   climb: {

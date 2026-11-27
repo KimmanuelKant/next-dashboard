@@ -6,7 +6,7 @@ import { Form } from "react-bootstrap";
 import DataTable, { Preset } from "@/components/DataTable";
 import Narrow from "@/components/Narrow";
 import type { ChangeTracking } from "@/lib/liveChanges";
-import type { PlayerStats } from "@/lib/stats/playerStats";
+import type { Availability, PlayerStats } from "@/lib/stats/playerStats";
 
 const columnHelper = createColumnHelper<PlayerStats>();
 
@@ -14,8 +14,46 @@ const percent = (value: number) => `${value.toFixed(1)}%`;
 const signedPercent = (value: number) =>
   `${value > 0 ? "+" : ""}${value.toFixed(1)}`;
 
+// The mark by a player's name: his chance of playing ("75%"), or why he
+// will not. Amber while he is more likely to play than not, red after.
+function AvailabilityMark({ availability }: { availability: Availability | null }) {
+  if (!availability) return null;
+  const { kind, chance, news } = availability;
+  const text =
+    kind === "suspended"
+      ? "Susp"
+      : kind === "doubtful"
+        ? chance === null
+          ? "Doubt"
+          : `${chance}%`
+        : "Out";
+  const likely = kind === "doubtful" && (chance === null || chance >= 50);
+  return (
+    <span
+      className={`badge ${likely ? "text-bg-warning" : "text-bg-danger"} me-1`}
+      title={news || undefined}
+    >
+      {text}
+      <span className="visually-hidden"> ({news || kind})</span>
+    </span>
+  );
+}
+
+const availabilityText = (availability: Availability | null) =>
+  availability ? availability.news || availability.kind : "Available";
+
 const columns = [
-  columnHelper.accessor("name", { id: "name", header: "Player" }),
+  // The mark goes first, so that a long name cut short on a phone keeps it.
+  columnHelper.accessor("name", {
+    id: "name",
+    header: "Player",
+    cell: ({ row }) => (
+      <>
+        <AvailabilityMark availability={row.original.availability} />
+        {row.original.name}
+      </>
+    ),
+  }),
   columnHelper.accessor("position", { id: "position", header: "Position" }),
   columnHelper.accessor("club", { id: "club", header: "Club" }),
   columnHelper.accessor("value", {
@@ -85,6 +123,16 @@ const columns = [
   }),
   columnHelper.accessor("leagueCaptainCount", { id: "leagueCaptainCount", header: "Captained" }),
   columnHelper.accessor("leagueViceCaptainCount", { id: "leagueViceCaptainCount", header: "Vice Captained" }),
+  // Sorted by the chance of playing, least likely first; available players
+  // last. A doubtful player without a chance counts as an even one.
+  columnHelper.accessor(
+    (row) => (row.availability ? row.availability.chance ?? 50 : 101),
+    {
+      id: "availability",
+      header: "Availability",
+      cell: ({ row }) => availabilityText(row.original.availability),
+    }
+  ),
   columnHelper.accessor((row) => row.owners.length, {
     id: "owners",
     header: "Owned By",
@@ -124,6 +172,7 @@ const descriptions: Record<string, string> = {
   leagueCaptainCount: "Number of managers in this league who captained the player.",
   leagueViceCaptainCount: "Number of managers in this league who vice-captained the player.",
   owners: "The teams in this league that own the player.",
+  availability: "FPL's news on the player. The mark by his name gives his chance of playing in the next gameweek (75%), or Out (injured, or no longer available), Susp (suspended) or Doubt (doubtful, with no chance given).",
 };
 
 // Headers for phone-width screens, where the full ones are wider than the data.
@@ -144,6 +193,7 @@ const shortHeaders: Record<string, string> = {
   provisionalBonus: "Bonus",
   leagueCaptainCount: "Capt",
   leagueViceCaptainCount: "Vice",
+  availability: "News",
 };
 
 // `phoneColumns`: what the widest views keep on a phone besides the player's
@@ -186,7 +236,9 @@ const presets: Preset[] = [
   },
   {
     name: "Player details",
-    columns: ["name", "position", "club", "value", "totalPoints", "form"],
+    columns: ["name", "position", "club", "value", "totalPoints", "form", "availability"],
+    // The mark by the name says enough on a phone; the news is a tap away.
+    phoneColumns: ["position", "value", "totalPoints", "form"],
   },
   {
     name: "Form and points",
@@ -430,7 +482,7 @@ export default function PlayerStatisticsTable({
         shortHeaders={shortHeaders}
         stickyColumn="name"
         subtitleColumn="club"
-        wrapColumns={["owners"]}
+        wrapColumns={["owners", "availability"]}
         detailNoun="player"
         trackChanges={isLive ? liveChanges : undefined}
       />

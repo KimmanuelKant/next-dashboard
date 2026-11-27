@@ -73,6 +73,16 @@ export interface FplEventChipPlay {
     timezone: string;
   }
   
+  /** A chip and the gameweeks it can be played in (one entry per half of the season). */
+  export interface FplChip {
+    id: number;
+    name: string;
+    number: number;
+    start_event: number;
+    stop_event: number;
+    chip_type: string;
+  }
+
   export interface FplPhase {
     id: number;
     name: string;
@@ -106,8 +116,8 @@ export interface FplEventChipPlay {
   }
   
   export interface FplElement {
-    chance_of_playing_next_round?: number;
-    chance_of_playing_this_round?: number;
+    chance_of_playing_next_round?: number | null;
+    chance_of_playing_this_round?: number | null;
     code: number;
     cost_change_event: number;
     cost_change_event_fall: number;
@@ -219,6 +229,7 @@ export interface FplEventChipPlay {
   }
   
   export interface FplBootstrapStatic {
+    chips: FplChip[];
     events: FplEvent[];
     game_settings: FplGameSettings;
     phases: FplPhase[];

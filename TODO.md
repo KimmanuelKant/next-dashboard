@@ -22,7 +22,7 @@ the way to grow without self-promotion.
   server render: cache it by address.
 
 ## Next stats (best value for the effort)
-- Season: manager of the month, and previous seasons (trim).
+- Season: previous seasons (trim, see Veterans below).
 - Scout: upcoming fixtures (fetch `/fixtures/`).
 
 ## Live (while a gameweek is played)
@@ -47,15 +47,12 @@ the way to grow without self-promotion.
   Season tab can add up points gained from automatic substitutions.
 
 ## Season: stats still to add, by group
-- League race: manager of the month, from the month ranges in
-  `bootstrap.phases` (trim). Monthly wins as a column and a highlight card.
 - Chips: chip timing against the league average. Chip timeline: a dot per
   chip per team along the gameweeks (who still holds what, who copied whom).
-- Chips left and free transfers banked, for every rival (what to expect
-  before a deadline). The Season tab shows only the chips used. Mind this
-  season's rules: each chip once in each half of the season (`chips` in
-  bootstrap gives the ranges), wildcards and free hits do not use up free
-  transfers, and at most `max_extra_free_transfers` can be saved.
+- Free transfers are worked out from FPL's rules in `deadline.ts`, since
+  FPL does not publish other teams'. Check them against a real team now
+  and then; a one-off top-up for everyone (as for AFCON in 2025/26) would
+  need adding there.
 - Captaincy: captain blanks (armband returned 2 points or fewer), vice
   captain saves.
 - Transfers: bought too late (points a player scored before being bought),
@@ -87,8 +84,6 @@ the way to grow without self-promotion.
 - Price change since the start of the season (`startCost` is loaded, not
   shown).
 - Times captained in the league this season.
-- Injured and doubtful players flagged (trim: `status`, `news` and
-  `chance_of_playing_next_round` in bootstrap).
 
 ## Charts (the League History tab, renamed)
 The tab is becoming a chart builder. A series is one number per team per

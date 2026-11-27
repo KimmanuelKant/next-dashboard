@@ -8,7 +8,7 @@ import { MAX_MANAGERS } from "@/lib/leagueId";
 const features = [
   {
     title: "Scout: differentials and who owns whom",
-    text: "Every player, owned in your league or not, with league ownership next to global ownership, effective ownership and captaincy counts. Filter by position, club, price, owner and number of owners to find the differentials your rivals do not have.",
+    text: "Every player, owned in your league or not, with league ownership next to global ownership, effective ownership and captaincy counts. Injured and doubtful players are marked with FPL's news. Filter by position, club, price, owner and number of owners to find the differentials your rivals do not have.",
   },
   {
     title: "This Gameweek",
@@ -16,7 +16,7 @@ const features = [
   },
   {
     title: "Season",
-    text: "Form over the last five gameweeks, the biggest climbs and falls in the table, longest runs at the top, who is boom or bust, transfers and hits, seller's remorse, chips, captaincy, ranks, points by position, favourite club, cards and own goals, for every manager.",
+    text: "Form over the last five gameweeks, the biggest climbs and falls in the table, longest runs at the top, who is boom or bust, manager of the month, each rival's free transfers and chips left, transfers and hits, seller's remorse, chips, captaincy, ranks, points by position, favourite club, cards and own goals, for every manager.",
   },
   {
     title: "Charts: the race for the title",

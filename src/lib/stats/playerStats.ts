@@ -44,6 +44,40 @@ export interface PlayerStats {
   leagueViceCaptainCount: number;
   /** Team names of the managers who own the player. */
   owners: string[];
+  /** Whether he can play in the next gameweek; null when FPL lists him as available. */
+  availability: Availability | null;
+}
+
+export interface Availability {
+  /** "doubtful", "injured", "suspended" or "unavailable" (left the league, or not eligible). */
+  kind: "doubtful" | "injured" | "suspended" | "unavailable";
+  /** Chance of playing in the next gameweek, percent; null when FPL gives none. */
+  chance: number | null;
+  /** FPL's news, such as "Hamstring injury - Expected back 20 Dec"; may be empty. */
+  news: string;
+}
+
+const AVAILABILITY_KINDS: Record<string, Availability["kind"]> = {
+  d: "doubtful",
+  i: "injured",
+  s: "suspended",
+  u: "unavailable",
+  n: "unavailable",
+};
+
+/**
+ * A player's availability from FPL's status code. FPL gives a doubtful
+ * player a chance (25, 50 or 75) and the others 0 or none; a status code it
+ * may add later reads as doubtful.
+ */
+export function availabilityOf(player: {
+  status: string;
+  chanceNextRound: number | null;
+  news: string;
+}): Availability | null {
+  if (player.status === "a") return null;
+  const kind = AVAILABILITY_KINDS[player.status] ?? "doubtful";
+  return { kind, chance: player.chanceNextRound, news: player.news };
 }
 
 const POSITION_NAMES: Record<PositionId, string> = {
@@ -143,6 +177,7 @@ export function computePlayerStats(snapshot: LeagueSnapshot): PlayerStats[] {
       leagueCaptainCount: tally.captain,
       leagueViceCaptainCount: tally.vice,
       owners: tally.owners,
+      availability: player ? availabilityOf(player) : null,
     });
   });
 

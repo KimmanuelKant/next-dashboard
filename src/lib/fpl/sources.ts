@@ -57,6 +57,9 @@ async function fetchBootstrap(): Promise<Bootstrap> {
       selectedByPercent: Number.parseFloat(el.selected_by_percent) || 0,
       totalPoints: el.total_points,
       form: Number.parseFloat(el.form) || 0,
+      status: el.status,
+      chanceNextRound: el.chance_of_playing_next_round ?? null,
+      news: el.news ?? "",
     })),
     clubs: raw.teams.map((t) => ({
       id: t.id,
@@ -73,10 +76,22 @@ async function fetchBootstrap(): Promise<Bootstrap> {
       highestScore: e.highest_score ?? null,
       mostCaptained: e.most_captained ?? null,
     })),
+    // FPL's first phase is the whole season ("Overall"); the rest are months.
+    months: raw.phases
+      .filter((p) => !(p.start_event === raw.events[0]?.id && p.stop_event === raw.events.at(-1)?.id))
+      .map((p) => ({ name: p.name, start: p.start_event, stop: p.stop_event })),
+    chips: (raw.chips ?? []).map((c) => ({
+      name: c.name,
+      number: c.number,
+      start: c.start_event,
+      stop: c.stop_event,
+    })),
+    maxFreeTransfers: 1 + (raw.game_settings?.max_extra_free_transfers ?? 0),
   };
 }
 
-export const getBootstrap = unstable_cache(fetchBootstrap, ["fpl-bootstrap-v3"], {
+// v4: months, chip windows, the free transfer limit and player availability.
+export const getBootstrap = unstable_cache(fetchBootstrap, ["fpl-bootstrap-v4"], {
   revalidate: 5 * MINUTE,
 });
 

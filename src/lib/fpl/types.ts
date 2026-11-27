@@ -18,6 +18,32 @@ export interface Player {
   selectedByPercent: number;
   totalPoints: number;
   form: number;
+  /**
+   * FPL's availability code: "a" available, "d" doubtful, "i" injured,
+   * "s" suspended, "u" unavailable (left the league), "n" not eligible
+   * (on loan to his parent club's opponent).
+   */
+  status: string;
+  /** Chance of playing in the next gameweek, percent; null when FPL gives none (available). */
+  chanceNextRound: number | null;
+  /** FPL's news about the player ("Hamstring injury - 75% chance of playing"); empty when none. */
+  news: string;
+}
+
+/** A month of FPL's monthly standings and the gameweeks it counts. */
+export interface Month {
+  name: string;
+  start: number;
+  stop: number;
+}
+
+/** When a chip can be played: `number` times between these gameweeks. */
+export interface ChipWindow {
+  /** FPL's chip name ("wildcard", "freehit", "bboost", "3xc"). */
+  name: string;
+  number: number;
+  start: number;
+  stop: number;
 }
 
 export interface Club {
@@ -50,6 +76,12 @@ export interface Bootstrap {
   players: Player[];
   clubs: Club[];
   gameweeks: Gameweek[];
+  /** The months of FPL's monthly standings, in order (the whole-season phase left out). */
+  months: Month[];
+  /** Each chip's windows: this season, one of each in each half of the season. */
+  chips: ChipWindow[];
+  /** The most free transfers a team can hold: one, plus the extra FPL lets it save. */
+  maxFreeTransfers: number;
 }
 
 export interface Manager {

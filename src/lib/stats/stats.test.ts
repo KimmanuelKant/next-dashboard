@@ -17,7 +17,8 @@ import {
   computeTeamStats,
   effectiveCaptain,
 } from "./teamStats";
-import { computePlayerStats } from "./playerStats";
+import { availabilityOf, computePlayerStats } from "./playerStats";
+import { chipsLeft, freeTransfers } from "./deadline";
 import {
   CHART_SERIES,
   computeLeagueHistory,
@@ -45,6 +46,9 @@ const players: Player[] = Array.from({ length: 16 }, (_, i) => {
     selectedByPercent: id === 13 ? 60 : 10,
     totalPoints: 0,
     form: 0,
+    status: "a",
+    chanceNextRound: null,
+    news: "",
   };
 });
 
@@ -120,7 +124,8 @@ function snapshot(): LeagueSnapshot {
       totalManagers: 1000,
       players,
       clubs: [{ id: 1, name: "Club", shortName: "CLB" }],
-      gameweeks: [1, 2, 3].map((id) => ({
+      // GW4 is next: its deadline has not passed.
+      gameweeks: [1, 2, 3, 4].map((id) => ({
         id,
         finished: id < 3,
         isCurrent: id === 3,
@@ -129,6 +134,16 @@ function snapshot(): LeagueSnapshot {
         highestScore: null,
         mostCaptained: null,
       })),
+      months: [
+        { name: "August", start: 1, stop: 2 },
+        { name: "September", start: 3, stop: 5 },
+      ],
+      // As this season: one of each chip in each half.
+      chips: ["wildcard", "freehit", "bboost", "3xc"].flatMap((name) => [
+        { name, number: 1, start: name === "wildcard" || name === "freehit" ? 2 : 1, stop: 19 },
+        { name, number: 1, start: 20, stop: 38 },
+      ]),
+      maxFreeTransfers: 5,
     },
     currentGw: 3,
     gameweekIds: [1, 2, 3],
@@ -375,6 +390,31 @@ describe("league history and squad habits", () => {
     expect([ann.weeksAboveAverage, bo.weeksAboveAverage]).toEqual([5, 2]);
   });
 
+  it("adds up each month and crowns the winner once the month is over", () => {
+    // August is GW1-2 (over); September has only GW3 so far.
+    expect(ann.months).toEqual([
+      { name: "August", points: 70 + 56, finished: true, won: true },
+      { name: "September", points: 74, finished: false, won: false },
+    ]);
+    expect(bo.months.map((m) => [m.points, m.won])).toEqual([[80, false], [50, false]]);
+    // Cy had no team: nothing scored, nothing won.
+    expect(cy.months.map((m) => [m.points, m.won])).toEqual([[0, false], [0, false]]);
+  });
+
+  it("works out free transfers and chips left for the next deadline", () => {
+    // Ann: 1 after GW1; Wildcard in GW2 keeps it and adds one (2); one free
+    // transfer in GW3 leaves 1, and the GW4 deadline adds one.
+    expect(ann.freeTransfers).toBe(2);
+    // Bo joined in GW2 (1 after it) and played a Free Hit in GW3.
+    expect(bo.freeTransfers).toBe(2);
+    expect(cy.freeTransfers).toBeNull();
+    // First half: Ann used the Wildcard and the Triple Captain (twice, which
+    // FPL would not allow, so it only uses the one up).
+    expect(ann.chipsLeft).toEqual(["freehit", "bboost"]);
+    expect(bo.chipsLeft).toEqual(["wildcard", "3xc"]);
+    expect(cy.chipsLeft).toEqual(["wildcard", "freehit", "bboost", "3xc"]);
+  });
+
   it("finds the longest-held player and favourite club", () => {
     expect(ann.mostHeld?.count).toBe(3);
     expect(bo.mostHeld?.count).toBe(2);
@@ -417,6 +457,85 @@ describe("transferOutcomes", () => {
       score
     );
     expect(outcomes).toEqual([{ playerIn: 12, playerOut: 3, gain: 9 }]);
+  });
+});
+
+describe("freeTransfers", () => {
+  // One week per entry: [transfers, hit points]; GW1 first.
+  const season = (weeks: [number, number][], chips: { name: string; gw: number }[] = []) => ({
+    gameweeks: weeks.map(([transfers, transfersCost], i) => week(i + 1, 50, { transfers, transfersCost })),
+    chips,
+    transfers: [],
+  });
+
+  it("saves one a week, up to the most FPL allows", () => {
+    // GW1's transfers come before the first deadline and are free.
+    expect(freeTransfers(season([[5, 0], [0, 0]]), 5)).toBe(2);
+    expect(freeTransfers(season([[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]), 5)).toBe(5);
+  });
+
+  it("uses the free ones before the paid ones", () => {
+    // GW2: three transfers, two paid for (-8): the one free one is used.
+    expect(freeTransfers(season([[0, 0], [3, 8]]), 5)).toBe(1);
+    // GW2 saves one; GW3 uses one of the two.
+    expect(freeTransfers(season([[0, 0], [0, 0], [1, 0]]), 5)).toBe(2);
+  });
+
+  it("keeps them through a Wildcard or Free Hit week", () => {
+    const withWildcard = season([[0, 0], [0, 0], [11, 0]], [{ name: "wildcard", gw: 3 }]);
+    expect(freeTransfers(withWildcard, 5)).toBe(3);
+    const withBenchBoost = season([[0, 0], [0, 0], [2, 0]], [{ name: "bboost", gw: 3 }]);
+    expect(freeTransfers(withBenchBoost, 5)).toBe(1);
+  });
+
+  it("has none to give before a team's first gameweek", () => {
+    expect(freeTransfers({ gameweeks: [], chips: [], transfers: [] }, 5)).toBeNull();
+  });
+});
+
+describe("chipsLeft", () => {
+  const windows = [
+    { name: "wildcard", number: 1, start: 2, stop: 19 },
+    { name: "wildcard", number: 1, start: 20, stop: 38 },
+    { name: "bboost", number: 2, start: 1, stop: 38 },
+  ];
+
+  it("lists the chips of the next gameweek's half not yet played in it", () => {
+    expect(chipsLeft([{ name: "wildcard", gw: 5 }], windows, 12)).toEqual(["bboost", "bboost"]);
+    // A first-half Wildcard does not use up the second half's.
+    expect(chipsLeft([{ name: "wildcard", gw: 5 }, { name: "bboost", gw: 7 }], windows, 20)).toEqual([
+      "wildcard",
+      "bboost",
+    ]);
+  });
+
+  it("has nothing left after the season", () => {
+    expect(chipsLeft([], windows, 39)).toEqual([]);
+  });
+});
+
+describe("availabilityOf", () => {
+  const player = (status: string, chanceNextRound: number | null, news = "") => ({
+    status,
+    chanceNextRound,
+    news,
+  });
+
+  it("is null for an available player", () => {
+    expect(availabilityOf(player("a", null))).toBeNull();
+  });
+
+  it("reads FPL's status codes, keeping the chance FPL gives", () => {
+    expect(availabilityOf(player("d", 75, "Knock - 75% chance of playing"))).toEqual({
+      kind: "doubtful",
+      chance: 75,
+      news: "Knock - 75% chance of playing",
+    });
+    expect(availabilityOf(player("d", null))?.chance).toBeNull();
+    expect(availabilityOf(player("i", 0))?.kind).toBe("injured");
+    expect(availabilityOf(player("s", 0))?.kind).toBe("suspended");
+    expect(availabilityOf(player("u", 0))?.kind).toBe("unavailable");
+    expect(availabilityOf(player("n", 0))?.kind).toBe("unavailable");
   });
 });
 
@@ -922,7 +1041,7 @@ describe("computeSeasonHighlights", () => {
 
   it("names the holder of each season record", () => {
     const highlights = facts(computeSeasonHighlights(rows, EVERY_RECORD));
-    expect(highlights).toHaveLength(11);
+    expect(highlights).toHaveLength(12);
     expect(highlights).toEqual(expect.arrayContaining([
       // Ann had the top score in GW1 (alone in the league) and GW3; Bo in GW2.
       { kind: "gameweekWins", teams: ["Ann FC"], value: 2 },
@@ -933,6 +1052,8 @@ describe("computeSeasonHighlights", () => {
       { kind: "runAtTop", teams: ["Ann FC", "Bo United"], value: 1 },
       // Bo's 80 and 50 swing 15 either side of his average.
       { kind: "boomOrBust", teams: ["Bo United"], value: 15 },
+      // August (GW1-2) is over: Ann's 70 + 56 beat Bo's 80.
+      { kind: "monthWinner", teams: ["Ann FC"], value: 126 },
       // Bo's one transfer, P13 out for P16, gained 3. Ann made none and paid a hit.
       { kind: "transfers", teams: ["Bo United"], value: 3 },
       // P13 scored 13 for GW3 after Bo sold him.
@@ -946,7 +1067,8 @@ describe("computeSeasonHighlights", () => {
 
   it("leaves out a record nobody holds", () => {
     const kinds = computeSeasonHighlights(
-      rows.map((row) => ({ ...row, transferGainAfterHits: -4, yellowCards: 0 }))
+      rows.map((row) => ({ ...row, transferGainAfterHits: -4, yellowCards: 0 })),
+      EVERY_RECORD
     ).map((highlight) => highlight.kind);
     expect(kinds).not.toContain("transfers");
     expect(kinds).not.toContain("yellowCards");
@@ -956,6 +1078,17 @@ describe("computeSeasonHighlights", () => {
   it("names the player behind seller's remorse", () => {
     const highlights = computeSeasonHighlights(rows, EVERY_RECORD);
     expect(highlights.find((h) => h.kind === "sellersRemorse")?.detail).toBe("P13");
+  });
+
+  it("names the month of the manager of the month, and has none before a month is over", () => {
+    expect(computeSeasonHighlights(rows, EVERY_RECORD).find((h) => h.kind === "monthWinner")?.detail).toBe(
+      "August"
+    );
+    const noneOver = rows.map((row) => ({
+      ...row,
+      months: row.months.map((month) => ({ ...month, finished: false, won: false })),
+    }));
+    expect(computeSeasonHighlights(noneOver, EVERY_RECORD).map((h) => h.kind)).not.toContain("monthWinner");
   });
 
   it("names the gameweek of the biggest climb and fall", () => {
@@ -1075,7 +1208,7 @@ describe("computePlayerStats", () => {
     const unowned = snapshot();
     unowned.bootstrap.players.push({
       id: 99, name: "Nobody", position: 3, clubId: 1, cost: 45, startCost: 45,
-      selectedByPercent: 30, totalPoints: 50, form: 7,
+      selectedByPercent: 30, totalPoints: 50, form: 7, status: "a", chanceNextRound: null, news: "",
     });
     const player = computePlayerStats(unowned).find((p) => p.name === "Nobody")!;
     expect(player.leagueOwnershipCount).toBe(0);

@@ -14,3 +14,16 @@ const CHIP_NAMES: Record<string, string> = {
 export function chipLabel(name: string): string {
   return CHIP_NAMES[name] ?? name;
 }
+
+// The usual FPL abbreviations, for phone-width cells.
+const CHIP_CODES: Record<string, string> = {
+  wildcard: "WC",
+  "3xc": "TC",
+  bboost: "BB",
+  freehit: "FH",
+  manager: "AM",
+};
+
+export function chipCode(name: string): string {
+  return CHIP_CODES[name] ?? name;
+}
