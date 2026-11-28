@@ -141,6 +141,23 @@ summary.detail-stat::-webkit-details-marker {
   display: inline;
 }
 
+/* <ShortList>: one line in the table, the whole list in the panel. */
+.list-short {
+  white-space: nowrap;
+}
+
+.list-full {
+  display: none;
+}
+
+.detail-value .list-short {
+  display: none;
+}
+
+.detail-value .list-full {
+  display: inline;
+}
+
 .detail-heading {
   margin: 0;
   padding-bottom: 0.25rem;

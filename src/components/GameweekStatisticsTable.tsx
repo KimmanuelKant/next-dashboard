@@ -7,6 +7,7 @@ import { HighlightCard, toHighlight } from "@/components/Highlights";
 import MyTeamButton from "@/components/MyTeamButton";
 import Narrow from "@/components/Narrow";
 import ScoreSpread from "@/components/ScoreSpread";
+import ShortList from "@/components/ShortList";
 import type { ChangeTracking } from "@/lib/liveChanges";
 import type { GameweekHighlight, GameweekStats } from "@/lib/stats/gameweekStats";
 import { useMyTeamId } from "@/lib/myTeam";
@@ -25,7 +26,6 @@ function formatSigned(value: number | undefined) {
 }
 /** Points behind; nothing to show for the team in front. */
 const formatGap = (value: number | undefined) => (value ? String(value) : "–");
-const formatList = (items: string[]) => items.join(", ") || "–";
 /** "Palmer (+9.6)", "Haaland (−7)". */
 const formatSwing = (item: { name: string; count: number } | null) =>
   item ? `${item.name} (${formatSigned(item.count)})` : "–";
@@ -161,7 +161,7 @@ const columns = [
       // Null: not known (see GameweekStats).
       if (automaticSubs.length === 0) return automaticSubPoints === 0 ? "None" : "–";
       const gain = automaticSubPoints ? ` (+${automaticSubPoints})` : "";
-      return automaticSubs.join(", ") + gain;
+      return <ShortList items={automaticSubs} suffix={gain} />;
     },
     sortUndefined: "last",
   }),
@@ -174,7 +174,7 @@ const columns = [
   columnHelper.accessor((row) => row.stillToPlay.length, {
     id: "stillToPlay",
     header: "Still to Play",
-    cell: ({ row }) => row.original.stillToPlay.join(", ") || "–",
+    cell: ({ row }) => <ShortList items={row.original.stillToPlay} />,
   }),
   columnHelper.accessor((row) => row.leagueGameweekRank ?? undefined, {
     id: "leagueGameweekRank",
@@ -241,7 +241,7 @@ const columns = [
   columnHelper.accessor((row) => row.transferOutcomes.length, {
     id: "transferOutcomes",
     header: "Each Transfer",
-    cell: ({ row }) => formatList(row.original.transferOutcomes),
+    cell: ({ row }) => <ShortList items={row.original.transferOutcomes} shown={1} />,
   }),
   columnHelper.accessor((row) => row.teamValue ?? undefined, {
     id: "teamValue",
@@ -266,12 +266,12 @@ const columns = [
   columnHelper.accessor((row) => row.playersIn.length, {
     id: "playersIn",
     header: "Players In",
-    cell: ({ row }) => row.original.playersIn.join(", ") || "–",
+    cell: ({ row }) => <ShortList items={row.original.playersIn} />,
   }),
   columnHelper.accessor((row) => row.playersOut.length, {
     id: "playersOut",
     header: "Players Out",
-    cell: ({ row }) => row.original.playersOut.join(", ") || "–",
+    cell: ({ row }) => <ShortList items={row.original.playersOut} />,
   }),
   columnHelper.accessor("benchPoints", { id: "benchPoints", header: "Points on Bench" }),
   columnHelper.accessor((row) => row.topBenched?.count ?? -Infinity, {
@@ -287,17 +287,17 @@ const columns = [
   columnHelper.accessor((row) => row.blanks.length, {
     id: "blanks",
     header: "Blanks",
-    cell: ({ row }) => formatList(row.original.blanks),
+    cell: ({ row }) => <ShortList items={row.original.blanks} />,
   }),
   columnHelper.accessor((row) => row.notReplaced.length, {
     id: "notReplaced",
     header: "Not Replaced",
-    cell: ({ row }) => formatList(row.original.notReplaced),
+    cell: ({ row }) => <ShortList items={row.original.notReplaced} />,
   }),
   columnHelper.accessor("mishapCount", {
     id: "mishaps",
     header: "Cards and Mistakes",
-    cell: ({ row }) => formatList(row.original.mishaps),
+    cell: ({ row }) => <ShortList items={row.original.mishaps} shown={1} />,
   }),
   columnHelper.accessor((row) => row.swingGain?.count ?? undefined, {
     id: "swingGain",
@@ -320,7 +320,7 @@ const columns = [
   columnHelper.accessor((row) => row.uniquePlayers.length, {
     id: "uniquePlayers",
     header: "Unique Players",
-    cell: ({ row }) => formatList(row.original.uniquePlayers),
+    cell: ({ row }) => <ShortList items={row.original.uniquePlayers} />,
   }),
 ];
 
@@ -652,7 +652,6 @@ export default function GameweekStatisticsTable({
       shortHeaders={shortHeaders}
       stickyColumn="teamName"
       subtitleColumn="managerName"
-      wrapColumns={["playersIn", "playersOut", "automaticSubs", "stillToPlay", "blanks", "notReplaced", "mishaps", "uniquePlayers", "transferOutcomes"]}
       detailNoun="team"
       detailHint={
         myTeam === null ? "Select a team to see all its stats, or to mark it as yours." : undefined
